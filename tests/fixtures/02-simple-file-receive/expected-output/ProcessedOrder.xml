@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Golden master output — what appears at C:\Output\ after orchestration completes -->
+<!-- The transform map (OrderToProcessedOrderMap.btm) adds:
+     - ProcessedDate (from DateTime.Now at transform time — 2026-02-23 in this fixture)
+     - LineTotal per item (Quantity × UnitPrice)
+     - OrderTotal (sum of all LineTotals)
+     - Status = "Accepted" (always, for this simple map)
+-->
+<ProcessedOrder xmlns="http://SimpleFileReceive.Schemas.ProcessedOrderMessage">
+  <OrderId>ORD-2026-001</OrderId>
+  <CustomerName>Contoso Ltd</CustomerName>
+  <CustomerCode>CUST-0042</CustomerCode>
+  <OrderDate>2026-02-23</OrderDate>
+  <ProcessedDate>2026-02-23</ProcessedDate>
+  <Status>Accepted</Status>
+  <Items>
+    <Item>
+      <ProductCode>PROD-101</ProductCode>
+      <Description>Azure Consulting Service</Description>
+      <Quantity>5</Quantity>
+      <UnitPrice>250.00</UnitPrice>
+      <LineTotal>1250.00</LineTotal>
+    </Item>
+    <Item>
+      <ProductCode>PROD-202</ProductCode>
+      <Description>Architecture Review Session</Description>
+      <Quantity>2</Quantity>
+      <UnitPrice>800.00</UnitPrice>
+      <LineTotal>1600.00</LineTotal>
+    </Item>
+  </Items>
+  <OrderTotal>2850.00</OrderTotal>
+</ProcessedOrder>

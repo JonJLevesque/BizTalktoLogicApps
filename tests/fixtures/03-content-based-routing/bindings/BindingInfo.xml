@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BizTalk Binding File — Content-Based Routing
+  =============================================
+  Two send ports with FILTER CONDITIONS demonstrate how BizTalk does subscription-based CBR.
+  Even in orchestration-based CBR (like this fixture), the bindings show the send port
+  filter syntax — useful for the migration engine to understand both CBR approaches.
+
+  MIGRATION NOTE — Two CBR Approaches:
+
+  Approach A (this fixture): ORCHESTRATION-based CBR
+    Orchestration has Decide shape → sends to two different bound send ports.
+    Logic Apps: single workflow with If action, two branches writing to two destinations.
+
+  Approach B: MESSAGEBOX subscription-based CBR (no orchestration)
+    Send port filters create subscriptions in MessageBox.
+    When a message arrives, BizTalk evaluates all subscriptions and routes automatically.
+    Logic Apps equivalent: separate workflows with different trigger conditions,
+    OR a router workflow that evaluates conditions and calls downstream workflows.
+-->
+<BindingInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Description>Content-Based Routing Bindings — TEST ENVIRONMENT</Description>
+  <Timestamp>2026-02-23T00:00:00</Timestamp>
+  <Version>3.5.1.0</Version>
+
+  <ModuleRefCollection>
+    <ModuleRef DisplayName="ContentBasedRouting(1.0.0.0)" Name="ContentBasedRouting">
+      <ServiceRefCollection>
+        <ServiceRef Name="OrderRouterOrchestration" FullName="ContentBasedRouting.OrderRouterOrchestration" Type="1">
+          <Ports>
+            <Port Name="ReceiveOrderPort" PortModifier="2">
+              <ReceivePortRef Name="RP_ReceiveOrders_FILE"/>
+            </Port>
+            <Port Name="HighPrioritySendPort" PortModifier="1">
+              <SendPortRef Name="SP_HighPriority_FILE"/>
+            </Port>
+            <Port Name="StandardSendPort" PortModifier="1">
+              <SendPortRef Name="SP_Standard_FILE"/>
+            </Port>
+          </Ports>
+        </ServiceRef>
+      </ServiceRefCollection>
+    </ModuleRef>
+  </ModuleRefCollection>
+
+  <SendPortCollection>
+
+    <!--
+      HIGH PRIORITY send port.
+      Adapter: FILE → writes to C:\Output\HighPriority\
+      Filter: ContentBasedRouting.Priority == "HIGH"
+
+      MIGRATION NOTE on filters:
+      When an orchestration explicitly sends to this port (via bound port), the filter is
+      technically redundant — the orchestration controls routing. However, if this were
+      a standalone send port (no orchestration), the filter creates the MessageBox subscription.
+
+      Filter condition shown here is for PROMOTED PROPERTY-based routing.
+      Migration → Logic Apps: promoted property filters map to:
+        - Service Bus filter expressions (if messages go through Service Bus)
+        - Logic Apps Condition expressions (if evaluated inline in workflow)
+    -->
+    <SendPort Name="SP_HighPriority_FILE"
+              IsStatic="true"
+              IsTwoWay="false"
+              BindingOption="0">
+
+      <PrimaryTransport>
+        <Address>C:\Output\HighPriority\%SourceFileName%</Address>
+        <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb"/>
+        <TransportTypeData>
+          <![CDATA[<CustomProps><CopyMode vt="19">0</CopyMode><AllowCacheOnWrite vt="11">0</AllowCacheOnWrite></CustomProps>]]>
+        </TransportTypeData>
+        <RetryCount>3</RetryCount>
+        <RetryInterval>5</RetryInterval>
+      </PrimaryTransport>
+
+      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.PassThruTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>
+      <Description>High-priority order output — high-value or flagged orders</Description>
+
+      <!--
+        FILTER — subscription-based CBR condition (for reference).
+        Operator codes: 0 = equals, 1 = contains, 2 = starts with
+        These promoted property filters are what BizTalk evaluates against the MessageBox.
+        In orchestration-mode (this fixture), the orchestration controls routing instead.
+      -->
+      <Filter>
+        <Group>
+          <!-- Message type subscription -->
+          <Statement Property="BTS.MessageType"
+                     Operator="0"
+                     Value="http://ContentBasedRouting.Schemas.OrderMessage#Order"/>
+          <!-- Promoted property filter: Priority = "HIGH" -->
+          <Statement Property="ContentBasedRouting.Priority"
+                     Operator="0"
+                     Value="HIGH"/>
+        </Group>
+        <!-- OR: high-value order (OrderTotal > 10000 — not directly expressible in filter syntax)
+             Note: BizTalk filter syntax does NOT support > / < operators on numeric promoted properties.
+             This is a known BizTalk CBR limitation — complex numeric routing requires orchestration. -->
+      </Filter>
+
+    </SendPort>
+
+    <!-- STANDARD send port — all orders not matching high-priority criteria -->
+    <SendPort Name="SP_Standard_FILE"
+              IsStatic="true"
+              IsTwoWay="false"
+              BindingOption="0">
+
+      <PrimaryTransport>
+        <Address>C:\Output\Standard\%SourceFileName%</Address>
+        <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb"/>
+        <TransportTypeData>
+          <![CDATA[<CustomProps><CopyMode vt="19">0</CopyMode><AllowCacheOnWrite vt="11">0</AllowCacheOnWrite></CustomProps>]]>
+        </TransportTypeData>
+        <RetryCount>3</RetryCount>
+        <RetryInterval>5</RetryInterval>
+      </PrimaryTransport>
+
+      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.PassThruTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>
+      <Description>Standard priority order output — normal orders</Description>
+
+      <Filter>
+        <Group>
+          <Statement Property="BTS.MessageType"
+                     Operator="0"
+                     Value="http://ContentBasedRouting.Schemas.OrderMessage#Order"/>
+          <Statement Property="ContentBasedRouting.Priority"
+                     Operator="0"
+                     Value="NORMAL"/>
+        </Group>
+      </Filter>
+
+    </SendPort>
+
+  </SendPortCollection>
+
+  <ReceivePortCollection>
+    <ReceivePort Name="RP_ReceiveOrders_FILE" IsTwoWay="false">
+      <Description>Receives order files for CBR routing</Description>
+      <ReceiveLocationCollection>
+        <ReceiveLocation Name="RL_ReceiveOrders_FILE">
+          <Address>C:\Input\Orders\*.xml</Address>
+          <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb"/>
+          <TransportTypeData>
+            <![CDATA[<CustomProps><PollingInterval vt="3">30000</PollingInterval><FileMask vt="8">*.xml</FileMask><BatchSize vt="3">20</BatchSize></CustomProps>]]>
+          </TransportTypeData>
+          <ReceivePipelineName>Microsoft.BizTalk.DefaultPipelines.XMLReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</ReceivePipelineName>
+          <Description>Polls C:\Input\Orders for *.xml files every 30 seconds</Description>
+          <Enable>true</Enable>
+        </ReceiveLocation>
+      </ReceiveLocationCollection>
+    </ReceivePort>
+  </ReceivePortCollection>
+
+</BindingInfo>

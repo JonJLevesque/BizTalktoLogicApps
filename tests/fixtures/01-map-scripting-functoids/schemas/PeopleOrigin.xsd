@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://ComoFuncinamOsMapas.PessoaOrigem"
+           xmlns="http://ComoFuncinamOsMapas.PessoaOrigem"
+           elementFormDefault="qualified">
+
+  <xs:element name="PessoaOrigem">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Pessoa">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Nome" type="xs:string"/>
+              <xs:element name="Apelido" type="xs:string"/>
+              <xs:element name="DataNascimento" type="xs:string"
+                          nillable="true" minOccurs="0">
+                <!-- Format: YYYY-MM-DD. Used by CalcularIdade C# functoid. -->
+              </xs:element>
+              <xs:element name="Endereco">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Rua" type="xs:string"/>
+                    <xs:element name="Numero" type="xs:string"/>
+                    <xs:element name="CodigoPostal" type="xs:string" minOccurs="0">
+                      <!-- Optional. Map conditionally includes this in output only if non-empty. -->
+                    </xs:element>
+                    <xs:element name="Cidade" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Faturamento">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Item" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Descricao" type="xs:string"/>
+                          <xs:element name="Valor" type="xs:decimal">
+                            <!-- Items with Valor < 500 go to ValoresBaixos; >= 500 go to ValoresAltos -->
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

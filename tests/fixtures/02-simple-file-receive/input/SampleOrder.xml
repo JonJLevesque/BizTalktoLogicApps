@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sample input order — what arrives at C:\Input\*.xml receive location -->
+<Order xmlns="http://SimpleFileReceive.Schemas.OrderMessage">
+  <OrderId>ORD-2026-001</OrderId>
+  <CustomerName>Contoso Ltd</CustomerName>
+  <CustomerCode>CUST-0042</CustomerCode>
+  <OrderDate>2026-02-23</OrderDate>
+  <Items>
+    <Item>
+      <ProductCode>PROD-101</ProductCode>
+      <Description>Azure Consulting Service</Description>
+      <Quantity>5</Quantity>
+      <UnitPrice>250.00</UnitPrice>
+    </Item>
+    <Item>
+      <ProductCode>PROD-202</ProductCode>
+      <Description>Architecture Review Session</Description>
+      <Quantity>2</Quantity>
+      <UnitPrice>800.00</UnitPrice>
+    </Item>
+  </Items>
+</Order>

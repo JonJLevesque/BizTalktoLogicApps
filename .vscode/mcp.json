@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "biztalk-migrate": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/dist/mcp-server/server.js"],
+      "env": {
+        "BIZTALK_LICENSE_KEY": "${env:BIZTALK_LICENSE_KEY}"
+      }
+    }
+  }
+}

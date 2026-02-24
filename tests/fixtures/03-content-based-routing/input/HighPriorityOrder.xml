@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Input: high-priority order — Priority="HIGH" AND OrderTotal > $10,000 -->
+<!-- Expected route: C:\Output\HighPriority\ (HighPriority branch of Decide shape) -->
+<Order xmlns="http://ContentBasedRouting.Schemas.OrderMessage">
+  <OrderId>ORD-HP-2026-001</OrderId>
+  <CustomerName>Enterprise Corp International</CustomerName>
+  <CustomerCode>ENT-0007</CustomerCode>
+  <Priority>HIGH</Priority>
+  <OrderDate>2026-02-23</OrderDate>
+  <OrderTotal>25000.00</OrderTotal>
+  <Items>
+    <Item>
+      <ProductCode>ENT-SUITE-001</ProductCode>
+      <Description>Enterprise Software License (Annual)</Description>
+      <Quantity>10</Quantity>
+      <UnitPrice>2500.00</UnitPrice>
+    </Item>
+  </Items>
+  <Notes>Requires immediate processing — SLA tier 1</Notes>
+</Order>

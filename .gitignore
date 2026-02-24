@@ -1,0 +1,32 @@
+# Compiled output
+dist/
+build/
+out/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Environment / secrets
+.env
+.env.*
+local.settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.vscode/.ropeproject
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,689 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-23",
+  "description": "Machine-readable component mapping data. Used by the TypeScript migration engine to look up BizTalk components and get their Logic Apps equivalents.",
+
+  "shapes": {
+    "description": "BizTalk orchestration shape → Logic Apps action mapping",
+    "Receive_Activating": {
+      "biztalkName": "Receive (activating)",
+      "odxShapeType": "ReceiveShape",
+      "odxActivating": true,
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Trigger",
+      "logicAppsType": "trigger",
+      "connectorSelectionRule": "use-adapter-connector-mapping",
+      "notes": "Polarity=Implements + Activate=true → workflow trigger. Connector depends on bound adapter.",
+      "effort": "trivial"
+    },
+    "Receive_NonActivating": {
+      "biztalkName": "Receive (correlated)",
+      "odxShapeType": "ReceiveShape",
+      "odxActivating": false,
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "ServiceProvider action (SB receive) or HTTP wait with callback URL",
+      "logicAppsType": "action",
+      "notes": "Correlation must be handled via Service Bus sessions or HTTP callback URL pattern. No native correlated receive in Logic Apps.",
+      "effort": "medium"
+    },
+    "Send_OneWay": {
+      "biztalkName": "Send (one-way)",
+      "odxShapeType": "SendShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "HTTP action or ServiceProvider action",
+      "logicAppsType": "action",
+      "connectorSelectionRule": "use-adapter-connector-mapping",
+      "notes": "Map bound send port adapter → connector. Address → connector endpoint config.",
+      "effort": "trivial"
+    },
+    "Send_RequestReply": {
+      "biztalkName": "Send (solicited receive / request-reply)",
+      "odxShapeType": "SendShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "HTTP action (response captured in body())",
+      "logicAppsType": "action",
+      "notes": "Synchronous call. Response available as body('ActionName').",
+      "effort": "low"
+    },
+    "ConstructMessage": {
+      "biztalkName": "Construct Message",
+      "odxShapeType": "ConstructShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Compose action (container for construction logic)",
+      "logicAppsType": "action",
+      "notes": "Construct Message shape is a container. Inner MessageAssignment/Transform shapes determine the action.",
+      "effort": "trivial"
+    },
+    "MessageAssignment": {
+      "biztalkName": "Message Assignment",
+      "odxShapeType": "MessageAssignmentShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Compose action or Set Variable action",
+      "logicAppsType": "action",
+      "notes": "MsgOut = MsgIn → Compose with inputs: @{triggerBody()}. Field assignment → Compose with expression object.",
+      "effort": "low",
+      "expressionTranslationRequired": true
+    },
+    "Transform": {
+      "biztalkName": "Transform",
+      "odxShapeType": "TransformShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Transform action (XSLT or Data Mapper LML)",
+      "logicAppsType": "action",
+      "notes": "References .btm map → convert map to XSLT or LML. Check for msxsl:script (scripting functoids) — may require Azure Function.",
+      "effort": "medium",
+      "mapConversionRequired": true
+    },
+    "Decide": {
+      "biztalkName": "Decide",
+      "odxShapeType": "DecisionShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "If action (2 branches) or Switch action (N branches)",
+      "logicAppsType": "action",
+      "notes": "XLANG/s condition → WDL expression. ==→equals, &&→and, ||→or, !→not. See expression-mapping.md.",
+      "effort": "low",
+      "expressionTranslationRequired": true
+    },
+    "Loop": {
+      "biztalkName": "Loop",
+      "odxShapeType": "LoopShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Until action",
+      "logicAppsType": "action",
+      "notes": "BizTalk Loop condition is entry condition (while). Until runs body THEN checks condition — invert the condition.",
+      "effort": "low",
+      "conditionInversionRequired": true
+    },
+    "ForEach": {
+      "biztalkName": "ForEach (over message collection)",
+      "odxShapeType": "LoopShape",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "ForEach action",
+      "logicAppsType": "action",
+      "notes": "BizTalk envelope debatching vs LA ForEach iteration. Parse XML/JSON array first, then ForEach.",
+      "effort": "medium"
+    },
+    "Listen": {
+      "biztalkName": "Listen",
+      "odxShapeType": "ListenShape",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "Multiple triggers / Event Grid fan-out",
+      "logicAppsType": "pattern",
+      "notes": "First event wins. Requires separate receiver workflows per channel feeding a common processor via Service Bus or Event Grid.",
+      "effort": "medium"
+    },
+    "Delay": {
+      "biztalkName": "Delay",
+      "odxShapeType": "DelayShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Delay action or Delay Until action",
+      "logicAppsType": "action",
+      "notes": "System.TimeSpan(h,m,s) → ISO 8601 PT{n}H{n}M{n}S. Absolute time → Delay Until with @{addHours(utcNow(), N)}.",
+      "effort": "low"
+    },
+    "Suspend": {
+      "biztalkName": "Suspend",
+      "odxShapeType": "SuspendShape",
+      "migrationStatus": "none",
+      "logicAppsEquivalent": "No equivalent. Terminate with failure or manual intervention required.",
+      "logicAppsType": "not-applicable",
+      "notes": "BizTalk Suspend puts orchestration in suspended queue for manual resubmit. Logic Apps has no equivalent. Design: Terminate + DLQ + resubmit workflow.",
+      "effort": "high"
+    },
+    "Terminate": {
+      "biztalkName": "Terminate",
+      "odxShapeType": "TerminateShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Terminate action",
+      "logicAppsType": "action",
+      "notes": "status='Failed' for error termination, 'Cancelled' for business-rule cancellation.",
+      "effort": "trivial"
+    },
+    "Throw": {
+      "biztalkName": "Throw",
+      "odxShapeType": "ThrowShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Terminate action (status: Failed)",
+      "logicAppsType": "action",
+      "notes": "throw new System.Exception(msg) → Terminate action with runStatus=Failed and error message.",
+      "effort": "trivial"
+    },
+    "ParallelActions": {
+      "biztalkName": "Parallel Actions",
+      "odxShapeType": "ParallelActionsShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Multiple actions with same runAfter predecessor",
+      "logicAppsType": "pattern",
+      "notes": "Actions in WDL run concurrently when they share the same runAfter dependency. No explicit parallel container needed.",
+      "effort": "low"
+    },
+    "Scope_Exception": {
+      "biztalkName": "Scope (exception handling)",
+      "odxShapeType": "ScopeShape",
+      "odxTransactionType": "None",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Scope action with runAfter:FAILED catch actions",
+      "logicAppsType": "action",
+      "notes": "Scope action contains try-body. Catch actions have runAfter: {ScopeName: [FAILED]}. Use result() to get error details.",
+      "effort": "low"
+    },
+    "Scope_LongRunning": {
+      "biztalkName": "Scope (long-running transaction)",
+      "odxShapeType": "ScopeShape",
+      "odxTransactionType": "LongRunning",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "Scope action + stateful workflow + compensation workflow design",
+      "logicAppsType": "pattern",
+      "notes": "Logic Apps Standard stateful workflow provides equivalent durability. Compensation must be designed explicitly.",
+      "effort": "medium"
+    },
+    "Scope_Atomic": {
+      "biztalkName": "Scope (atomic transaction)",
+      "odxShapeType": "ScopeShape",
+      "odxTransactionType": "Atomic",
+      "migrationStatus": "none",
+      "logicAppsEquivalent": "No equivalent. Requires Saga or Outbox pattern redesign.",
+      "logicAppsType": "pattern",
+      "notes": "MSDTC atomic scope has no Logic Apps equivalent. Redesign using Saga (compensating transactions) or Outbox pattern. See gap-analysis.md.",
+      "effort": "very-high"
+    },
+    "Compensate": {
+      "biztalkName": "Compensate",
+      "odxShapeType": "CompensateShape",
+      "migrationStatus": "none",
+      "logicAppsEquivalent": "No equivalent. Explicit compensation actions in catch scope.",
+      "logicAppsType": "not-applicable",
+      "notes": "Must design compensation logic explicitly as actions in the Scope catch branch. No automatic rollback.",
+      "effort": "very-high"
+    },
+    "CallOrchestration": {
+      "biztalkName": "Call Orchestration",
+      "odxShapeType": "CallOrchestrationShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Workflow action (type: Workflow) — Standard SKU only",
+      "logicAppsType": "action",
+      "wdlActionType": "Workflow",
+      "notes": "Synchronous child workflow call. host.workflow.id = child workflow name in same Logic Apps resource.",
+      "effort": "low"
+    },
+    "StartOrchestration": {
+      "biztalkName": "Start Orchestration",
+      "odxShapeType": "StartOrchestrationShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Service Bus send (fire-and-forget) or HTTP action to trigger URL",
+      "logicAppsType": "action",
+      "notes": "Async fire-and-forget. Publish to Service Bus queue/topic → separate consumer workflow. Or HTTP POST to child workflow trigger URL.",
+      "effort": "low"
+    },
+    "CallRules": {
+      "biztalkName": "Call Rules (BRE)",
+      "odxShapeType": "CallRulesShape",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "If/Switch inline conditions or Azure Functions (for complex rules)",
+      "logicAppsType": "action",
+      "notes": "Simple rules → inline If/Switch. Complex BRE hierarchies → Azure Functions with rule logic or Azure Rules Engine. See gap-analysis.md.",
+      "effort": "high"
+    },
+    "Expression": {
+      "biztalkName": "Expression",
+      "odxShapeType": "ExpressionShape",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Set Variable action or Initialize Variable action",
+      "logicAppsType": "action",
+      "notes": "Variable assignment expressions → SetVariable. New variable declarations → InitializeVariable in trigger inputs.",
+      "effort": "low",
+      "expressionTranslationRequired": true
+    }
+  },
+
+  "adapters": {
+    "description": "BizTalk adapter → Logic Apps connector mapping. Keys are BizTalk adapter names.",
+    "FILE_cloud": {
+      "biztalkAdapter": "FILE",
+      "scenario": "Cloud target (Azure Blob)",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "Azure Blob Storage",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/AzureBlob",
+      "requiresGateway": false,
+      "configMapping": {
+        "PollingInterval_ms": "recurrence.interval (convert ms → minutes)",
+        "FileMask": "blobMatchingCondition.matchWildcardPattern",
+        "FolderPath": "containerName (folder path → blob container/virtual path)"
+      },
+      "effort": "low"
+    },
+    "FILE_onprem": {
+      "biztalkAdapter": "FILE",
+      "scenario": "On-premises file system",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "File System",
+      "connectorType": "built-in",
+      "requiresGateway": true,
+      "gatewayType": "on-premises-data-gateway",
+      "effort": "medium"
+    },
+    "FTP": {
+      "biztalkAdapter": "FTP",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "FTP",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/ftp",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "SFTP": {
+      "biztalkAdapter": "SFTP",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "SFTP-SSH",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/sftp",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "HTTP_receive": {
+      "biztalkAdapter": "HTTP",
+      "scenario": "receive location",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "HTTP Request trigger",
+      "connectorType": "built-in",
+      "wdlTriggerKind": "Http",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "HTTP_send": {
+      "biztalkAdapter": "HTTP",
+      "scenario": "send port",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "HTTP action",
+      "connectorType": "built-in",
+      "wdlActionType": "Http",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "SOAP_receive": {
+      "biztalkAdapter": "SOAP",
+      "scenario": "receive",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "HTTP Request trigger",
+      "connectorType": "built-in",
+      "notes": "Parse SOAP envelope in workflow. SOAPAction header → routing decision.",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "SOAP_send": {
+      "biztalkAdapter": "SOAP",
+      "scenario": "send",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "HTTP action",
+      "connectorType": "built-in",
+      "notes": "Set Content-Type: text/xml. Add SOAPAction header. Build SOAP envelope via Compose.",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "WCF_BasicHttp": {
+      "biztalkAdapter": "WCF-BasicHttp",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "HTTP action",
+      "connectorType": "built-in",
+      "wdlActionType": "Http",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "WCF_WSHttp": {
+      "biztalkAdapter": "WCF-WSHttp",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "HTTP action + manual WS-Security headers",
+      "connectorType": "built-in",
+      "notes": "WS-Security headers must be built manually using SOAP header construction.",
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "WCF_NetTcp": {
+      "biztalkAdapter": "WCF-NetTcp",
+      "migrationStatus": "none",
+      "logicAppsConnector": "Azure Functions (.NET with System.ServiceModel)",
+      "connectorType": "azure-function",
+      "notes": "No TCP connector in Logic Apps. Azure Functions can host WCF client (netTcpBinding). Function exposed as HTTP to Logic Apps.",
+      "requiresGateway": false,
+      "effort": "high"
+    },
+    "WCF_NetNamedPipe": {
+      "biztalkAdapter": "WCF-NetNamedPipe",
+      "migrationStatus": "none",
+      "logicAppsConnector": "NOT MIGRATABLE",
+      "connectorType": "not-applicable",
+      "notes": "Named pipe is same-machine IPC only. Cannot be exposed over network. Redesign required: change endpoint to HTTP REST or replace with Service Bus.",
+      "requiresGateway": false,
+      "effort": "very-high",
+      "blocksDeployment": true
+    },
+    "WCF_NetMsmq": {
+      "biztalkAdapter": "WCF-NetMsmq",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "Azure Service Bus",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/serviceBus",
+      "notes": "MSMQ queues → Service Bus queues. MSMQ transaction semantics → Service Bus sessions for ordering.",
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "MSMQ": {
+      "biztalkAdapter": "MSMQ",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "Azure Service Bus",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/serviceBus",
+      "notes": "MSMQ queues → Service Bus queues. Transactional MSMQ → Service Bus sessions.",
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "SB_Messaging": {
+      "biztalkAdapter": "SB-Messaging",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "Azure Service Bus",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/serviceBus",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "EventHubs": {
+      "biztalkAdapter": "Event Hubs",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "Azure Event Hubs",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/eventHubs",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "MQSeries": {
+      "biztalkAdapter": "MQSeries",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "IBM MQ",
+      "connectorType": "built-in",
+      "notes": "Standard SKU only. Queue manager / queue name / channel map to connector config.",
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "SQL_cloud": {
+      "biztalkAdapter": "SQL",
+      "scenario": "Azure SQL or cloud SQL Server",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "SQL Server",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/sql",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "SQL_onprem": {
+      "biztalkAdapter": "SQL",
+      "scenario": "On-premises SQL Server",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "SQL Server",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/sql",
+      "requiresGateway": true,
+      "gatewayType": "on-premises-data-gateway",
+      "effort": "medium"
+    },
+    "OracleDB": {
+      "biztalkAdapter": "Oracle DB",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "Oracle Database",
+      "connectorType": "managed",
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "SAP_onprem": {
+      "biztalkAdapter": "SAP",
+      "scenario": "On-premises SAP",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "SAP ERP",
+      "connectorType": "managed",
+      "requiresGateway": true,
+      "gatewayType": "on-premises-data-gateway",
+      "notes": "Supports IDocs, BAPIs, RFCs. SAP .NET connector (NCo) required on gateway machine.",
+      "effort": "medium"
+    },
+    "POP3": {
+      "biztalkAdapter": "POP3",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "Office 365 Outlook or IMAP",
+      "connectorType": "managed",
+      "notes": "Office 365 Outlook for Exchange/M365. IMAP connector for non-Exchange mailboxes.",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "SMTP": {
+      "biztalkAdapter": "SMTP",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "SMTP",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/smtp",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "AzureBlob": {
+      "biztalkAdapter": "Azure Blob Storage",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "Azure Blob Storage",
+      "connectorType": "built-in",
+      "serviceProviderId": "/serviceProviders/AzureBlob",
+      "requiresGateway": false,
+      "effort": "trivial"
+    },
+    "SharePoint_Online": {
+      "biztalkAdapter": "SharePoint",
+      "scenario": "SharePoint Online",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "SharePoint Online",
+      "connectorType": "managed",
+      "requiresGateway": false,
+      "effort": "low"
+    },
+    "SharePoint_OnPrem": {
+      "biztalkAdapter": "SharePoint",
+      "scenario": "SharePoint on-premises",
+      "migrationStatus": "partial",
+      "logicAppsConnector": "SharePoint Server",
+      "connectorType": "managed",
+      "requiresGateway": true,
+      "gatewayType": "on-premises-data-gateway",
+      "effort": "medium"
+    },
+    "EDI_X12": {
+      "biztalkAdapter": "EDI (X12)",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "X12 (Integration Account)",
+      "connectorType": "built-in",
+      "requiresIntegrationAccount": true,
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "EDI_EDIFACT": {
+      "biztalkAdapter": "EDI (EDIFACT)",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "EDIFACT (Integration Account)",
+      "connectorType": "built-in",
+      "requiresIntegrationAccount": true,
+      "requiresGateway": false,
+      "effort": "medium"
+    },
+    "AS2": {
+      "biztalkAdapter": "AS2",
+      "migrationStatus": "direct",
+      "logicAppsConnector": "AS2 (Integration Account)",
+      "connectorType": "built-in",
+      "requiresIntegrationAccount": true,
+      "requiresGateway": false,
+      "effort": "medium"
+    }
+  },
+
+  "pipelineComponents": {
+    "description": "BizTalk pipeline component → Logic Apps equivalent",
+    "XMLDisassembler": {
+      "component": "XML Disassembler",
+      "stage": "Disassemble",
+      "direction": "receive",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "HTTP Request trigger body (XML parsed via xpath() or Parse XML)",
+      "notes": "No explicit disassembly step needed — Logic Apps actions work with raw body.",
+      "effort": "trivial"
+    },
+    "FlatFileDisassembler": {
+      "component": "Flat File Disassembler",
+      "stage": "Disassemble",
+      "direction": "receive",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "Azure Functions (custom flat file parser)",
+      "notes": "No native flat file disassembler. Implement parsing logic in Azure Functions (.NET or Node.js).",
+      "effort": "medium"
+    },
+    "XMLValidator": {
+      "component": "XML Validator",
+      "stage": "Validate",
+      "direction": "receive",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "Validate action (Integration Account schema) or inline JSON Schema validation",
+      "effort": "low"
+    },
+    "EDIDisassembler": {
+      "component": "EDI Disassembler",
+      "stage": "Disassemble",
+      "direction": "receive",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "X12 Decode / EDIFACT Decode (Integration Account)",
+      "requiresIntegrationAccount": true,
+      "effort": "medium"
+    },
+    "XMLAssembler": {
+      "component": "XML Assembler",
+      "stage": "Assemble",
+      "direction": "send",
+      "migrationStatus": "direct",
+      "logicAppsEquivalent": "Compose action (construct XML body)",
+      "effort": "trivial"
+    },
+    "FlatFileAssembler": {
+      "component": "Flat File Assembler",
+      "stage": "Assemble",
+      "direction": "send",
+      "migrationStatus": "partial",
+      "logicAppsEquivalent": "Azure Functions (custom flat file formatter)",
+      "effort": "medium"
+    }
+  },
+
+  "functoids": {
+    "description": "BizTalk map functoid → Logic Apps / WDL expression equivalent. FID = Functoid ID range.",
+    "categories": {
+      "string": {
+        "fid_range": "104-165",
+        "mappings": {
+          "StringConcat": { "fid": 104, "wdlEquivalent": "concat(s1, s2, ...)", "effort": "trivial" },
+          "StringFind": { "fid": 105, "wdlEquivalent": "indexOf(text, substring)", "effort": "trivial" },
+          "StringLeft": { "fid": 106, "wdlEquivalent": "substring(text, 0, length)", "effort": "low" },
+          "StringRight": { "fid": 107, "wdlEquivalent": "substring(text, sub(length(text), n))", "effort": "low" },
+          "StringLength": { "fid": 108, "wdlEquivalent": "length(text)", "effort": "trivial" },
+          "StringToLower": { "fid": 109, "wdlEquivalent": "toLower(text)", "effort": "trivial" },
+          "StringToUpper": { "fid": 110, "wdlEquivalent": "toUpper(text)", "effort": "trivial" },
+          "StringTrimLeft": { "fid": 111, "wdlEquivalent": "trimStart(text)", "effort": "trivial" },
+          "StringTrimRight": { "fid": 112, "wdlEquivalent": "trimEnd(text)", "effort": "trivial" },
+          "StringExtract": { "fid": 113, "wdlEquivalent": "substring(text, start, length)", "effort": "low" },
+          "SizeOf": { "fid": 150, "wdlEquivalent": "length(string(value))", "effort": "low" }
+        }
+      },
+      "math": {
+        "fid_range": "200-265",
+        "mappings": {
+          "Addition": { "fid": 200, "wdlEquivalent": "add(x, y)", "effort": "trivial" },
+          "Subtraction": { "fid": 201, "wdlEquivalent": "sub(x, y)", "effort": "trivial" },
+          "Multiplication": { "fid": 202, "wdlEquivalent": "mul(x, y)", "effort": "trivial" },
+          "Division": { "fid": 203, "wdlEquivalent": "div(x, y)", "effort": "trivial" },
+          "Modulo": { "fid": 204, "wdlEquivalent": "mod(x, y)", "effort": "trivial" },
+          "Absolute Value": { "fid": 205, "wdlEquivalent": "abs(value) — not in WDL core; use Azure Functions or max(x, mul(-1, x))", "effort": "low" },
+          "Integer": { "fid": 206, "wdlEquivalent": "int(value)", "effort": "trivial" },
+          "Maximum Value": { "fid": 207, "wdlEquivalent": "max(x, y) — not in WDL; use Azure Functions for multi-value", "effort": "low" },
+          "Minimum Value": { "fid": 208, "wdlEquivalent": "min(x, y) — not in WDL; use Azure Functions for multi-value", "effort": "low" },
+          "Round": { "fid": 209, "wdlEquivalent": "float(formatNumber(value, 'F0'))", "effort": "medium" },
+          "Square Root": { "fid": 210, "wdlEquivalent": "Azure Functions (Math.Sqrt)", "effort": "low" }
+        }
+      },
+      "logical": {
+        "fid_range": "300-365",
+        "mappings": {
+          "Logical AND": { "fid": 300, "wdlEquivalent": "and(expr1, expr2)", "effort": "trivial" },
+          "Logical OR": { "fid": 301, "wdlEquivalent": "or(expr1, expr2)", "effort": "trivial" },
+          "Logical NOT": { "fid": 302, "wdlEquivalent": "not(expr)", "effort": "trivial" },
+          "Equal": { "fid": 303, "wdlEquivalent": "equals(x, y)", "effort": "trivial" },
+          "Greater Than": { "fid": 304, "wdlEquivalent": "greater(x, y)", "effort": "trivial" },
+          "Greater Than or Equal": { "fid": 305, "wdlEquivalent": "greaterOrEquals(x, y)", "effort": "trivial" },
+          "Less Than": { "fid": 306, "wdlEquivalent": "less(x, y)", "effort": "trivial" },
+          "Less Than or Equal": { "fid": 307, "wdlEquivalent": "lessOrEquals(x, y)", "effort": "trivial" },
+          "Logical ExistenceCheck": { "fid": 350, "wdlEquivalent": "not(empty(value))", "effort": "trivial" },
+          "Logical IsNil": { "fid": 351, "wdlEquivalent": "equals(value, null)", "effort": "trivial" },
+          "Logical IsString": { "fid": 352, "wdlEquivalent": "equals(string(value), value)", "effort": "low" },
+          "Logical IsNumeric": { "fid": 353, "wdlEquivalent": "not(equals(float(value), null)) — use Azure Functions", "effort": "medium" },
+          "Logical IsDate": { "fid": 354, "wdlEquivalent": "Azure Functions (DateTime.TryParse)", "effort": "medium" }
+        }
+      },
+      "datetime": {
+        "fid_range": "400-460",
+        "mappings": {
+          "Date": { "fid": 400, "wdlEquivalent": "utcNow('yyyy-MM-dd')", "effort": "trivial" },
+          "Time": { "fid": 401, "wdlEquivalent": "utcNow('HH:mm:ss')", "effort": "trivial" },
+          "Date and Time": { "fid": 402, "wdlEquivalent": "utcNow()", "effort": "trivial" },
+          "AddDays": { "fid": 403, "wdlEquivalent": "addDays(dateTime, days)", "effort": "trivial" }
+        }
+      },
+      "conversion": {
+        "fid_range": "500-565",
+        "mappings": {
+          "ASCII to Character": { "fid": 500, "wdlEquivalent": "Azure Functions (char conversion)", "effort": "low" },
+          "Character to ASCII": { "fid": 501, "wdlEquivalent": "Azure Functions", "effort": "low" },
+          "Hexadecimal to Decimal": { "fid": 502, "wdlEquivalent": "Azure Functions (int.Parse hex)", "effort": "low" },
+          "Decimal to Hexadecimal": { "fid": 503, "wdlEquivalent": "Azure Functions", "effort": "low" }
+        }
+      },
+      "cumulative": {
+        "fid_range": "700-760",
+        "mappings": {
+          "Cumulative Sum": { "fid": 700, "wdlEquivalent": "XSLT sum() with predicate filter or reduce in Data Mapper", "effort": "medium" },
+          "Cumulative Count": { "fid": 701, "wdlEquivalent": "XSLT count() or length() on array", "effort": "low" },
+          "Cumulative Maximum": { "fid": 702, "wdlEquivalent": "XSLT or Azure Functions", "effort": "medium" },
+          "Cumulative Minimum": { "fid": 703, "wdlEquivalent": "XSLT or Azure Functions", "effort": "medium" }
+        }
+      },
+      "advanced": {
+        "fid_range": "900-960",
+        "mappings": {
+          "Looping": { "fid": 900, "wdlEquivalent": "ForEach in LML / XSLT for-each", "effort": "medium" },
+          "Index": { "fid": 903, "wdlEquivalent": "XSLT position() or array index in LML", "effort": "medium" },
+          "Iteration": { "fid": 906, "wdlEquivalent": "ForEach action", "effort": "medium" },
+          "Mass Copy": { "fid": 907, "wdlEquivalent": "XSLT identity transform (copy-of)", "effort": "low" },
+          "Nil Value": { "fid": 910, "wdlEquivalent": "null or empty string in Compose", "effort": "trivial" },
+          "Record Count": { "fid": 911, "wdlEquivalent": "XSLT count() or length()", "effort": "low" },
+          "Table Looping": { "fid": 920, "wdlEquivalent": "ForEach action or XSLT for-each", "effort": "medium" },
+          "Table Extractor": { "fid": 921, "wdlEquivalent": "Array index access in LML", "effort": "medium" }
+        }
+      },
+      "scripting": {
+        "fid_range": "10000+",
+        "notes": "Scripting functoids compile to msxsl:script C# blocks in the generated XSLT. These are NOT compatible with Logic Apps XSLT action (.NET XslCompiledTransform). Must be rewritten.",
+        "migrationOptions": [
+          "Option A: Rewrite functoid logic as pure XSLT 1.0 (remove msxsl:script blocks)",
+          "Option B: Rewrite as Data Mapper LML expression",
+          "Option C: Wrap logic in Azure Functions and call from Logic Apps"
+        ],
+        "detectionPattern": "XSL stylesheet contains namespace xmlns:userCSharp and msxsl:script element with language='C#'"
+      },
+      "database": {
+        "fid_range": "60-99",
+        "notes": "Database functoids perform lookups at map execution time. Migrate to: message enricher pattern (HTTP/SQL action before map step).",
+        "effort": "medium"
+      }
+    }
+  }
+}

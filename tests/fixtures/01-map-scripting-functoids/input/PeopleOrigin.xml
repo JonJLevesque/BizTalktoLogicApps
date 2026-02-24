@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PessoaOrigem xmlns="http://ComoFuncinamOsMapas.PessoaOrigem">
+  <Pessoa>
+    <Nome>João</Nome>
+    <Apelido>Silva</Apelido>
+    <DataNascimento>1985-07-15</DataNascimento>
+    <Endereco>
+      <Rua>Rua das Flores</Rua>
+      <Numero>42</Numero>
+      <CodigoPostal>1234-567</CodigoPostal>
+      <Cidade>Lisboa</Cidade>
+    </Endereco>
+    <Faturamento>
+      <Item>
+        <Descricao>Produto A</Descricao>
+        <Valor>150.00</Valor>
+      </Item>
+      <Item>
+        <Descricao>Produto B</Descricao>
+        <Valor>600.00</Valor>
+      </Item>
+      <Item>
+        <Descricao>Produto C</Descricao>
+        <Valor>75.00</Valor>
+      </Item>
+    </Faturamento>
+  </Pessoa>
+</PessoaOrigem>

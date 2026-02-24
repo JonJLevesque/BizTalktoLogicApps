@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!--
+  BizTalk Orchestration (ODX) — Simple File Receive
+  ===================================================
+  Shapes: Receive (activating, FILE adapter) → Construct/Transform → Send (FILE adapter)
+  Pattern: Linear — no branching, no correlation, no error handling
+  Complexity: Simple
+
+  ODX files are stored in BizTalk projects as XML documents with the om: namespace.
+  The orchestration designer in Visual Studio reads and writes this format.
+-->
+<om:Module xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+  <om:Property Name="InitialCodeFile" Value="SimpleFileReceive.odx"/>
+  <om:Property Name="InitialNamespace" Value="SimpleFileReceive"/>
+  <om:Property Name="InitialTypeName" Value="SimpleFileOrchestration"/>
+  <om:Property Name="Notes" Value="Receives XML order from file share, transforms to processed order, writes output file"/>
+
+  <!-- Service = the orchestration type -->
+  <om:Service Name="SimpleFileOrchestration">
+    <om:Property Name="Type" Value="Public"/>
+    <om:Property Name="Compensation" Value="Default"/>
+    <om:Property Name="Transaction" Value="None"/>
+
+    <!--
+      Message declarations
+      Messages are typed instances of XML schemas (or .NET classes).
+      Each message declared here is a variable available throughout the orchestration.
+      Migration: These map to Logic Apps workflow variables or body() references.
+    -->
+    <om:MessageDeclaration Name="IncomingOrder" Type="SimpleFileReceive.Schemas.OrderMessage"/>
+    <om:MessageDeclaration Name="OutgoingOrder" Type="SimpleFileReceive.Schemas.ProcessedOrderMessage"/>
+
+    <!--
+      Port declarations
+      Ports define the communication channels (send/receive endpoints).
+      Migration: Receive port → Trigger; Send port → Action (HTTP/Blob/ServiceBus)
+    -->
+    <om:PortDeclaration Name="ReceiveOrderPort"
+                        Type="SimpleFileReceive.PortTypes.IReceiveOrder"
+                        Modifier="Private"
+                        Polarity="Implements">
+      <!--
+        Implements = this orchestration IS the service (port binds inbound message TO this orch)
+        Polarity="Implements" + activating Receive → generates an activation subscription in MessageBox
+      -->
+    </om:PortDeclaration>
+
+    <om:PortDeclaration Name="SendOrderPort"
+                        Type="SimpleFileReceive.PortTypes.ISendProcessedOrder"
+                        Modifier="Private"
+                        Polarity="Uses">
+      <!-- Uses = this orchestration calls an external service (sends message OUT) -->
+    </om:PortDeclaration>
+
+    <!--
+      Orchestration Body — the shape graph
+      Shapes are rendered visually in the BizTalk orchestration designer.
+      Migration engine parses these shapes to build the IntegrationIntent.
+    -->
+    <om:Body>
+      <om:Shape Name="BeginOrchestration" Type="BodyShape">
+        <!--
+          RECEIVE SHAPE (activating)
+          - ActivatesCorrelation="true" → this Receive creates a new orchestration instance
+          - Without activation, a Receive would route to an existing running instance
+          - Migration → Logic Apps: this becomes the TRIGGER
+          - The trigger type is determined by the adapter on the bound receive location (from BindingInfo.xml)
+          - FILE adapter → polling trigger (Azure Blob or FileSystem connector)
+        -->
+        <om:Shape Name="ReceiveOrder" Type="ReceiveShape">
+          <om:Property Name="ActivatesCorrelation" Value="true"/>
+          <om:Property Name="Message" Value="IncomingOrder"/>
+          <om:Property Name="Notes" Value="Activating receive — creates orchestration instance when file arrives"/>
+          <om:Port Name="ReceiveOrderPort"/>
+        </om:Shape>
+
+        <!--
+          CONSTRUCT MESSAGE SHAPE
+          Wraps message construction actions (Transform or MessageAssignment).
+          Migration: this scope becomes a Transform action in Logic Apps.
+        -->
+        <om:Shape Name="BuildProcessedOrder" Type="ConstructShape">
+          <om:Property Name="Messages" Value="OutgoingOrder"/>
+          <om:Property Name="Notes" Value="Construct the outgoing ProcessedOrder message"/>
+
+          <!--
+            TRANSFORM SHAPE (inside Construct)
+            References a BTM map class — the compiled map transforms IncomingOrder → OutgoingOrder.
+            Migration: this becomes a Transform XML action or Xslt action pointing to a converted map.
+          -->
+          <om:Shape Name="ApplyOrderMap" Type="TransformShape">
+            <om:Property Name="ClassName" Value="SimpleFileReceive.Maps.OrderToProcessedOrderMap"/>
+            <om:Property Name="Source Message" Value="IncomingOrder"/>
+            <om:Property Name="Destination Message" Value="OutgoingOrder"/>
+            <om:Property Name="Notes" Value="Applies BTM map: Order → ProcessedOrder (adds ProcessedDate, LineTotals, OrderTotal)"/>
+          </om:Shape>
+        </om:Shape>
+
+        <!--
+          SEND SHAPE
+          Sends the constructed message out via the bound send port.
+          Migration → Logic Apps: this becomes an action (Blob create, HTTP POST, etc.)
+          based on the adapter type on the bound send port (from BindingInfo.xml).
+        -->
+        <om:Shape Name="WriteProcessedOrder" Type="SendShape">
+          <om:Property Name="Message" Value="OutgoingOrder"/>
+          <om:Property Name="Notes" Value="Write ProcessedOrder to output file via FILE send port"/>
+          <om:Port Name="SendOrderPort"/>
+        </om:Shape>
+
+      </om:Shape>
+    </om:Body>
+
+  </om:Service>
+</om:Module>

@@ -1,0 +1,774 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-23",
+  "description": "Decision tree configurations for automated migration path selection. Each tree is a directed acyclic graph of condition nodes and leaf (result) nodes. Traversal starts at 'root'.",
+
+  "nodeSchema": {
+    "description": "Shape of each node in a decision tree",
+    "conditionNode": {
+      "id": "string — unique within tree",
+      "type": "condition",
+      "question": "string — what to evaluate about the BizTalk artifact or intent",
+      "evaluates": "string — dot-path into MigrationResult or IntegrationIntent to check",
+      "yes": "string — node ID if condition is true",
+      "no": "string — node ID if condition is false"
+    },
+    "leafNode": {
+      "id": "string",
+      "type": "leaf",
+      "result": {
+        "recommendation": "string — primary recommendation",
+        "rationale": "string — why this recommendation",
+        "connectorId": "string? — Logic Apps connector/service ID if applicable",
+        "warnings": "string[]? — things to watch out for",
+        "nextSteps": "string[]? — actionable follow-up steps"
+      }
+    }
+  },
+
+  "trees": {
+
+    "skuSelection": {
+      "description": "Determine the correct Logic Apps SKU for a migration scenario",
+      "root": "check_onprem",
+      "nodes": {
+        "check_onprem": {
+          "id": "check_onprem",
+          "type": "condition",
+          "question": "Does the application connect to on-premises or private network systems?",
+          "evaluates": "integrationIntent.systems[*].onPremises",
+          "yes": "check_vnet_acceptable",
+          "no": "check_long_running"
+        },
+        "check_vnet_acceptable": {
+          "id": "check_vnet_acceptable",
+          "type": "condition",
+          "question": "Is VNET injection acceptable (managed Azure compute with private networking)?",
+          "evaluates": "context.vnetIntegrationAcceptable",
+          "yes": "result_standard_vnet",
+          "no": "result_standard_hybrid"
+        },
+        "check_long_running": {
+          "id": "check_long_running",
+          "type": "condition",
+          "question": "Do any orchestrations run for more than 90 days or require stateful dehydration?",
+          "evaluates": "biztalkApplication.artifacts.orchestrations[*].hasLongRunningScope",
+          "yes": "result_standard_stateful",
+          "no": "check_high_throughput"
+        },
+        "check_high_throughput": {
+          "id": "check_high_throughput",
+          "type": "condition",
+          "question": "Is sustained throughput > 50 messages/second required?",
+          "evaluates": "context.expectedThroughputMsgPerSec",
+          "yes": "result_standard_dedicated",
+          "no": "check_biztalk_migration"
+        },
+        "check_biztalk_migration": {
+          "id": "check_biztalk_migration",
+          "type": "condition",
+          "question": "Is this a BizTalk Server migration (as opposed to net-new development)?",
+          "evaluates": "integrationIntent.metadata.source",
+          "yes": "result_standard_default",
+          "no": "check_simple_stateless"
+        },
+        "check_simple_stateless": {
+          "id": "check_simple_stateless",
+          "type": "condition",
+          "question": "Is the workflow simple, stateless, and cloud-only?",
+          "evaluates": "biztalkApplication.complexityClassification",
+          "yes": "result_consumption_viable",
+          "no": "result_standard_default"
+        },
+        "result_standard_vnet": {
+          "id": "result_standard_vnet",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Standard with VNET Integration",
+            "sku": "standard",
+            "rationale": "On-premises connectivity requires private network access. Standard plan supports VNET injection.",
+            "azureServices": ["logic-apps-standard"],
+            "warnings": ["VNET integration requires Standard plan (Workflow Standard or higher)", "Premium hosting plan required for VNET injection"],
+            "nextSteps": [
+              "Configure VNET integration in Logic Apps Standard resource",
+              "Set up private endpoints for Azure services (Service Bus, Storage)",
+              "Install on-premises data gateway for connectors that require it"
+            ]
+          }
+        },
+        "result_standard_hybrid": {
+          "id": "result_standard_hybrid",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Standard Hybrid (Azure Arc)",
+            "sku": "standard-hybrid",
+            "rationale": "VNET injection not acceptable. Use Logic Apps Standard with Azure Arc to run on-premises.",
+            "azureServices": ["logic-apps-standard"],
+            "warnings": ["Hybrid mode requires Azure Arc-enabled Kubernetes or Container Apps", "More complex infrastructure setup"],
+            "nextSteps": [
+              "Set up Azure Arc-enabled infrastructure on-premises",
+              "Deploy Logic Apps Standard Hybrid extension",
+              "Configure connected environment"
+            ]
+          }
+        },
+        "result_standard_stateful": {
+          "id": "result_standard_stateful",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Standard (Stateful workflows)",
+            "sku": "standard",
+            "rationale": "Long-running orchestrations require stateful execution with checkpoint persistence. Standard stateful workflows support up to 1-year run duration.",
+            "azureServices": ["logic-apps-standard"],
+            "nextSteps": [
+              "Use Stateful workflow type (not Stateless)",
+              "Configure Azure Storage for checkpoint persistence",
+              "Design timer-based escalation using Delay-Until action"
+            ]
+          }
+        },
+        "result_standard_dedicated": {
+          "id": "result_standard_dedicated",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Standard (dedicated plan, tuned concurrency)",
+            "sku": "standard",
+            "rationale": "High throughput requires dedicated compute and configurable concurrency settings.",
+            "azureServices": ["logic-apps-standard"],
+            "nextSteps": [
+              "Set runtimeConfiguration.concurrency in workflow triggers",
+              "Configure host.json extensionBundle and scaling settings",
+              "Monitor with Application Insights and set throughput alerts"
+            ]
+          }
+        },
+        "result_standard_default": {
+          "id": "result_standard_default",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Standard (recommended default for all BizTalk migrations)",
+            "sku": "standard",
+            "rationale": "Standard SKU provides stateful execution matching BizTalk's orchestration model, built-in ServiceProvider connectors for better performance, and VNET integration capability.",
+            "azureServices": ["logic-apps-standard"],
+            "nextSteps": [
+              "Create Logic Apps Standard resource in Azure",
+              "Configure Application Insights for monitoring",
+              "Set up Key Vault for credential storage"
+            ]
+          }
+        },
+        "result_consumption_viable": {
+          "id": "result_consumption_viable",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Logic Apps Consumption (acceptable for simple stateless workflows, but Standard preferred)",
+            "sku": "consumption",
+            "rationale": "Simple stateless cloud-only workflows can use Consumption plan. However, Standard is still preferred for consistency in migration projects.",
+            "warnings": [
+              "Consumption does not support built-in (ServiceProvider) connectors — all connectors are managed",
+              "Max run duration 90 days",
+              "No VNET integration",
+              "Consider Standard for future-proofing"
+            ]
+          }
+        }
+      }
+    },
+
+    "connectorType": {
+      "description": "Determine the correct Logic Apps connector type for a given BizTalk adapter",
+      "root": "check_builtin_available",
+      "nodes": {
+        "check_builtin_available": {
+          "id": "check_builtin_available",
+          "type": "condition",
+          "question": "Is a built-in (ServiceProvider) connector available for this adapter's protocol?",
+          "evaluates": "adapter.connectorType",
+          "yes": "result_use_builtin",
+          "no": "check_managed_available"
+        },
+        "check_managed_available": {
+          "id": "check_managed_available",
+          "type": "condition",
+          "question": "Is a managed ApiConnection connector available in the Logic Apps connector catalog?",
+          "evaluates": "adapter.managedConnectorAvailable",
+          "yes": "check_needs_gateway",
+          "no": "check_http_accessible"
+        },
+        "check_needs_gateway": {
+          "id": "check_needs_gateway",
+          "type": "condition",
+          "question": "Does the target require on-premises or private network connectivity?",
+          "evaluates": "adapter.requiresGateway",
+          "yes": "result_managed_with_gateway",
+          "no": "result_managed_standard"
+        },
+        "check_http_accessible": {
+          "id": "check_http_accessible",
+          "type": "condition",
+          "question": "Is the target accessible via HTTP/REST (internet or private with VNET)?",
+          "evaluates": "adapter.httpAccessible",
+          "yes": "result_http_action",
+          "no": "check_dotnet_client"
+        },
+        "check_dotnet_client": {
+          "id": "check_dotnet_client",
+          "type": "condition",
+          "question": "Is there a .NET client library available for this proprietary protocol?",
+          "evaluates": "adapter.dotnetClientAvailable",
+          "yes": "result_azure_function",
+          "no": "result_redesign_required"
+        },
+        "result_use_builtin": {
+          "id": "result_use_builtin",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Use built-in (ServiceProvider) connector",
+            "connectorCategory": "built-in",
+            "rationale": "Built-in connectors run in-process with the Logic Apps runtime — lower latency, no extra managed connector hop, simpler config in connections.json.",
+            "nextSteps": [
+              "Add serviceProviderConnections entry in connections.json",
+              "Add connection string to App Settings (reference Key Vault)",
+              "Use serviceProviderConfiguration in action inputs"
+            ]
+          }
+        },
+        "result_managed_standard": {
+          "id": "result_managed_standard",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Use managed (ApiConnection) connector",
+            "connectorCategory": "managed",
+            "rationale": "No built-in connector available but a managed connector exists in the catalog.",
+            "nextSteps": [
+              "Create API Connection resource in Azure",
+              "Add managedApiConnections entry in connections.json",
+              "Authenticate via OAuth, managed identity, or API key per connector docs"
+            ]
+          }
+        },
+        "result_managed_with_gateway": {
+          "id": "result_managed_with_gateway",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Use managed connector + On-Premises Data Gateway",
+            "connectorCategory": "managed",
+            "requiresGateway": true,
+            "rationale": "Managed connector available but target is on-premises. On-premises data gateway bridges Logic Apps to the private network.",
+            "nextSteps": [
+              "Install On-Premises Data Gateway on a machine with network access to the target",
+              "Register gateway in Azure Portal",
+              "Associate gateway with the API connection",
+              "Verify gateway machine has required drivers (SQL, SAP, etc.)"
+            ]
+          }
+        },
+        "result_http_action": {
+          "id": "result_http_action",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Use built-in HTTP action",
+            "connectorCategory": "built-in",
+            "rationale": "No specific connector needed. The HTTP action handles any REST/SOAP endpoint with configurable method, headers, and auth.",
+            "nextSteps": [
+              "Configure HTTP action with method, URI, headers, body",
+              "Set authentication: Managed Identity, Basic, OAuth, or Certificate",
+              "Add retry policy for resilience"
+            ]
+          }
+        },
+        "result_azure_function": {
+          "id": "result_azure_function",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Build Azure Function wrapping the proprietary protocol",
+            "connectorCategory": "azure-function",
+            "rationale": ".NET client library available but protocol not supported natively in Logic Apps. Azure Functions (.NET) can host the client and expose it as HTTP.",
+            "nextSteps": [
+              "Create Azure Functions (.NET 8 isolated) project",
+              "Implement protocol client (WCF/TCP/proprietary) in the function",
+              "Expose as HTTP trigger",
+              "Call Azure Function from Logic Apps via HTTP action"
+            ]
+          }
+        },
+        "result_redesign_required": {
+          "id": "result_redesign_required",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Redesign required — no migration path available",
+            "connectorCategory": "not-applicable",
+            "rationale": "No connector, HTTP access, or .NET client available for this protocol. The endpoint must be redesigned to expose an accessible interface.",
+            "warnings": [
+              "This is a blocking gap — migration cannot proceed without endpoint changes",
+              "WCF-NetNamedPipe is a common example of this scenario"
+            ],
+            "nextSteps": [
+              "Work with the system owner to expose an HTTP REST or Service Bus endpoint",
+              "OR: Use Azure Relay for WCF scenarios with existing service listeners",
+              "OR: Accept this as a deferred item and migrate other workflows first"
+            ]
+          }
+        }
+      }
+    },
+
+    "transformationApproach": {
+      "description": "Determine the correct transformation tool for a BizTalk map (.btm)",
+      "root": "check_source_format",
+      "nodes": {
+        "check_source_format": {
+          "id": "check_source_format",
+          "type": "condition",
+          "question": "Is the source data format XML (vs JSON, flat-file, EDI)?",
+          "evaluates": "integrationIntent.dataFormats.input",
+          "yes": "check_scripting_functoids",
+          "no": "check_edi_format"
+        },
+        "check_edi_format": {
+          "id": "check_edi_format",
+          "type": "condition",
+          "question": "Is the source EDI (X12 or EDIFACT)?",
+          "evaluates": "integrationIntent.dataFormats.input",
+          "yes": "result_edi_decode",
+          "no": "check_flat_file"
+        },
+        "check_flat_file": {
+          "id": "check_flat_file",
+          "type": "condition",
+          "question": "Is the source a flat file (CSV, fixed-width, positional)?",
+          "evaluates": "integrationIntent.dataFormats.input",
+          "yes": "result_azure_function_flatfile",
+          "no": "result_lml_json"
+        },
+        "check_scripting_functoids": {
+          "id": "check_scripting_functoids",
+          "type": "condition",
+          "question": "Does the map contain scripting functoids (msxsl:script C# blocks)?",
+          "evaluates": "mapArtifact.hasScriptingFunctoids",
+          "yes": "check_script_complexity",
+          "no": "check_map_complexity"
+        },
+        "check_script_complexity": {
+          "id": "check_script_complexity",
+          "type": "condition",
+          "question": "Are the scripting functoids doing simple string/math operations (no external calls, no complex logic)?",
+          "evaluates": "mapArtifact.scriptingFunctoidComplexity",
+          "yes": "result_xslt_rewrite",
+          "no": "result_azure_function_transform"
+        },
+        "check_map_complexity": {
+          "id": "check_map_complexity",
+          "type": "condition",
+          "question": "Does the map have fewer than 20 links and use only basic functoids?",
+          "evaluates": "mapArtifact.linkCount",
+          "yes": "result_lml",
+          "no": "check_target_format"
+        },
+        "check_target_format": {
+          "id": "check_target_format",
+          "type": "condition",
+          "question": "Is the target format JSON (vs XML)?",
+          "evaluates": "integrationIntent.dataFormats.output",
+          "yes": "result_lml_json",
+          "no": "result_xslt"
+        },
+        "result_lml": {
+          "id": "result_lml",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Data Mapper LML (YAML format)",
+            "format": "lml",
+            "rationale": "Simple XML→XML mapping with basic functoids. LML is the modern Logic Apps mapping format with designer support.",
+            "nextSteps": [
+              "Open VS Code with Logic Apps extension",
+              "Create new Data Map (.lml) file",
+              "Import source and target schemas",
+              "Recreate links and functoid logic as LML expressions"
+            ]
+          }
+        },
+        "result_lml_json": {
+          "id": "result_lml_json",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Data Mapper LML (native JSON output support)",
+            "format": "lml",
+            "rationale": "LML supports JSON output natively, making it the preferred choice for XML→JSON or JSON→JSON transformations.",
+            "nextSteps": [
+              "Define JSON schema for target",
+              "Create LML map with JSON target schema",
+              "Use LML expression syntax for field mapping"
+            ]
+          }
+        },
+        "result_xslt": {
+          "id": "result_xslt",
+          "type": "leaf",
+          "result": {
+            "recommendation": "XSLT stylesheet",
+            "format": "xslt",
+            "rationale": "Complex XML→XML mapping. XSLT provides full transformation power. BizTalk generates XSLT from BTM maps — review and clean up the output.",
+            "warnings": [
+              "BizTalk-generated XSLT contains msxsl:script blocks — these MUST be removed",
+              "Logic Apps XSLT action uses .NET XslCompiledTransform (XSLT 1.0, no extension objects)",
+              "Test generated XSLT thoroughly after cleanup"
+            ],
+            "nextSteps": [
+              "Extract compiled XSLT from BizTalk .btm map",
+              "Remove all msxsl:script blocks",
+              "Replace C# extension calls with XSLT 1.0 equivalents",
+              "Upload to Logic Apps Standard artifact folder or Integration Account"
+            ]
+          }
+        },
+        "result_xslt_rewrite": {
+          "id": "result_xslt_rewrite",
+          "type": "leaf",
+          "result": {
+            "recommendation": "XSLT with scripting functoids rewritten as pure XSLT 1.0",
+            "format": "xslt",
+            "rationale": "Scripting functoids do simple operations that can be expressed in XSLT 1.0 without C# extension objects.",
+            "warnings": [
+              "Remove all msxsl:script and userCSharp namespace declarations",
+              "Replace string operations: use concat(), substring(), string-length() etc.",
+              "Date calculations: approximate with XSLT string functions or accept UTC-only output"
+            ],
+            "nextSteps": [
+              "Extract XSLT from .btm",
+              "For each msxsl:script block: identify the operation and replace with XSLT equivalent",
+              "Test with same input/output fixtures used for BizTalk"
+            ]
+          }
+        },
+        "result_azure_function_transform": {
+          "id": "result_azure_function_transform",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Functions (custom transformation with full C# capabilities)",
+            "format": "azure-function",
+            "rationale": "Complex scripting functoids with external calls, complex date math, or custom .NET logic cannot be expressed in XSLT 1.0 or LML.",
+            "nextSteps": [
+              "Create Azure Functions (.NET 8 isolated) project",
+              "Port the scripting functoid C# code to the function",
+              "Accept XML input, return transformed XML/JSON",
+              "Call from Logic Apps via HTTP action",
+              "Unit test the function independently"
+            ]
+          }
+        },
+        "result_edi_decode": {
+          "id": "result_edi_decode",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Integration Account X12 Decode / EDIFACT Decode action",
+            "format": "integration-account",
+            "rationale": "EDI parsing is handled by Logic Apps Integration Account EDI decode actions — no custom map needed for parsing.",
+            "requiresIntegrationAccount": true,
+            "nextSteps": [
+              "Create Integration Account and link to Logic Apps Standard",
+              "Configure trading partners and agreements",
+              "Use X12 Decode or EDIFACT Decode action in workflow",
+              "Map decoded XML fields using LML or XSLT as needed"
+            ]
+          }
+        },
+        "result_azure_function_flatfile": {
+          "id": "result_azure_function_flatfile",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Functions (custom flat file parser)",
+            "format": "azure-function",
+            "rationale": "No native flat file disassembler in Logic Apps. Azure Functions can parse CSV/fixed-width/positional formats using .NET libraries.",
+            "nextSteps": [
+              "Create Azure Functions project",
+              "Implement flat file parser using CsvHelper, TextFieldParser, or custom code",
+              "Return parsed data as JSON array",
+              "Logic Apps processes the JSON array with ForEach action"
+            ]
+          }
+        }
+      }
+    },
+
+    "messagingService": {
+      "description": "Determine the correct Azure messaging service for a given messaging scenario",
+      "root": "check_ordering_required",
+      "nodes": {
+        "check_ordering_required": {
+          "id": "check_ordering_required",
+          "type": "condition",
+          "question": "Is ordered message processing required (sequential convoy, FIFO per correlation key)?",
+          "evaluates": "integrationIntent.patterns",
+          "yes": "result_servicebus_sessions",
+          "no": "check_high_throughput"
+        },
+        "check_high_throughput": {
+          "id": "check_high_throughput",
+          "type": "condition",
+          "question": "Is throughput > 1,000 events/sec required (streaming scenarios)?",
+          "evaluates": "context.expectedThroughputMsgPerSec",
+          "yes": "result_event_hubs",
+          "no": "check_fanout"
+        },
+        "check_fanout": {
+          "id": "check_fanout",
+          "type": "condition",
+          "question": "Does the same message need to be delivered to many independent consumers (fan-out)?",
+          "evaluates": "integrationIntent.patterns",
+          "yes": "check_many_subscribers",
+          "no": "check_replacing_msmq"
+        },
+        "check_many_subscribers": {
+          "id": "check_many_subscribers",
+          "type": "condition",
+          "question": "Are there more than 10 subscribers or are subscribers dynamically created?",
+          "evaluates": "context.subscriberCount",
+          "yes": "result_event_grid",
+          "no": "result_servicebus_topics"
+        },
+        "check_replacing_msmq": {
+          "id": "check_replacing_msmq",
+          "type": "condition",
+          "question": "Is this replacing MSMQ or WCF-NetMsmq?",
+          "evaluates": "adapter.biztalkAdapter",
+          "yes": "result_servicebus_queue_msmq",
+          "no": "result_servicebus_queue"
+        },
+        "result_servicebus_sessions": {
+          "id": "result_servicebus_sessions",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Service Bus Queue with Sessions",
+            "service": "service-bus",
+            "tier": "Standard or Premium",
+            "rationale": "Service Bus sessions provide FIFO ordering within a session (= BizTalk correlation set value). Multiple consumers can process different sessions in parallel.",
+            "configNotes": {
+              "requiresSessionEnabled": true,
+              "sessionId": "= BizTalk correlation set value (e.g. OrderId)",
+              "receiveMode": "peekLock"
+            },
+            "nextSteps": [
+              "Create session-enabled Service Bus queue",
+              "Producers set SessionId = correlation key when sending",
+              "Logic Apps trigger uses receiveMode: peekLock with session support"
+            ]
+          }
+        },
+        "result_event_hubs": {
+          "id": "result_event_hubs",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Event Hubs",
+            "service": "event-hubs",
+            "tier": "Standard",
+            "rationale": "Event Hubs handles millions of events per second with consumer groups for independent processing. Ideal for replacing high-volume BizTalk Event Hub or custom TCP receivers.",
+            "nextSteps": [
+              "Create Event Hubs namespace + hub",
+              "Configure consumer group for Logic Apps",
+              "Use Azure Event Hubs trigger in Logic Apps workflow",
+              "Consider Capture feature for archiving"
+            ]
+          }
+        },
+        "result_event_grid": {
+          "id": "result_event_grid",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Event Grid",
+            "service": "event-grid",
+            "rationale": "Event Grid handles push-based fan-out to many subscribers with filtering by event type. No polling — subscribers receive events as HTTP webhooks.",
+            "nextSteps": [
+              "Create Event Grid Topic (custom events) or use built-in system topics",
+              "Each subscriber Logic App registers as an HTTP webhook subscription",
+              "Filter by event type to route to the right subscriber"
+            ]
+          }
+        },
+        "result_servicebus_topics": {
+          "id": "result_servicebus_topics",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Service Bus Topics with Subscriptions",
+            "service": "service-bus",
+            "tier": "Standard",
+            "rationale": "Service Bus topics are the direct replacement for BizTalk MessageBox pub/sub. SQL filters on subscriptions replace BizTalk promoted property filter expressions.",
+            "configNotes": {
+              "sqlFilter": "Replaces BizTalk send port filter expressions",
+              "userProperties": "Replaces BizTalk promoted context properties"
+            },
+            "nextSteps": [
+              "Create Service Bus topic",
+              "Create one subscription per subscriber with SQL filter",
+              "Publisher Logic App sets userProperties to match filter values",
+              "Each subscriber Logic App triggers on its subscription"
+            ]
+          }
+        },
+        "result_servicebus_queue_msmq": {
+          "id": "result_servicebus_queue_msmq",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Service Bus Queue (MSMQ replacement)",
+            "service": "service-bus",
+            "tier": "Basic (simple) or Standard (transactions/DLQ)",
+            "rationale": "Service Bus is the cloud-native replacement for MSMQ. Supports all key MSMQ features: dead-lettering, message deferral, scheduled messages, TTL.",
+            "configNotes": {
+              "transactionalMSMQ": "Use Service Bus sessions for transactional ordering",
+              "deadLetterQueue": "Built-in DLQ replaces MSMQ journal queue"
+            },
+            "nextSteps": [
+              "Create Service Bus namespace and queue",
+              "Enable sessions if transactional ordering is required",
+              "Update MSMQ producers to use Service Bus SDK",
+              "Logic Apps trigger on Service Bus queue"
+            ]
+          }
+        },
+        "result_servicebus_queue": {
+          "id": "result_servicebus_queue",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Azure Service Bus Queue (standard)",
+            "service": "service-bus",
+            "tier": "Basic or Standard",
+            "rationale": "Reliable queuing with built-in dead-lettering, retry, TTL. Preferred for async point-to-point messaging.",
+            "nextSteps": [
+              "Create Service Bus namespace and queue",
+              "Use peekLock receive mode in Logic Apps for reliable processing",
+              "Complete message on success, dead-letter on failure"
+            ]
+          }
+        }
+      }
+    },
+
+    "errorHandlingPattern": {
+      "description": "Determine the correct error handling pattern for a migration scenario",
+      "root": "check_needs_retry",
+      "nodes": {
+        "check_needs_retry": {
+          "id": "check_needs_retry",
+          "type": "condition",
+          "question": "Should the action be retried on transient failure?",
+          "evaluates": "biztalkScope.adapterRetryCount",
+          "yes": "result_retry_policy",
+          "no": "check_needs_dlq"
+        },
+        "check_needs_dlq": {
+          "id": "check_needs_dlq",
+          "type": "condition",
+          "question": "Should failed messages be preserved for later reprocessing (dead-letter queue)?",
+          "evaluates": "context.requiresMessagePreservation",
+          "yes": "result_dlq_pattern",
+          "no": "check_needs_compensation"
+        },
+        "check_needs_compensation": {
+          "id": "check_needs_compensation",
+          "type": "condition",
+          "question": "Does failure require undoing previously completed steps (compensation)?",
+          "evaluates": "biztalkScope.hasCompensation",
+          "yes": "result_compensation_pattern",
+          "no": "check_needs_notification"
+        },
+        "check_needs_notification": {
+          "id": "check_needs_notification",
+          "type": "condition",
+          "question": "Should someone be notified on failure?",
+          "evaluates": "context.notificationRequired",
+          "yes": "result_notify_on_failure",
+          "no": "result_terminate_on_failure"
+        },
+        "result_retry_policy": {
+          "id": "result_retry_policy",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Add retryPolicy to the action",
+            "pattern": "retry",
+            "rationale": "Action-level retry policy handles transient failures without workflow redesign.",
+            "configTemplate": {
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "minimumInterval": "PT10S",
+                "maximumInterval": "PT1H"
+              }
+            },
+            "nextSteps": [
+              "Add retryPolicy block to the action definition",
+              "Use exponential for downstream service protection",
+              "Set count to match BizTalk adapter retry setting",
+              "After retries exhausted → combine with DLQ or terminate"
+            ]
+          }
+        },
+        "result_dlq_pattern": {
+          "id": "result_dlq_pattern",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Service Bus Dead Letter Queue pattern",
+            "pattern": "dead-letter",
+            "rationale": "Failed messages preserved in DLQ for analysis and reprocessing. Matches BizTalk suspended queue semantics.",
+            "nextSteps": [
+              "Use peekLock receive mode (not receiveAndDelete)",
+              "Wrap processing in Scope action",
+              "On Scope failure (runAfter: FAILED): call deadLetterMessage action",
+              "On Scope success: call completeMessage action",
+              "Build separate DLQ processing workflow for resubmit"
+            ]
+          }
+        },
+        "result_compensation_pattern": {
+          "id": "result_compensation_pattern",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Explicit compensation actions in Scope catch branch",
+            "pattern": "compensate",
+            "rationale": "No built-in Compensate shape in Logic Apps. Design undo actions explicitly in the Scope's catch branch.",
+            "warnings": [
+              "Each compensating action must be idempotent",
+              "Partial compensation is possible — track which steps completed using variables",
+              "Document the compensation strategy clearly for operations team"
+            ],
+            "nextSteps": [
+              "Wrap forward actions in Scope",
+              "Add catch actions with runAfter: {ScopeName: [FAILED]}",
+              "Each catch action undoes one forward action (delete record, publish reversal, etc.)",
+              "Use result() to get details of which step failed"
+            ]
+          }
+        },
+        "result_notify_on_failure": {
+          "id": "result_notify_on_failure",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Scope + notification action on failure",
+            "pattern": "notify",
+            "nextSteps": [
+              "Wrap workflow in Scope action",
+              "Add notification action (email/Teams/Service Bus) with runAfter: {ScopeName: [FAILED]}",
+              "Include error details: result('ScopeName')[0]['error']['message']",
+              "Include workflow run link for investigation"
+            ]
+          }
+        },
+        "result_terminate_on_failure": {
+          "id": "result_terminate_on_failure",
+          "type": "leaf",
+          "result": {
+            "recommendation": "Terminate action (status: Failed)",
+            "pattern": "terminate",
+            "nextSteps": [
+              "Add Terminate action with runStatus=Failed",
+              "Set runError.message to describe the failure",
+              "Monitor via Azure Monitor alerts on failed runs"
+            ]
+          }
+        }
+      }
+    }
+
+  }
+}

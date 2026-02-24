@@ -1,0 +1,191 @@
+{
+  "name": "biztalk-to-logicapps",
+  "displayName": "BizTalk to Logic Apps",
+  "version": "0.1.0",
+  "description": "BizTalk Server to Azure Logic Apps migration framework — MCP server, CLI tool, and VS Code extension",
+  "author": "BiztalktoLogicapps",
+  "publisher": "biztalk-migrate",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "type": "module",
+  "categories": [
+    "Other",
+    "Azure"
+  ],
+  "keywords": [
+    "biztalk",
+    "logic-apps",
+    "azure",
+    "migration",
+    "integration"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "vscode": "^1.85.0"
+  },
+  "main": "./dist/vscode/extension.js",
+  "bin": {
+    "biztalk-migrate": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/cli/index.js",
+    "./mcp": "./dist/mcp-server/server.js",
+    "./types": "./dist/types/index.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:watch": "tsc --project tsconfig.json --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src/**/*.ts",
+    "mcp:start": "node dist/mcp-server/server.js",
+    "mcp:dev": "node --watch dist/mcp-server/server.js",
+    "cli:analyze": "node dist/cli/index.js analyze",
+    "cli:build": "node dist/cli/index.js build",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "activationEvents": [
+    "onLanguage:xml",
+    "workspaceContains:**/*.odx",
+    "workspaceContains:**/*.btm",
+    "workspaceContains:**/*.btp",
+    "workspaceContains:biztalk-migrate.config.json"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "biztalk-migrate.analyzeFile",
+        "title": "Analyze File",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.analyzeDirectory",
+        "title": "Analyze Directory",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.buildPackage",
+        "title": "Build Logic Apps Package",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.openDashboard",
+        "title": "Open Migration Dashboard",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.startMcpServer",
+        "title": "Start MCP Server",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.createFromNlp",
+        "title": "Create Workflow from Description (Premium)",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.listTemplates",
+        "title": "Browse Template Library (Premium)",
+        "category": "BizTalk Migrate"
+      }
+    ],
+    "configuration": {
+      "title": "BizTalk Migrate",
+      "properties": {
+        "biztalkMigrate.licenseKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "License key for Standard and Premium features. Free tier supports Stage 1 and Stage 2 analysis without a key. [Get a license](https://biztalk-migrate.dev)",
+          "scope": "machine"
+        },
+        "biztalkMigrate.outputDir": {
+          "type": "string",
+          "default": "./logic-apps-output",
+          "description": "Directory for generated Logic Apps deployment packages (relative to workspace root).",
+          "scope": "resource"
+        },
+        "biztalkMigrate.workflowKind": {
+          "type": "string",
+          "enum": ["Stateful", "Stateless"],
+          "enumDescriptions": [
+            "Recommended for BizTalk migrations. Supports long-running transactions, message correlation, and run history.",
+            "For short-lived, high-throughput workflows only. No run history persistence."
+          ],
+          "default": "Stateful",
+          "description": "Default Logic Apps workflow kind.",
+          "scope": "resource"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "xml",
+        "extensions": [".odx", ".btm", ".btp"]
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "biztalk-migrate.analyzeFile",
+          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
+          "group": "biztalk@1"
+        },
+        {
+          "command": "biztalk-migrate.analyzeDirectory",
+          "when": "explorerResourceIsFolder",
+          "group": "biztalk@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "biztalk-migrate.analyzeFile",
+          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "commander": "^12.0.0",
+    "fast-xml-parser": "^4.3.0",
+    "zod": "^3.22.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1",
+    "jsonwebtoken": "^9.0.0",
+    "node-machine-id": "^1.1.12",
+    "zod-to-json-schema": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "@types/jest": "^29.5.0",
+    "prettier": "^3.2.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".ts"],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": ["ts-jest", { "useESM": true }]
+    },
+    "testMatch": ["**/tests/**/*.test.ts", "**/*.test.ts"]
+  }
+}

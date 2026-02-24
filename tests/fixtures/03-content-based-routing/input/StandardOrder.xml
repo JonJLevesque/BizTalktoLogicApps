@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Input: standard order — Priority="NORMAL" AND OrderTotal <= $10,000 -->
+<!-- Expected route: C:\Output\Standard\ (else branch of Decide shape) -->
+<Order xmlns="http://ContentBasedRouting.Schemas.OrderMessage">
+  <OrderId>ORD-STD-2026-001</OrderId>
+  <CustomerName>Small Business Ltd</CustomerName>
+  <CustomerCode>SMB-0203</CustomerCode>
+  <Priority>NORMAL</Priority>
+  <OrderDate>2026-02-23</OrderDate>
+  <OrderTotal>450.00</OrderTotal>
+  <Items>
+    <Item>
+      <ProductCode>SMB-PKG-001</ProductCode>
+      <Description>Standard Software Package (3 seats)</Description>
+      <Quantity>3</Quantity>
+      <UnitPrice>150.00</UnitPrice>
+    </Item>
+  </Items>
+  <Notes></Notes>
+</Order>

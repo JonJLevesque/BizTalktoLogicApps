@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BizTalk Binding File — Simple File Receive
+  ==========================================
+  Binding files connect orchestration ports to physical transports.
+  They are exported from BizTalk Admin Console or BizTalk Deployment Framework (BTDF).
+
+  MIGRATION KEY INFORMATION in this file:
+  - Adapter type (FILE, HTTP, WCF, etc.) → determines Logic Apps connector type
+  - Address (C:\Input\*.xml) → becomes blob container path or trigger config
+  - TransportTypeData → contains adapter-specific settings (poll interval, file mask, etc.)
+  - Pipeline names → determine if content needs special processing
+  - Filter conditions → determine subscription/routing logic (may become Logic Apps Conditions)
+-->
+<BindingInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Description>Simple File Receive-Transform-Send Bindings — TEST ENVIRONMENT</Description>
+  <Timestamp>2026-02-23T00:00:00</Timestamp>
+  <Version>3.5.1.0</Version>
+  <BindingParameters>
+    <GacDeploymentEnabled>false</GacDeploymentEnabled>
+  </BindingParameters>
+
+  <ModuleRefCollection>
+    <ModuleRef DisplayName="SimpleFileReceive(1.0.0.0)" Name="SimpleFileReceive">
+      <ServiceRefCollection>
+        <ServiceRef Name="SimpleFileOrchestration" FullName="SimpleFileReceive.SimpleFileOrchestration" Type="1">
+          <Ports>
+            <!--
+              Receive port binding: connects orchestration's ReceiveOrderPort to the physical receive location.
+              Migration note: The adapter type (FILE) and address (C:\Input\*.xml) → Blob trigger config.
+            -->
+            <Port Name="ReceiveOrderPort" PortModifier="2">
+              <ReceivePortRef Name="RP_ReceiveOrder_FILE"/>
+            </Port>
+            <!--
+              Send port binding: connects orchestration's SendOrderPort to the physical send port.
+              Migration note: FILE adapter, C:\Output\ → Blob Storage create action.
+            -->
+            <Port Name="SendOrderPort" PortModifier="1">
+              <SendPortRef Name="SP_SendProcessedOrder_FILE"/>
+            </Port>
+          </Ports>
+        </ServiceRef>
+      </ServiceRefCollection>
+    </ModuleRef>
+  </ModuleRefCollection>
+
+  <SendPortCollection>
+    <SendPort Name="SP_SendProcessedOrder_FILE"
+              IsStatic="true"
+              IsTwoWay="false"
+              BindingOption="0">
+
+      <PrimaryTransport>
+        <!--
+          FILE adapter send configuration.
+          Migration → Logic Apps:
+            Address: "C:\Output\%SourceFileName%" → Blob container "orders-outbound" + filename from trigger
+            %SourceFileName% macro → @{triggerBody()?['Name']} in Logic Apps WDL expression
+        -->
+        <Address>C:\Output\%SourceFileName%</Address>
+        <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb"/>
+        <TransportTypeData>
+          <![CDATA[<CustomProps><CopyMode vt="19">0</CopyMode><AllowCacheOnWrite vt="11">0</AllowCacheOnWrite><UseTempFileOnWrite vt="11">-1</UseTempFileOnWrite></CustomProps>]]>
+        </TransportTypeData>
+        <RetryCount>3</RetryCount>
+        <RetryInterval>5</RetryInterval>
+        <ServiceWindow>
+          <FromTime>00:00:00</FromTime>
+          <ToTime>23:59:59</ToTime>
+          <Enabled>false</Enabled>
+        </ServiceWindow>
+      </PrimaryTransport>
+
+      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.XMLTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>
+      <Description>Sends processed XML order to output file location</Description>
+
+      <!--
+        Send port filter (subscription).
+        This filter determines which messages this send port receives from the MessageBox.
+        Migration note: In a purely orchestration-bound send port, the filter may be empty
+        (the orchestration explicitly sends to this port). Filters matter more for standalone
+        send ports (content-based routing without orchestrations).
+      -->
+      <Filter>
+        <Group>
+          <Statement Property="BTS.SPName" Operator="0" Value="SP_SendProcessedOrder_FILE"/>
+        </Group>
+      </Filter>
+
+    </SendPort>
+  </SendPortCollection>
+
+  <ReceivePortCollection>
+    <ReceivePort Name="RP_ReceiveOrder_FILE"
+                 IsTwoWay="false">
+      <Description>Receives XML order files from the file system</Description>
+      <ReceiveLocationCollection>
+        <ReceiveLocation Name="RL_ReceiveOrder_FILE">
+          <!--
+            FILE adapter receive configuration.
+            Migration → Logic Apps:
+              Address: "C:\Input\*.xml" → Blob trigger on container "orders-inbound" with *.xml filter
+              PollingInterval (60000ms = 60s) → Recurrence trigger interval: 1 minute
+              FileMask: "*.xml" → blob filter pattern
+          -->
+          <Address>C:\Input\*.xml</Address>
+          <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb"/>
+          <TransportTypeData>
+            <![CDATA[<CustomProps>
+              <BatchSize vt="3">20</BatchSize>
+              <BatchSizeInBytes vt="19">102400</BatchSizeInBytes>
+              <FileNetFailRetryCount vt="19">5</FileNetFailRetryCount>
+              <FileNetFailRetryInt vt="19">5</FileNetFailRetryInt>
+              <PollingInterval vt="3">60000</PollingInterval>
+              <FileMask vt="8">*.xml</FileMask>
+              <RenameReceivedFiles vt="11">-1</RenameReceivedFiles>
+            </CustomProps>]]>
+          </TransportTypeData>
+          <ReceivePipelineName>Microsoft.BizTalk.DefaultPipelines.XMLReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</ReceivePipelineName>
+          <Description>Polls C:\Input for *.xml files every 60 seconds</Description>
+          <Enable>true</Enable>
+          <ScheduleTimeZone>UTC</ScheduleTimeZone>
+        </ReceiveLocation>
+      </ReceiveLocationCollection>
+    </ReceivePort>
+  </ReceivePortCollection>
+
+</BindingInfo>

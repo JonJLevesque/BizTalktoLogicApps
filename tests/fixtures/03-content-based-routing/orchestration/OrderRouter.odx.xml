@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!--
+  BizTalk Orchestration (ODX) — Content-Based Routing via Decide Shape
+  =====================================================================
+  Shapes: Receive (activating) → Decide (two branches by priority/total) → Send (two output ports)
+  Pattern: Content-Based Routing using orchestration-level conditional logic
+  Complexity: Simple–Moderate
+
+  MIGRATION KEY POINTS:
+  - Decide shape → If (Condition) action in Logic Apps
+  - XLANG/s expression (C#-like syntax) → WDL expression (JSON predicate format)
+  - Two Send shapes for different destinations → two parallel branches in If action
+  - FILE adapter → Blob Storage or ServiceBus depending on target architecture
+-->
+<om:Module xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+  <om:Property Name="InitialCodeFile" Value="OrderRouter.odx"/>
+  <om:Property Name="InitialNamespace" Value="ContentBasedRouting"/>
+  <om:Property Name="InitialTypeName" Value="OrderRouterOrchestration"/>
+  <om:Property Name="Notes" Value="Routes incoming orders to high-priority or standard processing based on Priority field and OrderTotal"/>
+
+  <om:Service Name="OrderRouterOrchestration">
+    <om:Property Name="Type" Value="Public"/>
+    <om:Property Name="Compensation" Value="Default"/>
+    <om:Property Name="Transaction" Value="None"/>
+
+    <!--
+      Message declarations.
+      Note: all three messages use the same schema type.
+      IncomingOrder is the original; HighPriorityOrder and StandardOrder are
+      used for the two routing branches (message assignment copies IncomingOrder).
+    -->
+    <om:MessageDeclaration Name="IncomingOrder" Type="ContentBasedRouting.Schemas.OrderMessage"/>
+    <om:MessageDeclaration Name="HighPriorityOrder" Type="ContentBasedRouting.Schemas.OrderMessage"/>
+    <om:MessageDeclaration Name="StandardOrder" Type="ContentBasedRouting.Schemas.OrderMessage"/>
+
+    <!--
+      Port declarations — three ports: one inbound, two outbound (one per routing branch).
+      Migration: Receive port → Trigger; Send ports → two possible Action paths in If branches.
+    -->
+    <om:PortDeclaration Name="ReceiveOrderPort"
+                        Type="ContentBasedRouting.PortTypes.IReceiveOrder"
+                        Modifier="Private"
+                        Polarity="Implements"/>
+
+    <om:PortDeclaration Name="HighPrioritySendPort"
+                        Type="ContentBasedRouting.PortTypes.ISendHighPriorityOrder"
+                        Modifier="Private"
+                        Polarity="Uses"/>
+
+    <om:PortDeclaration Name="StandardSendPort"
+                        Type="ContentBasedRouting.PortTypes.ISendStandardOrder"
+                        Modifier="Private"
+                        Polarity="Uses"/>
+
+    <om:Body>
+      <om:Shape Name="BeginOrchestration" Type="BodyShape">
+
+        <!-- RECEIVE — creates orchestration instance when order file arrives (FILE adapter) -->
+        <om:Shape Name="ReceiveOrder" Type="ReceiveShape">
+          <om:Property Name="ActivatesCorrelation" Value="true"/>
+          <om:Property Name="Message" Value="IncomingOrder"/>
+          <om:Property Name="Notes" Value="Activating receive — one instance per incoming order file"/>
+          <om:Port Name="ReceiveOrderPort"/>
+        </om:Shape>
+
+        <!--
+          DECIDE SHAPE — the CBR decision point.
+          DecideBranch shapes represent the IF/ELSE branches.
+          The first non-else branch whose Expression evaluates to true is taken.
+          Only the LAST branch may use "else" as its expression.
+
+          XLANG/s expression syntax:
+          - Uses C#-like operators: ==, !=, &&, ||, >, <, >=, <=
+          - Message field access: MessageName.FieldName (promoted property XPath shorthand)
+          - String literals: quoted with ""
+          - Numeric literals: unquoted (10000.0, not "10000.0")
+
+          Migration → Logic Apps:
+          - Decide with 2 branches → If action with true/false paths
+          - Decide with 3+ branches → nested If actions or Switch action
+          - XLANG/s  a || b  → WDL  "or": [{condition1}, {condition2}]
+          - XLANG/s  a && b  → WDL  "and": [{condition1}, {condition2}]
+        -->
+        <om:Shape Name="RouteByPriority" Type="DecideShape">
+          <om:Property Name="Notes" Value="Route order to high-priority or standard processing path"/>
+
+          <!--
+            Branch 1: HIGH PRIORITY
+            Condition: Priority is "HIGH" OR total exceeds $10,000
+            XLANG/s: IncomingOrder.Priority == "HIGH" || IncomingOrder.OrderTotal > 10000.0
+            WDL: { "or": [ {"equals": [..., "HIGH"]}, {"greater": [..., 10000]} ] }
+          -->
+          <om:Shape Name="HighPriorityBranch" Type="DecideBranch">
+            <om:Property Name="Expression">
+              <![CDATA[IncomingOrder.Priority == "HIGH" || IncomingOrder.OrderTotal > 10000.0]]>
+            </om:Property>
+            <om:Property Name="Notes" Value="High priority: Priority=HIGH or OrderTotal > $10,000"/>
+
+            <!--
+              Construct the HighPriorityOrder message by copying IncomingOrder.
+              MessageAssignment is the simplest BizTalk message construction:
+              just assigns one message to another (no transformation).
+              Migration: this becomes a Compose action or is eliminated if we send directly.
+            -->
+            <om:Shape Name="ConstructHighPriority" Type="ConstructShape">
+              <om:Property Name="Messages" Value="HighPriorityOrder"/>
+              <om:Shape Name="AssignHighPriority" Type="MessageAssignmentShape">
+                <om:Property Name="Expression">
+                  <![CDATA[HighPriorityOrder = IncomingOrder;]]>
+                </om:Property>
+              </om:Shape>
+            </om:Shape>
+
+            <!-- Send the high-priority order to the high-priority send port -->
+            <om:Shape Name="SendHighPriority" Type="SendShape">
+              <om:Property Name="Message" Value="HighPriorityOrder"/>
+              <om:Property Name="Notes" Value="Send to HighPriority FILE output path"/>
+              <om:Port Name="HighPrioritySendPort"/>
+            </om:Shape>
+          </om:Shape>
+
+          <!--
+            Branch 2: STANDARD (else — all other orders)
+            The "else" expression is the default branch (no condition needed).
+            Migration: becomes the "else" path of the If action.
+          -->
+          <om:Shape Name="StandardBranch" Type="DecideBranch">
+            <om:Property Name="Expression" Value="else"/>
+            <om:Property Name="Notes" Value="Standard priority: all orders not matching high-priority criteria"/>
+
+            <om:Shape Name="ConstructStandard" Type="ConstructShape">
+              <om:Property Name="Messages" Value="StandardOrder"/>
+              <om:Shape Name="AssignStandard" Type="MessageAssignmentShape">
+                <om:Property Name="Expression">
+                  <![CDATA[StandardOrder = IncomingOrder;]]>
+                </om:Property>
+              </om:Shape>
+            </om:Shape>
+
+            <om:Shape Name="SendStandard" Type="SendShape">
+              <om:Property Name="Message" Value="StandardOrder"/>
+              <om:Property Name="Notes" Value="Send to Standard FILE output path"/>
+              <om:Port Name="StandardSendPort"/>
+            </om:Shape>
+          </om:Shape>
+
+        </om:Shape>
+        <!-- End Decide shape -->
+
+      </om:Shape>
+    </om:Body>
+  </om:Service>
+</om:Module>
