@@ -274,6 +274,7 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
       buildResult,
       qualityReport: finalQualityReport,
       gaps: analyzeGaps(app),
+      patterns,
       outputDir,
       errors,
       warnings,

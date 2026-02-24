@@ -535,6 +535,188 @@
 </section>
 
 
+<!-- ENTERPRISE INTEGRATION PATTERNS -->
+<section class="py-24" style="background:#080e1a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-4">
+      <span class="section-label">Enterprise Integration Patterns</span>
+    </div>
+    <div class="reveal mb-10 flex flex-col md:flex-row md:items-end gap-6 justify-between">
+      <div>
+        <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,58px);color:#f1f5f9;line-height:1.05;">
+          Every Hohpe &amp; Woolf pattern.<br>
+          <span style="color:#3b82f6;">Covered and classified.</span>
+        </h2>
+        <p style="color:#475569;font-size:15px;line-height:1.7;margin-top:12px;max-width:600px;">The migration report tells you exactly which enterprise integration patterns your BizTalk application uses, whether they migrate automatically, and what needs redesign before you touch Azure.</p>
+      </div>
+      <div class="flex gap-6 flex-shrink-0" style="font-size:13px;font-family:'JetBrains Mono',monospace;">
+        <div style="text-align:center;">
+          <div class="font-display" style="font-size:42px;color:#22c55e;line-height:1;">8</div>
+          <div style="color:#334155;margin-top:4px;letter-spacing:.06em;text-transform:uppercase;font-size:10px;">Auto</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="font-display" style="font-size:42px;color:#f59e0b;line-height:1;">8</div>
+          <div style="color:#334155;margin-top:4px;letter-spacing:.06em;text-transform:uppercase;font-size:10px;">Partial</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="font-display" style="font-size:42px;color:#ef4444;line-height:1;">2</div>
+          <div style="color:#334155;margin-top:4px;letter-spacing:.06em;text-transform:uppercase;font-size:10px;">Redesign</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+      <!-- AUTO patterns -->
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.03s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Content-Based Router</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">If / Switch action</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.05s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Message Translator</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Xslt / Data Mapper action</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.07s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Message Filter</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Condition + terminate branch</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.09s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Request-Reply</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Request trigger + Response</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.11s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Wire Tap</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Parallel ServiceProvider send</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.13s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Dead Letter Queue</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Scope + FAILED runAfter</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.15s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Claim Check</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Azure Blob pass-through</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.17s;">
+        <span style="font-size:15px;flex-shrink:0;width:20px;text-align:center;color:#22c55e;font-weight:700;">&#10003;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Message Enricher</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">HTTP call-out + Compose</p>
+        </div>
+      </div>
+
+      <!-- PARTIAL patterns -->
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.19s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Sequential Convoy</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Service Bus sessions</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.21s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Splitter</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">ForEach (concurrency: 1)</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.23s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Aggregator</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">ForEach + Array variable</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.25s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Scatter-Gather</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Parallel actions + collect</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.27s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Composed Msg Processor</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">ForEach + Switch + aggregate</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.29s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Parallel Convoy</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">SB subscriptions + state store</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.31s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Suspend with Retry</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Until loop (no native Suspend)</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.33s;border-color:#2d3748;">
+        <span style="font-size:13px;flex-shrink:0;width:20px;text-align:center;color:#f59e0b;">&#9888;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Process Manager</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Stateful + child Workflow</p>
+        </div>
+      </div>
+
+      <!-- REDESIGN patterns -->
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.35s;border-color:#2d1f1f;">
+        <span style="font-size:14px;flex-shrink:0;width:20px;text-align:center;color:#ef4444;">&#215;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Message Broker</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">SB Topics + Event Grid</p>
+        </div>
+      </div>
+      <div class="reveal card p-5 flex items-center gap-4" style="animation-delay:.37s;border-color:#2d1f1f;">
+        <span style="font-size:14px;flex-shrink:0;width:20px;text-align:center;color:#ef4444;">&#215;</span>
+        <div>
+          <p style="color:#e2e8f0;font-weight:500;font-size:14px;margin-bottom:2px;">Compensation</p>
+          <p style="color:#334155;font-size:12px;font-family:'JetBrains Mono',monospace;">Saga / undo workflows</p>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="reveal flex items-center justify-center gap-6 p-5" style="animation-delay:.38s;">
+        <div class="flex items-center gap-2" style="font-size:12px;color:#475569;">
+          <span style="color:#22c55e;font-weight:700;">&#10003;</span> Auto
+        </div>
+        <div class="flex items-center gap-2" style="font-size:12px;color:#475569;">
+          <span style="color:#f59e0b;">&#9888;</span> Partial
+        </div>
+        <div class="flex items-center gap-2" style="font-size:12px;color:#475569;">
+          <span style="color:#ef4444;">&#215;</span> Redesign
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
 <!-- FOR CONSULTANTS -->
 <section class="py-24" style="background:#080e1a;">
   <div class="max-w-7xl mx-auto px-6">

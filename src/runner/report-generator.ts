@@ -18,6 +18,7 @@ import type { BizTalkApplication } from '../types/biztalk.js';
 import type { BuildResult } from '../stage3-build/package-builder.js';
 import type { QualityReport } from '../validation/quality-scorer.js';
 import type { MigrationGap } from '../types/migration.js';
+import type { IntegrationPattern } from '../shared/integration-intent.js';
 import type { MigrationStep } from './types.js';
 
 export interface ReportInput {
@@ -25,6 +26,7 @@ export interface ReportInput {
   buildResult: BuildResult;
   qualityReport: QualityReport;
   gaps: MigrationGap[];
+  patterns?: IntegrationPattern[];
   outputDir: string;
   errors: string[];
   warnings: string[];
@@ -32,12 +34,106 @@ export interface ReportInput {
   clientMode: 'proxy' | 'direct' | 'dev';
 }
 
+// ── Pattern display metadata ──────────────────────────────────────────────────
+
+type PatternSupport = 'auto' | 'partial' | 'redesign';
+
+interface PatternDisplayInfo {
+  displayName: string;
+  support: PatternSupport;
+  logicAppsEquivalent: string;
+}
+
+const PATTERN_DISPLAY_MAP: Partial<Record<IntegrationPattern, PatternDisplayInfo>> = {
+  'content-based-routing': {
+    displayName: 'Content-Based Router',
+    support: 'auto',
+    logicAppsEquivalent: 'If / Switch action',
+  },
+  'message-filter': {
+    displayName: 'Message Filter',
+    support: 'auto',
+    logicAppsEquivalent: 'Condition + terminate branch',
+  },
+  'request-reply': {
+    displayName: 'Request-Reply',
+    support: 'auto',
+    logicAppsEquivalent: 'Request trigger + Response action',
+  },
+  'wire-tap': {
+    displayName: 'Wire Tap',
+    support: 'auto',
+    logicAppsEquivalent: 'Additional ServiceProvider send action',
+  },
+  'dead-letter-queue': {
+    displayName: 'Dead Letter Queue',
+    support: 'auto',
+    logicAppsEquivalent: 'Scope + Terminate on FAILED runAfter',
+  },
+  'claim-check': {
+    displayName: 'Claim Check',
+    support: 'auto',
+    logicAppsEquivalent: 'Azure Blob pass-through action',
+  },
+  'message-enricher': {
+    displayName: 'Message Enricher',
+    support: 'auto',
+    logicAppsEquivalent: 'HTTP call-out + Compose action',
+  },
+  'sequential-convoy': {
+    displayName: 'Sequential Convoy',
+    support: 'partial',
+    logicAppsEquivalent: 'Service Bus sessions (FIFO)',
+  },
+  'splitter': {
+    displayName: 'Splitter',
+    support: 'partial',
+    logicAppsEquivalent: 'ForEach action (concurrency: 1)',
+  },
+  'message-aggregator': {
+    displayName: 'Aggregator',
+    support: 'partial',
+    logicAppsEquivalent: 'ForEach + Append to Array Variable',
+  },
+  'scatter-gather': {
+    displayName: 'Scatter-Gather',
+    support: 'partial',
+    logicAppsEquivalent: 'Parallel actions + ForEach collect',
+  },
+  'retry-idempotent': {
+    displayName: 'Suspend with Retry',
+    support: 'partial',
+    logicAppsEquivalent: 'Until loop (no native Suspend)',
+  },
+  'process-manager': {
+    displayName: 'Process Manager',
+    support: 'partial',
+    logicAppsEquivalent: 'Stateful workflow + child Workflow actions',
+  },
+  'publish-subscribe': {
+    displayName: 'Message Broker (Pub-Sub)',
+    support: 'redesign',
+    logicAppsEquivalent: 'Service Bus Topics + Event Grid',
+  },
+  'correlation': {
+    displayName: 'Correlation',
+    support: 'partial',
+    logicAppsEquivalent: 'Stateful workflow execution context',
+  },
+  'fan-out': {
+    displayName: 'Fan-Out (Multiple Receives)',
+    support: 'partial',
+    logicAppsEquivalent: 'Separate trigger workflows + shared child workflow',
+  },
+};
+
 export function generateMigrationReport(input: ReportInput): string {
   const {
     app,
     buildResult,
     qualityReport,
     gaps,
+    patterns,
     outputDir,
     errors,
     warnings,
@@ -84,6 +180,46 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push(`| High gaps | ${highGaps.length} |`);
   lines.push(`| Medium gaps | ${mediumGaps.length} |`);
   lines.push('');
+
+  // ── Detected Enterprise Integration Patterns ─────────────────────────────────
+
+  if (patterns && patterns.length > 0) {
+    lines.push('## Detected Enterprise Integration Patterns');
+    lines.push('');
+
+    const known   = patterns.filter(p => PATTERN_DISPLAY_MAP[p] !== undefined);
+    const unknown = patterns.filter(p => PATTERN_DISPLAY_MAP[p] === undefined);
+
+    const autoPatterns    = known.filter(p => PATTERN_DISPLAY_MAP[p]!.support === 'auto');
+    const partialPatterns = known.filter(p => PATTERN_DISPLAY_MAP[p]!.support === 'partial');
+    const redesignPatterns = known.filter(p => PATTERN_DISPLAY_MAP[p]!.support === 'redesign');
+
+    lines.push(`Detected **${patterns.length}** enterprise integration pattern(s): ` +
+      `${autoPatterns.length} migrate automatically, ` +
+      `${partialPatterns.length} require review, ` +
+      `${redesignPatterns.length} require redesign.`);
+    lines.push('');
+    lines.push('| Pattern | Support | Logic Apps Equivalent |');
+    lines.push('|---------|---------|----------------------|');
+
+    for (const p of [...autoPatterns, ...partialPatterns, ...redesignPatterns]) {
+      const info = PATTERN_DISPLAY_MAP[p]!;
+      const supportLabel =
+        info.support === 'auto'     ? '✅ Auto'     :
+        info.support === 'partial'  ? '⚠️ Partial'  : '❌ Redesign';
+      lines.push(`| ${info.displayName} | ${supportLabel} | ${info.logicAppsEquivalent} |`);
+    }
+
+    if (unknown.length > 0) {
+      for (const p of unknown) {
+        lines.push(`| ${p} | ⚠️ Partial | Manual review required |`);
+      }
+    }
+
+    lines.push('');
+    lines.push('> See `docs/reference/enterprise-patterns.md` for full pattern details and effort estimates.');
+    lines.push('');
+  }
 
   // ── Gap Analysis ─────────────────────────────────────────────────────────────
 
