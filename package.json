@@ -1,12 +1,20 @@
 {
-  "name": "biztalk-to-logicapps",
+  "name": "biztalk-migrate",
   "displayName": "BizTalk to Logic Apps",
-  "version": "0.1.0",
-  "description": "BizTalk Server to Azure Logic Apps migration framework — MCP server, CLI tool, and VS Code extension",
-  "author": "BiztalktoLogicapps",
+  "version": "1.0.0",
+  "description": "Migrate BizTalk Server applications to Azure Logic Apps Standard — CLI, MCP server, and VS Code extension",
+  "author": "Jon Levesque <me@jonlevesque.com>",
   "publisher": "biztalk-migrate",
   "license": "SEE LICENSE IN LICENSE",
-  "private": true,
+  "homepage": "https://biztalkmigrate.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JonJLevesque/BTtoLA.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JonJLevesque/BTtoLA/issues",
+    "email": "me@jonlevesque.com"
+  },
   "type": "module",
   "categories": [
     "Other",
@@ -17,7 +25,14 @@
     "logic-apps",
     "azure",
     "migration",
-    "integration"
+    "integration",
+    "biztalk-migration",
+    "azure-logic-apps"
+  ],
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20.0.0",
@@ -104,7 +119,7 @@
         "biztalkMigrate.licenseKey": {
           "type": "string",
           "default": "",
-          "markdownDescription": "License key for Standard and Premium features. Free tier supports Stage 1 and Stage 2 analysis without a key. [Get a license](https://biztalk-migrate.dev)",
+          "markdownDescription": "License key for Standard and Premium features. Free tier supports Stage 1 and Stage 2 analysis without a key. [Get a license](https://biztalkmigrate.com)",
           "scope": "machine"
         },
         "biztalkMigrate.outputDir": {
