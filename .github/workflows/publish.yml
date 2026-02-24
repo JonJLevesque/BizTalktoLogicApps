@@ -1,31 +1,39 @@
-# npm publish with provenance attestation
+# npm publish with automatic version bump and provenance attestation
 #
-# Triggers automatically when a version tag (v*) is pushed.
-# Publishes to npm with --provenance so Socket.dev and npm registry
-# can verify the package was built from this exact commit.
+# Usage: GitHub Actions UI → "Publish to npm" → Run workflow → pick bump type
 #
 # Required secrets:
-#   NPM_TOKEN  — npm automation token (generate at npmjs.com → Access Tokens)
+#   NPM_TOKEN  — npm automation token (npmjs.com → Access Tokens → Automation)
 
 name: Publish to npm
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
-  contents: read
-  id-token: write   # required for npm provenance (OIDC)
+  contents: write   # push version commit + tag back to main
+  id-token: write   # npm provenance (OIDC)
 
 jobs:
   publish:
-    name: Build and publish
+    name: Bump, build, and publish
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,6 +50,28 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        env:
+          BUMP: ${{ github.event.inputs.bump }}
+        run: |
+          NEW_VERSION=$(npm version "$BUMP" --no-git-tag-version)
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git add package.json package-lock.json
+          git commit -m "$NEW_VERSION"
+          git tag "$NEW_VERSION"
+          git push origin main --tags
 
       - name: Publish with provenance
         run: npm publish --provenance --access public
