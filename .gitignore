@@ -31,6 +31,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Internal documentation — not for public repo or npm
+README-internal.md
+
 # AI context files — contain proprietary migration methodology and domain knowledge
 # IP lives on the proxy server. Do NOT commit these.
 CLAUDE.md

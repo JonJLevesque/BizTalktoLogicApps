@@ -220,21 +220,6 @@ If you get a C or lower, the migration report will tell you exactly what to fix.
 
 ---
 
-## Try It Without a License Key First
-
-Want to see the tool work before setting up a key? Use dev mode with the built-in test files:
-
-```bash
-BTLA_DEV_MODE=true biztalk-migrate run \
-  --dir node_modules/biztalk-migrate/tests/fixtures/02-simple-file-receive \
-  --app "SimpleFileReceive" \
-  --output ./test-output
-```
-
-Dev mode skips the AI step and runs completely offline. The output won't be production-quality, but you'll see the full pipeline run and get a real output folder to look at.
-
----
-
 ## Common Problems and Fixes
 
 **"command not found: biztalk-migrate"**
