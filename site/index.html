@@ -862,16 +862,16 @@
       <form id="trial-form" onsubmit="submitTrial(event)" novalidate>
         <div class="space-y-4">
           <div>
-            <label class="form-label" for="t-name">Name</label>
-            <input type="text" id="t-name" class="form-input" placeholder="Jon Smith" autocomplete="name">
+            <label class="form-label" for="t-name">Name <span style="color:#ef4444;" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input type="text" id="t-name" class="form-input" placeholder="Jon Smith" required autocomplete="name">
           </div>
           <div>
             <label class="form-label" for="t-email">Work Email <span style="color:#ef4444;" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
             <input type="email" id="t-email" class="form-input" placeholder="jon@company.com" required autocomplete="email">
           </div>
           <div>
-            <label class="form-label" for="t-company">Company</label>
-            <input type="text" id="t-company" class="form-input" placeholder="Acme Corp" autocomplete="organization">
+            <label class="form-label" for="t-company">Company <span style="color:#ef4444;" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input type="text" id="t-company" class="form-input" placeholder="Acme Corp" required autocomplete="organization">
           </div>
           <div id="trial-err" class="form-error" role="alert"></div>
           <button type="submit" id="trial-btn" class="btn-primary" style="width:100%;justify-content:center;padding:14px;margin-top:4px;">
@@ -1000,10 +1000,22 @@ async function submitTrial(e) {
   errEl.style.display = 'none';
   errEl.textContent   = '';
 
+  if (!name) {
+    errEl.textContent   = 'Please enter your name.';
+    errEl.style.display = 'block';
+    document.getElementById('t-name').focus();
+    return;
+  }
   if (!email || !email.includes('@')) {
     errEl.textContent   = 'Please enter a valid email address.';
     errEl.style.display = 'block';
     document.getElementById('t-email').focus();
+    return;
+  }
+  if (!company) {
+    errEl.textContent   = 'Please enter your company name.';
+    errEl.style.display = 'block';
+    document.getElementById('t-company').focus();
     return;
   }
 
