@@ -1,0 +1,131 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeBindingsXml output is stable 1`] = `
+{
+  "receiveLocationCount": 1,
+  "receiveLocations": [
+    {
+      "adapterType": "FILE",
+      "isEnabled": true,
+      "name": "RL_ReceiveOrder_FILE",
+    },
+  ],
+  "sendPortCount": 1,
+  "sendPorts": [
+    {
+      "adapterType": "FILE",
+      "isDynamic": false,
+      "isTwoWay": false,
+      "name": "SP_SendProcessedOrder_FILE",
+    },
+  ],
+}
+`;
+
+exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeOrchestrationXml output is stable 1`] = `
+{
+  "activatingReceiveCount": 0,
+  "correlationSetCount": 0,
+  "hasAtomicTransactions": false,
+  "hasBRECalls": false,
+  "hasCompensation": false,
+  "hasLongRunningTransactions": false,
+  "hasSuspend": false,
+  "messageCount": 2,
+  "name": "SimpleFileOrchestration",
+  "namespace": "",
+  "portCount": 2,
+  "ports": [
+    {
+      "name": "ReceiveOrderPort",
+      "polarity": "Implements",
+    },
+    {
+      "name": "SendOrderPort",
+      "polarity": "Uses",
+    },
+  ],
+  "shapeCount": 1,
+  "shapeTypes": [
+    "CommentShape",
+  ],
+  "variableCount": 0,
+}
+`;
+
+exports[`Snapshot — 02-simple-file-receive — Stage 2 analyzeGaps output is stable for simple file receive 1`] = `
+{
+  "gapCount": 0,
+  "gapSummary": [],
+}
+`;
+
+exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeBindingsXml output is stable 1`] = `
+{
+  "receiveLocationCount": 1,
+  "receiveLocations": [
+    {
+      "adapterType": "FILE",
+      "isEnabled": true,
+      "name": "RL_ReceiveOrders_FILE",
+    },
+  ],
+  "sendPortCount": 2,
+  "sendPorts": [
+    {
+      "adapterType": "FILE",
+      "isDynamic": false,
+      "isTwoWay": false,
+      "name": "SP_HighPriority_FILE",
+    },
+    {
+      "adapterType": "FILE",
+      "isDynamic": false,
+      "isTwoWay": false,
+      "name": "SP_Standard_FILE",
+    },
+  ],
+}
+`;
+
+exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeOrchestrationXml output is stable 1`] = `
+{
+  "activatingReceiveCount": 0,
+  "correlationSetCount": 0,
+  "hasAtomicTransactions": false,
+  "hasBRECalls": false,
+  "hasCompensation": false,
+  "hasLongRunningTransactions": false,
+  "hasSuspend": false,
+  "messageCount": 3,
+  "name": "OrderRouterOrchestration",
+  "namespace": "",
+  "portCount": 3,
+  "ports": [
+    {
+      "name": "ReceiveOrderPort",
+      "polarity": "Implements",
+    },
+    {
+      "name": "HighPrioritySendPort",
+      "polarity": "Uses",
+    },
+    {
+      "name": "StandardSendPort",
+      "polarity": "Uses",
+    },
+  ],
+  "shapeCount": 1,
+  "shapeTypes": [
+    "CommentShape",
+  ],
+  "variableCount": 0,
+}
+`;
+
+exports[`Snapshot — 03-content-based-routing — Stage 2 analyzeGaps output is stable for content-based routing 1`] = `
+{
+  "gapCount": 0,
+  "gapSummary": [],
+}
+`;

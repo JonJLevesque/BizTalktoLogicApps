@@ -1,0 +1,92 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Poll_For_Order_Files": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "containerName": "orders-inbound",
+            "blobMatchingCondition": { "matchWildcardPattern": "*.xml" }
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "azureblob",
+            "operationId": "getBlob",
+            "serviceProviderId": "/serviceProviders/AzureBlob"
+          }
+        },
+        "recurrence": { "frequency": "Minute", "interval": 1 }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Route_By_Priority": {
+            "type": "If",
+            "expression": {
+              "or": [
+                { "equals": ["@triggerBody()?['Priority']", "HIGH"] },
+                { "greater": ["@float(triggerBody()?['OrderTotal'])", 10000] }
+              ]
+            },
+            "actions": {
+              "Send_To_High_Priority": {
+                "type": "ServiceProvider",
+                "inputs": {
+                  "parameters": {
+                    "containerName": "orders-high-priority",
+                    "blobName": "@{triggerBody()?['Name']}",
+                    "content": "@{triggerBody()}"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "azureblob",
+                    "operationId": "createBlob",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {
+                "Send_To_Standard": {
+                  "type": "ServiceProvider",
+                  "inputs": {
+                    "parameters": {
+                      "containerName": "orders-standard",
+                      "blobName": "@{triggerBody()?['Name']}",
+                      "content": "@{triggerBody()}"
+                    },
+                    "serviceProviderConfiguration": {
+                      "connectionName": "azureblob",
+                      "operationId": "createBlob",
+                      "serviceProviderId": "/serviceProviders/AzureBlob"
+                    }
+                  },
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "500",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": { "Scope_Main": ["FAILED", "TIMEDOUT"] }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

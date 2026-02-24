@@ -25,7 +25,7 @@ export { FeatureGateError } from './feature-gates.js';
 // ─── Module-Level Tier State ──────────────────────────────────────────────────
 
 /** Current license tier, updated by validateLicense() on startup */
-let _currentTier: LicenseTier = 'free';
+let _currentTier: LicenseTier = process.env['BTLA_DEV_MODE'] === 'true' ? 'standard' : 'free';
 
 /** Returns the current license tier (set after validateLicense resolves). */
 export function getLicenseTier(): LicenseTier {

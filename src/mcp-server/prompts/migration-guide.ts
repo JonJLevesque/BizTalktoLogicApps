@@ -133,15 +133,50 @@ function guidedMigrationPrompt(
         content: {
           type: 'text',
           text:
-            `I'll guide you through migrating **"${appName}"** to Azure Logic Apps Standard step by step.\n\n` +
-            `## Step 1: Analyze BizTalk Artifacts\n\n` +
-            `Let's start with the orchestrations — they define the business process flow.\n\n` +
-            `**Please paste the XML content of the first .odx file** (orchestration).\n\n` +
-            `If you don't have a .odx file, you can start with:\n` +
-            `- A .btm map file\n` +
-            `- A binding XML export from BizTalk Administration\n` +
-            `- A .btp pipeline file\n\n` +
-            `You can paste the full XML content directly in your next message.`,
+            `I'll guide you through migrating **"${appName}"** to Azure Logic Apps Standard using the **5-Step Migration Protocol** for maximum accuracy.\n\n` +
+            `## 5-Step Migration Protocol\n\n` +
+            `I follow this exact sequence to achieve 90%+ accurate Logic Apps output:\n\n` +
+            `### Step 1: PARSE (deterministic)\n` +
+            `Using MCP tools to parse all BizTalk artifacts into structured data:\n` +
+            `- If you have file paths: \`read_artifact\` for each file, or \`list_artifacts\` for a directory\n` +
+            `- \`analyze_orchestration\` for each .odx file\n` +
+            `- \`analyze_map\` for each .btm file\n` +
+            `- \`analyze_bindings\` for BindingInfo.xml\n` +
+            `- \`analyze_biztalk_application\` to combine all artifacts\n` +
+            `- \`detect_patterns\` + \`assess_complexity\`\n\n` +
+            `### Step 2: REASON (AI-driven — the critical step)\n` +
+            `- Call \`construct_intent\` → get partial IntegrationIntent with TODO_CLAUDE markers\n` +
+            `- I translate all XLANG/s expressions to WDL format\n` +
+            `- I fill connector configurations from binding addresses\n` +
+            `- I resolve all TODO_CLAUDE markers using migration reference tables\n` +
+            `- Call \`validate_intent\` → must return valid: true before proceeding\n\n` +
+            `### Step 3: SCAFFOLD (deterministic)\n` +
+            `- \`generate_gap_analysis\` → I present gaps for your review\n` +
+            `- \`generate_architecture\` → I present the Azure architecture recommendation\n` +
+            `- On your approval: \`build_package\` → generates the complete Logic Apps package\n\n` +
+            `### Step 4: REVIEW & ENRICH (AI-driven — quality assurance)\n` +
+            `After build_package, I review the generated workflow.json and:\n` +
+            `- Fix runAfter casing (must be SUCCEEDED/FAILED/TIMEDOUT — ALL CAPS)\n` +
+            `- Add retry policies to HTTP actions\n` +
+            `- Verify error Scope wraps all main actions\n` +
+            `- Replace any remaining TODO placeholders\n` +
+            `- Verify connection names match connections.json\n\n` +
+            `### Step 5: VALIDATE (deterministic)\n` +
+            `- \`validate_workflow\` → structural correctness check\n` +
+            `- \`validate_connections\` → connection reference check\n` +
+            `- \`score_migration_quality\` → quality grade (target: **B or higher, ≥75/100**)\n` +
+            `- Fix any issues, then present final output with deployment instructions\n\n` +
+            `---\n\n` +
+            `## Conventions I Apply\n\n` +
+            `**App settings** — Pascal_Snake_Case: \`[Type]_[Category]_[ServiceName]_[SettingName]\`\n` +
+            `- \`KVS_\` prefix for ALL sensitive values → Key Vault: \`@appsetting('KVS_...')\`\n` +
+            `- Examples: \`KVS_Storage_Blob_ConnectionString\`, \`Common_API_Sftp_Host\`\n\n` +
+            `**Resources**: \`LAStd-{BU}-{Dept}-{Env}\` | Workflows: \`Process-{name}\`\n\n` +
+            `---\n\n` +
+            `**Let's begin with Step 1.** Please provide the first artifact for **"${appName}"**:\n\n` +
+            `- If you have **file paths**: I can use \`read_artifact\` or \`list_artifacts\` directly\n` +
+            `- If you want to **paste XML**: start with the .odx orchestration file\n` +
+            `- If you have a **directory**: share the path and I'll scan it with \`list_artifacts\``,
         },
       },
     ],

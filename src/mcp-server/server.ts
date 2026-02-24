@@ -36,9 +36,13 @@ import {
   ListToolsRequestSchema,
   GetPromptRequestSchema,
   ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
   ErrorCode,
   McpError,
 }                              from '@modelcontextprotocol/sdk/types.js';
+import { readFileSync }        from 'fs';
+import { join }                from 'path';
 
 import { ALL_TOOLS, getToolsForTier }    from './tools/definitions.js';
 import { dispatchTool }                  from './tools/handler.js';
@@ -53,8 +57,9 @@ const SERVER_INFO = {
 };
 
 const SERVER_CAPABILITIES = {
-  tools:   { listChanged: false },
-  prompts: { listChanged: false },
+  tools:     { listChanged: false },
+  prompts:   { listChanged: false },
+  resources: { listChanged: false },
 };
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
@@ -130,6 +135,100 @@ async function main() {
       throw new McpError(ErrorCode.InvalidRequest, `Unknown prompt: ${name}`);
     }
     return result;
+  });
+
+  // ── Resources ───────────────────────────────────────────────────────────────
+
+  const PROJECT_ROOT = process.cwd();
+
+  const RESOURCES = [
+    {
+      uri:         'biztalk://reference/component-mapping',
+      name:        'Component Mapping Reference',
+      description: 'BizTalk orchestration shapes → Logic Apps actions (35+ mappings)',
+      mimeType:    'text/markdown',
+      file:        'docs/reference/component-mapping.md',
+    },
+    {
+      uri:         'biztalk://reference/connector-mapping',
+      name:        'Connector Mapping Reference',
+      description: 'BizTalk adapters → Logic Apps connectors (47+ adapters with config examples)',
+      mimeType:    'text/markdown',
+      file:        'docs/reference/connector-mapping.md',
+    },
+    {
+      uri:         'biztalk://reference/expression-mapping',
+      name:        'Expression Mapping Reference',
+      description: 'XLANG/s to WDL expression translation guide',
+      mimeType:    'text/markdown',
+      file:        'docs/reference/expression-mapping.md',
+    },
+    {
+      uri:         'biztalk://reference/pattern-mapping',
+      name:        'Pattern Mapping Reference',
+      description: 'Enterprise integration pattern migrations (16 patterns)',
+      mimeType:    'text/markdown',
+      file:        'docs/reference/pattern-mapping.md',
+    },
+    {
+      uri:         'biztalk://reference/gap-analysis',
+      name:        'Gap Analysis Reference',
+      description: 'Critical gaps between BizTalk capabilities and Logic Apps equivalents',
+      mimeType:    'text/markdown',
+      file:        'docs/reference/gap-analysis.md',
+    },
+    {
+      uri:         'biztalk://schema/decision-trees',
+      name:        'Decision Trees Schema',
+      description: 'Machine-readable decision trees for SKU, connector, and transform choices',
+      mimeType:    'application/json',
+      file:        'schemas/decision-trees.json',
+    },
+    {
+      uri:         'biztalk://examples/simple-file-receive',
+      name:        'Simple File Receive Example',
+      description: 'Training pair: FILE receive → transform → send (simple linear flow)',
+      mimeType:    'application/json',
+      file:        'tests/fixtures/02-simple-file-receive/training-pair.json',
+    },
+    {
+      uri:         'biztalk://examples/content-based-routing',
+      name:        'Content-Based Routing Example',
+      description: 'Training pair: FILE receive → decide → route (CBR pattern)',
+      mimeType:    'application/json',
+      file:        'tests/fixtures/03-content-based-routing/training-pair.json',
+    },
+  ] as const;
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: RESOURCES.map(r => ({
+      uri:         r.uri,
+      name:        r.name,
+      description: r.description,
+      mimeType:    r.mimeType,
+    })),
+  }));
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+    const resource = RESOURCES.find(r => r.uri === uri);
+    if (!resource) {
+      throw new McpError(ErrorCode.InvalidRequest, `Unknown resource: ${uri}`);
+    }
+
+    try {
+      const filePath = join(PROJECT_ROOT, resource.file);
+      const content = readFileSync(filePath, 'utf-8');
+      return {
+        contents: [{
+          uri,
+          mimeType: resource.mimeType,
+          text:     content,
+        }],
+      };
+    } catch {
+      throw new McpError(ErrorCode.InternalError, `Failed to read resource file for: ${uri}`);
+    }
   });
 
   // ── Start ───────────────────────────────────────────────────────────────────

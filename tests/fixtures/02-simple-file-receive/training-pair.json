@@ -1,0 +1,257 @@
+{
+  "metadata": {
+    "name": "SimpleFileReceive",
+    "pattern": "simple-linear",
+    "complexity": "simple",
+    "description": "Receive XML from FILE adapter, transform via BizTalk map, write to FILE adapter. The Hello World of BizTalk migration."
+  },
+  "biztalkInput": {
+    "orchestrationXml": "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n<!--\n  BizTalk Orchestration (ODX) — Simple File Receive\n  ===================================================\n  Shapes: Receive (activating, FILE adapter) → Construct/Transform → Send (FILE adapter)\n  Pattern: Linear — no branching, no correlation, no error handling\n  Complexity: Simple\n\n  ODX files are stored in BizTalk projects as XML documents with the om: namespace.\n  The orchestration designer in Visual Studio reads and writes this format.\n-->\n<om:Module xmlns:om=\"http://schemas.microsoft.com/BizTalk/2003/DesignerData\">\n  <om:Property Name=\"InitialCodeFile\" Value=\"SimpleFileReceive.odx\"/>\n  <om:Property Name=\"InitialNamespace\" Value=\"SimpleFileReceive\"/>\n  <om:Property Name=\"InitialTypeName\" Value=\"SimpleFileOrchestration\"/>\n  <om:Property Name=\"Notes\" Value=\"Receives XML order from file share, transforms to processed order, writes output file\"/>\n\n  <!-- Service = the orchestration type -->\n  <om:Service Name=\"SimpleFileOrchestration\">\n    <om:Property Name=\"Type\" Value=\"Public\"/>\n    <om:Property Name=\"Compensation\" Value=\"Default\"/>\n    <om:Property Name=\"Transaction\" Value=\"None\"/>\n\n    <!--\n      Message declarations\n      Messages are typed instances of XML schemas (or .NET classes).\n      Each message declared here is a variable available throughout the orchestration.\n      Migration: These map to Logic Apps workflow variables or body() references.\n    -->\n    <om:MessageDeclaration Name=\"IncomingOrder\" Type=\"SimpleFileReceive.Schemas.OrderMessage\"/>\n    <om:MessageDeclaration Name=\"OutgoingOrder\" Type=\"SimpleFileReceive.Schemas.ProcessedOrderMessage\"/>\n\n    <!--\n      Port declarations\n      Ports define the communication channels (send/receive endpoints).\n      Migration: Receive port → Trigger; Send port → Action (HTTP/Blob/ServiceBus)\n    -->\n    <om:PortDeclaration Name=\"ReceiveOrderPort\"\n                        Type=\"SimpleFileReceive.PortTypes.IReceiveOrder\"\n                        Modifier=\"Private\"\n                        Polarity=\"Implements\">\n      <!--\n        Implements = this orchestration IS the service (port binds inbound message TO this orch)\n        Polarity=\"Implements\" + activating Receive → generates an activation subscription in MessageBox\n      -->\n    </om:PortDeclaration>\n\n    <om:PortDeclaration Name=\"SendOrderPort\"\n                        Type=\"SimpleFileReceive.PortTypes.ISendProcessedOrder\"\n                        Modifier=\"Private\"\n                        Polarity=\"Uses\">\n      <!-- Uses = this orchestration calls an external service (sends message OUT) -->\n    </om:PortDeclaration>\n\n    <!--\n      Orchestration Body — the shape graph\n      Shapes are rendered visually in the BizTalk orchestration designer.\n      Migration engine parses these shapes to build the IntegrationIntent.\n    -->\n    <om:Body>\n      <om:Shape Name=\"BeginOrchestration\" Type=\"BodyShape\">\n        <!--\n          RECEIVE SHAPE (activating)\n          - ActivatesCorrelation=\"true\" → this Receive creates a new orchestration instance\n          - Without activation, a Receive would route to an existing running instance\n          - Migration → Logic Apps: this becomes the TRIGGER\n          - The trigger type is determined by the adapter on the bound receive location (from BindingInfo.xml)\n          - FILE adapter → polling trigger (Azure Blob or FileSystem connector)\n        -->\n        <om:Shape Name=\"ReceiveOrder\" Type=\"ReceiveShape\">\n          <om:Property Name=\"ActivatesCorrelation\" Value=\"true\"/>\n          <om:Property Name=\"Message\" Value=\"IncomingOrder\"/>\n          <om:Property Name=\"Notes\" Value=\"Activating receive — creates orchestration instance when file arrives\"/>\n          <om:Port Name=\"ReceiveOrderPort\"/>\n        </om:Shape>\n\n        <!--\n          CONSTRUCT MESSAGE SHAPE\n          Wraps message construction actions (Transform or MessageAssignment).\n          Migration: this scope becomes a Transform action in Logic Apps.\n        -->\n        <om:Shape Name=\"BuildProcessedOrder\" Type=\"ConstructShape\">\n          <om:Property Name=\"Messages\" Value=\"OutgoingOrder\"/>\n          <om:Property Name=\"Notes\" Value=\"Construct the outgoing ProcessedOrder message\"/>\n\n          <!--\n            TRANSFORM SHAPE (inside Construct)\n            References a BTM map class — the compiled map transforms IncomingOrder → OutgoingOrder.\n            Migration: this becomes a Transform XML action or Xslt action pointing to a converted map.\n          -->\n          <om:Shape Name=\"ApplyOrderMap\" Type=\"TransformShape\">\n            <om:Property Name=\"ClassName\" Value=\"SimpleFileReceive.Maps.OrderToProcessedOrderMap\"/>\n            <om:Property Name=\"Source Message\" Value=\"IncomingOrder\"/>\n            <om:Property Name=\"Destination Message\" Value=\"OutgoingOrder\"/>\n            <om:Property Name=\"Notes\" Value=\"Applies BTM map: Order → ProcessedOrder (adds ProcessedDate, LineTotals, OrderTotal)\"/>\n          </om:Shape>\n        </om:Shape>\n\n        <!--\n          SEND SHAPE\n          Sends the constructed message out via the bound send port.\n          Migration → Logic Apps: this becomes an action (Blob create, HTTP POST, etc.)\n          based on the adapter type on the bound send port (from BindingInfo.xml).\n        -->\n        <om:Shape Name=\"WriteProcessedOrder\" Type=\"SendShape\">\n          <om:Property Name=\"Message\" Value=\"OutgoingOrder\"/>\n          <om:Property Name=\"Notes\" Value=\"Write ProcessedOrder to output file via FILE send port\"/>\n          <om:Port Name=\"SendOrderPort\"/>\n        </om:Shape>\n\n      </om:Shape>\n    </om:Body>\n\n  </om:Service>\n</om:Module>",
+    "bindingXml": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!--\n  BizTalk Binding File — Simple File Receive\n  ==========================================\n  Binding files connect orchestration ports to physical transports.\n  They are exported from BizTalk Admin Console or BizTalk Deployment Framework (BTDF).\n\n  MIGRATION KEY INFORMATION in this file:\n  - Adapter type (FILE, HTTP, WCF, etc.) → determines Logic Apps connector type\n  - Address (C:\\Input\\*.xml) → becomes blob container path or trigger config\n  - TransportTypeData → contains adapter-specific settings (poll interval, file mask, etc.)\n  - Pipeline names → determine if content needs special processing\n  - Filter conditions → determine subscription/routing logic (may become Logic Apps Conditions)\n-->\n<BindingInfo xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n  <Description>Simple File Receive-Transform-Send Bindings — TEST ENVIRONMENT</Description>\n  <Timestamp>2026-02-23T00:00:00</Timestamp>\n  <Version>3.5.1.0</Version>\n  <BindingParameters>\n    <GacDeploymentEnabled>false</GacDeploymentEnabled>\n  </BindingParameters>\n\n  <ModuleRefCollection>\n    <ModuleRef DisplayName=\"SimpleFileReceive(1.0.0.0)\" Name=\"SimpleFileReceive\">\n      <ServiceRefCollection>\n        <ServiceRef Name=\"SimpleFileOrchestration\" FullName=\"SimpleFileReceive.SimpleFileOrchestration\" Type=\"1\">\n          <Ports>\n            <!--\n              Receive port binding: connects orchestration's ReceiveOrderPort to the physical receive location.\n              Migration note: The adapter type (FILE) and address (C:\\Input\\*.xml) → Blob trigger config.\n            -->\n            <Port Name=\"ReceiveOrderPort\" PortModifier=\"2\">\n              <ReceivePortRef Name=\"RP_ReceiveOrder_FILE\"/>\n            </Port>\n            <!--\n              Send port binding: connects orchestration's SendOrderPort to the physical send port.\n              Migration note: FILE adapter, C:\\Output\\ → Blob Storage create action.\n            -->\n            <Port Name=\"SendOrderPort\" PortModifier=\"1\">\n              <SendPortRef Name=\"SP_SendProcessedOrder_FILE\"/>\n            </Port>\n          </Ports>\n        </ServiceRef>\n      </ServiceRefCollection>\n    </ModuleRef>\n  </ModuleRefCollection>\n\n  <SendPortCollection>\n    <SendPort Name=\"SP_SendProcessedOrder_FILE\"\n              IsStatic=\"true\"\n              IsTwoWay=\"false\"\n              BindingOption=\"0\">\n\n      <PrimaryTransport>\n        <!--\n          FILE adapter send configuration.\n          Migration → Logic Apps:\n            Address: \"C:\\Output\\%SourceFileName%\" → Blob container \"orders-outbound\" + filename from trigger\n            %SourceFileName% macro → @{triggerBody()?['Name']} in Logic Apps WDL expression\n        -->\n        <Address>C:\\Output\\%SourceFileName%</Address>\n        <TransportType Name=\"FILE\" Capabilities=\"11\" ConfigurationClsid=\"5e49e3a6-b4fc-4077-b44c-22f34a242fdb\"/>\n        <TransportTypeData>\n          <![CDATA[<CustomProps><CopyMode vt=\"19\">0</CopyMode><AllowCacheOnWrite vt=\"11\">0</AllowCacheOnWrite><UseTempFileOnWrite vt=\"11\">-1</UseTempFileOnWrite></CustomProps>]]>\n        </TransportTypeData>\n        <RetryCount>3</RetryCount>\n        <RetryInterval>5</RetryInterval>\n        <ServiceWindow>\n          <FromTime>00:00:00</FromTime>\n          <ToTime>23:59:59</ToTime>\n          <Enabled>false</Enabled>\n        </ServiceWindow>\n      </PrimaryTransport>\n\n      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.XMLTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>\n      <Description>Sends processed XML order to output file location</Description>\n\n      <!--\n        Send port filter (subscription).\n        This filter determines which messages this send port receives from the MessageBox.\n        Migration note: In a purely orchestration-bound send port, the filter may be empty\n        (the orchestration explicitly sends to this port). Filters matter more for standalone\n        send ports (content-based routing without orchestrations).\n      -->\n      <Filter>\n        <Group>\n          <Statement Property=\"BTS.SPName\" Operator=\"0\" Value=\"SP_SendProcessedOrder_FILE\"/>\n        </Group>\n      </Filter>\n\n    </SendPort>\n  </SendPortCollection>\n\n  <ReceivePortCollection>\n    <ReceivePort Name=\"RP_ReceiveOrder_FILE\"\n                 IsTwoWay=\"false\">\n      <Description>Receives XML order files from the file system</Description>\n      <ReceiveLocationCollection>\n        <ReceiveLocation Name=\"RL_ReceiveOrder_FILE\">\n          <!--\n            FILE adapter receive configuration.\n            Migration → Logic Apps:\n              Address: \"C:\\Input\\*.xml\" → Blob trigger on container \"orders-inbound\" with *.xml filter\n              PollingInterval (60000ms = 60s) → Recurrence trigger interval: 1 minute\n              FileMask: \"*.xml\" → blob filter pattern\n          -->\n          <Address>C:\\Input\\*.xml</Address>\n          <TransportType Name=\"FILE\" Capabilities=\"11\" ConfigurationClsid=\"5e49e3a6-b4fc-4077-b44c-22f34a242fdb\"/>\n          <TransportTypeData>\n            <![CDATA[<CustomProps>\n              <BatchSize vt=\"3\">20</BatchSize>\n              <BatchSizeInBytes vt=\"19\">102400</BatchSizeInBytes>\n              <FileNetFailRetryCount vt=\"19\">5</FileNetFailRetryCount>\n              <FileNetFailRetryInt vt=\"19\">5</FileNetFailRetryInt>\n              <PollingInterval vt=\"3\">60000</PollingInterval>\n              <FileMask vt=\"8\">*.xml</FileMask>\n              <RenameReceivedFiles vt=\"11\">-1</RenameReceivedFiles>\n            </CustomProps>]]>\n          </TransportTypeData>\n          <ReceivePipelineName>Microsoft.BizTalk.DefaultPipelines.XMLReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</ReceivePipelineName>\n          <Description>Polls C:\\Input for *.xml files every 60 seconds</Description>\n          <Enable>true</Enable>\n          <ScheduleTimeZone>UTC</ScheduleTimeZone>\n        </ReceiveLocation>\n      </ReceiveLocationCollection>\n    </ReceivePort>\n  </ReceivePortCollection>\n\n</BindingInfo>",
+    "parsedApplication": {
+      "name": "SimpleFileReceiveApp",
+      "biztalkVersion": "unknown",
+      "orchestrations": [
+        {
+          "name": "SimpleFileOrchestration",
+          "namespace": "SimpleFileReceive",
+          "filePath": "orchestration/SimpleFileReceive.odx.xml",
+          "shapes": [
+            { "shapeType": "ReceiveShape", "shapeId": "receive_1", "name": "ReceiveOrder", "isActivating": true },
+            { "shapeType": "ConstructShape", "shapeId": "construct_1", "name": "BuildProcessedOrder", "children": [
+              { "shapeType": "TransformShape", "shapeId": "transform_1", "name": "ApplyOrderMap", "mapClass": "SimpleFileReceive.Maps.OrderToProcessedOrderMap" }
+            ]},
+            { "shapeType": "SendShape", "shapeId": "send_1", "name": "WriteProcessedOrder" }
+          ],
+          "ports": [
+            { "name": "ReceiveOrderPort", "portTypeRef": "SimpleFileReceive.PortTypes.IReceiveOrder", "polarity": "Implements", "binding": "RP_ReceiveOrder_FILE" },
+            { "name": "SendOrderPort", "portTypeRef": "SimpleFileReceive.PortTypes.ISendProcessedOrder", "polarity": "Uses", "binding": "SP_SendProcessedOrder_FILE" }
+          ],
+          "correlationSets": [],
+          "messages": [
+            { "name": "IncomingOrder", "messageType": "SimpleFileReceive.Schemas.OrderMessage" },
+            { "name": "OutgoingOrder", "messageType": "SimpleFileReceive.Schemas.ProcessedOrderMessage" }
+          ],
+          "variables": [],
+          "hasAtomicTransactions": false,
+          "hasLongRunningTransactions": false,
+          "hasCompensation": false,
+          "hasBRECalls": false,
+          "hasSuspend": false,
+          "activatingReceiveCount": 1
+        }
+      ],
+      "maps": [
+        {
+          "name": "OrderToProcessedOrderMap",
+          "className": "SimpleFileReceive.Maps.OrderToProcessedOrderMap",
+          "filePath": "OrderToProcessedOrderMap.btm",
+          "sourceSchemaRef": "SimpleFileReceive.Schemas.OrderMessage",
+          "destinationSchemaRef": "SimpleFileReceive.Schemas.ProcessedOrderMessage",
+          "functoids": [],
+          "links": [
+            { "from": "Order/OrderId", "to": "ProcessedOrder/OrderId" },
+            { "from": "Order/CustomerId", "to": "ProcessedOrder/CustomerId" }
+          ],
+          "linkCount": 2,
+          "hasScriptingFunctoids": false,
+          "hasLooping": false,
+          "hasDatabaseFunctoids": false,
+          "functoidCategories": [],
+          "recommendedMigrationPath": "lml"
+        }
+      ],
+      "pipelines": [],
+      "schemas": [],
+      "bindingFiles": [
+        {
+          "applicationName": "SimpleFileReceive",
+          "filePath": "bindings/BindingInfo.xml",
+          "receiveLocations": [
+            {
+              "name": "RL_ReceiveOrder_FILE",
+              "receivePortName": "RP_ReceiveOrder_FILE",
+              "adapterType": "FILE",
+              "address": "C:\\Input\\*.xml",
+              "pipelineName": "Microsoft.BizTalk.DefaultPipelines.XMLReceive",
+              "adapterProperties": { "PollingInterval": "60000", "FileMask": "*.xml" },
+              "isEnabled": true
+            }
+          ],
+          "sendPorts": [
+            {
+              "name": "SP_SendProcessedOrder_FILE",
+              "adapterType": "FILE",
+              "address": "C:\\Output\\%SourceFileName%",
+              "pipelineName": "Microsoft.BizTalk.DefaultPipelines.XMLTransmit",
+              "adapterProperties": {},
+              "isDynamic": false,
+              "isTwoWay": false
+            }
+          ]
+        }
+      ],
+      "complexityScore": 3,
+      "complexityClassification": "simple"
+    }
+  },
+  "integrationIntent": {
+    "trigger": {
+      "type": "polling",
+      "source": "Azure Blob Storage (orders-inbound container, polling every 1 minute)",
+      "connector": "azureblob",
+      "config": {
+        "containerName": "orders-inbound",
+        "blobMatchingCondition": { "matchWildcardPattern": "*.xml" },
+        "recurrence": { "frequency": "Minute", "interval": 1 }
+      }
+    },
+    "steps": [
+      {
+        "id": "step_transform_order",
+        "type": "transform",
+        "description": "Transform incoming Order XML to ProcessedOrder format using BizTalk map OrderToProcessedOrderMap",
+        "connector": "integrationAccount",
+        "actionType": "Xslt",
+        "config": {
+          "content": "@{triggerBody()}",
+          "mapName": "OrderToProcessedOrderMap"
+        },
+        "runAfter": []
+      },
+      {
+        "id": "step_send_processed_order",
+        "type": "send",
+        "description": "Write processed order to output blob container (orders-outbound), preserving original filename",
+        "connector": "azureblob",
+        "actionType": "ServiceProvider",
+        "config": {
+          "containerName": "orders-outbound",
+          "blobName": "@{triggerBody()?['Name']}",
+          "content": "@{body('Transform_Order')}"
+        },
+        "runAfter": ["step_transform_order"]
+      }
+    ],
+    "errorHandling": {
+      "strategy": "terminate"
+    },
+    "systems": [
+      {
+        "name": "Azure Blob Storage (Input)",
+        "protocol": "HTTPS",
+        "role": "source",
+        "authentication": "connection-string",
+        "onPremises": false,
+        "requiresGateway": false,
+        "endpoint": "https://{storage-account}.blob.core.windows.net/orders-inbound"
+      },
+      {
+        "name": "Azure Blob Storage (Output)",
+        "protocol": "HTTPS",
+        "role": "destination",
+        "authentication": "connection-string",
+        "onPremises": false,
+        "requiresGateway": false,
+        "endpoint": "https://{storage-account}.blob.core.windows.net/orders-outbound"
+      }
+    ],
+    "dataFormats": {
+      "input": "xml",
+      "output": "xml"
+    },
+    "patterns": [],
+    "metadata": {
+      "source": "biztalk-migration",
+      "complexity": "simple",
+      "estimatedActions": 4,
+      "requiresIntegrationAccount": true,
+      "requiresOnPremGateway": false,
+      "sourceOrchestrationName": "SimpleFileOrchestration"
+    }
+  },
+  "logicAppsOutput": {
+    "workflowJson": {
+      "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+          "Poll_For_Order_Files": {
+            "type": "ServiceProvider",
+            "inputs": {
+              "parameters": {
+                "containerName": "orders-inbound",
+                "blobMatchingCondition": { "matchWildcardPattern": "*.xml" }
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "azureblob",
+                "operationId": "getBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "recurrence": { "frequency": "Minute", "interval": 1 }
+          }
+        },
+        "actions": {
+          "Scope_Main": {
+            "type": "Scope",
+            "actions": {
+              "Transform_Order": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@{triggerBody()}",
+                  "integrationAccount": { "map": { "name": "OrderToProcessedOrderMap" } }
+                },
+                "runAfter": {}
+              },
+              "Write_Processed_Order": {
+                "type": "ServiceProvider",
+                "inputs": {
+                  "parameters": {
+                    "containerName": "orders-outbound",
+                    "blobName": "@{triggerBody()?['Name']}",
+                    "content": "@{body('Transform_Order')}"
+                  },
+                  "serviceProviderConfiguration": {
+                    "connectionName": "azureblob",
+                    "operationId": "createBlob",
+                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                  }
+                },
+                "runAfter": { "Transform_Order": ["SUCCEEDED"] }
+              }
+            },
+            "runAfter": {}
+          },
+          "Terminate_On_Error": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "500",
+                "message": "@{result('Scope_Main')[0]['error']['message']}"
+              }
+            },
+            "runAfter": { "Scope_Main": ["FAILED", "TIMEDOUT"] }
+          }
+        },
+        "outputs": {}
+      },
+      "kind": "Stateful"
+    },
+    "connectionsJson": {
+      "serviceProviderConnections": {
+        "azureblob": {
+          "parameterValues": {
+            "connectionString": "@appsetting('KVS_Storage_Blob_ConnectionString')"
+          },
+          "serviceProvider": { "id": "/serviceProviders/AzureBlob" }
+        }
+      },
+      "managedApiConnections": {}
+    },
+    "appSettings": {
+      "KVS_Storage_Blob_ConnectionString": "@Microsoft.KeyVault(SecretUri=https://{keyvault}.vault.azure.net/secrets/storage-blob-connection-string/)"
+    }
+  }
+}

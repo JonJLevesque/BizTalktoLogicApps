@@ -445,7 +445,14 @@ function buildSummary(
   parts.push(
     'Recommended naming convention: Logic Apps resource "LAStd-{BU}-{Dept}-{Env}", ' +
     'workflows "Process-{name}", connections "CN-{ConnectorType}-{Workflow}". ' +
-    'Consistent naming enables policy-driven governance and cost allocation by department.'
+    'Consistent naming enables policy-driven governance and cost allocation by department. ' +
+    'App setting naming convention (Pascal_Snake_Case): [Type]_[Category]_[ServiceName]_[SettingName]. ' +
+    'Categories: API (endpoints/keys), DB (databases/messaging), KVS (Key Vault secrets), ' +
+    'Workflow (global logic settings), Storage (containers). ' +
+    'Use "Common" type for shared settings; use the process name (e.g. "Plum005") for dedicated settings. ' +
+    'Sensitive values (connection strings, passwords, API keys) must use the KVS_ prefix and ' +
+    'reference Key Vault via @Microsoft.KeyVault(SecretUri=...). ' +
+    'Examples: KVS_DB_ServiceBus_ConnectionString, Common_API_Sftp_Host, KVS_API_Smtp_Password.'
   );
 
   return parts.join(' ');

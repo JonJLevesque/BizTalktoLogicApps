@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "description": "Known quality baselines for golden master workflows. Actual scores must not fall below baseline - 2 (2-point regression tolerance). Scores computed from scoreWorkflowQuality() on the golden master workflow.json files. Golden masters for both fixtures score 90/100 (grade A) with the current quality scorer.",
+  "baselines": {
+    "02-simple-file-receive": {
+      "qualityScore": 88,
+      "grade": "A",
+      "workflowValidation": { "errors": 0, "warnings": 2 },
+      "connectionsValidation": { "errors": 0 }
+    },
+    "03-content-based-routing": {
+      "qualityScore": 88,
+      "grade": "A",
+      "workflowValidation": { "errors": 0, "warnings": 2 },
+      "connectionsValidation": { "errors": 0 }
+    }
+  }
+}

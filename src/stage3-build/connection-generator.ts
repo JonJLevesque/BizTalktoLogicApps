@@ -28,6 +28,34 @@ import type {
   ManagedApiConnection,
 } from '../types/logicapps.js';
 
+// ─── App Setting Name Builder ─────────────────────────────────────────────────
+
+/**
+ * Builds an app setting key following the Pascal_Snake_Case naming convention:
+ *   [Type]_[Category]_[ServiceName]_[SettingName]
+ *
+ * Categories:
+ *   API      — external API endpoints or keys
+ *   DB       — connection strings for databases / messaging infra
+ *   KVS      — Key Vault secret references (@Microsoft.KeyVault)
+ *   Workflow — global settings used across multiple actions
+ *   Storage  — container names, storage accounts
+ *
+ * Type defaults to 'Common' (shared across processes).
+ * Override with process name (e.g. 'Plum005') for dedicated settings.
+ *
+ * Sensitive values (connection strings, passwords, API keys) use KVS_ prefix.
+ * Non-sensitive values (hosts, ports, channels) use Common_ prefix.
+ */
+function s(
+  type: string,
+  category: 'API' | 'DB' | 'KVS' | 'Workflow' | 'Storage',
+  service: string,
+  setting: string
+): string {
+  return `${type}_${category}_${service}_${setting}`;
+}
+
 // ─── Connector registry ───────────────────────────────────────────────────────
 
 interface ConnectorDef {
@@ -47,26 +75,30 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/AzureBlob',
     displayName:       'Azure Blob Storage',
-    settingsKeys:      ['BLOB_STORAGE_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('BLOB_STORAGE_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'Storage', 'Blob', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'Storage', 'Blob', 'ConnectionString')}')` },
   },
   serviceBus: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/serviceBus',
     displayName:       'Azure Service Bus',
-    settingsKeys:      ['SERVICE_BUS_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('SERVICE_BUS_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'ServiceBus', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'ServiceBus', 'ConnectionString')}')` },
   },
   sftp: {
     type:              'managed',
     serviceProviderId: '/serviceProviders/sftpWithSsh',
     displayName:       'SFTP-SSH',
-    settingsKeys:      ['SFTP_HOST', 'SFTP_USERNAME', 'SFTP_PASSWORD'],
+    settingsKeys:      [
+      s('Common', 'API', 'Sftp', 'Host'),
+      s('Common', 'API', 'Sftp', 'Username'),
+      s('KVS',    'API', 'Sftp', 'Password'),
+    ],
     parameterValues:   {
-      hostName:     "@AppSetting('SFTP_HOST')",
-      userName:     "@AppSetting('SFTP_USERNAME')",
-      password:     "@AppSetting('SFTP_PASSWORD')",
-      rootFolder:   '/',
+      hostName:   `@AppSetting('${s('Common', 'API', 'Sftp', 'Host')}')`,
+      userName:   `@AppSetting('${s('Common', 'API', 'Sftp', 'Username')}')`,
+      password:   `@AppSetting('${s('KVS',    'API', 'Sftp', 'Password')}')`,
+      rootFolder: '/',
     },
     managedApiId: '/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/managedApis/sftpwithssh',
   },
@@ -74,11 +106,15 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'managed',
     serviceProviderId: '/serviceProviders/ftp',
     displayName:       'FTP',
-    settingsKeys:      ['FTP_SERVER_ADDRESS', 'FTP_USERNAME', 'FTP_PASSWORD'],
+    settingsKeys:      [
+      s('Common', 'API', 'Ftp', 'ServerAddress'),
+      s('Common', 'API', 'Ftp', 'Username'),
+      s('KVS',    'API', 'Ftp', 'Password'),
+    ],
     parameterValues:   {
-      serverAddress: "@AppSetting('FTP_SERVER_ADDRESS')",
-      userName:      "@AppSetting('FTP_USERNAME')",
-      password:      "@AppSetting('FTP_PASSWORD')",
+      serverAddress: `@AppSetting('${s('Common', 'API', 'Ftp', 'ServerAddress')}')`,
+      userName:      `@AppSetting('${s('Common', 'API', 'Ftp', 'Username')}')`,
+      password:      `@AppSetting('${s('KVS',    'API', 'Ftp', 'Password')}')`,
     },
     managedApiId: '/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/managedApis/ftp',
   },
@@ -86,8 +122,8 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/sql',
     displayName:       'SQL Server',
-    settingsKeys:      ['SQL_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('SQL_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'Sql', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'Sql', 'ConnectionString')}')` },
   },
   http: {
     type:              'built-in',
@@ -100,26 +136,30 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/eventHubs',
     displayName:       'Azure Event Hubs',
-    settingsKeys:      ['EVENT_HUBS_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('EVENT_HUBS_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'EventHubs', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'EventHubs', 'ConnectionString')}')` },
   },
   cosmosDb: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/documentdb',
     displayName:       'Azure Cosmos DB',
-    settingsKeys:      ['COSMOS_DB_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('COSMOS_DB_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'CosmosDb', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'CosmosDb', 'ConnectionString')}')` },
   },
   sap: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/SAP',
     displayName:       'SAP',
-    settingsKeys:      ['SAP_APPLICATION_SERVER_HOST', 'SAP_CLIENT', 'SAP_SYSTEM_NUMBER'],
+    settingsKeys:      [
+      s('Common', 'API', 'Sap', 'ApplicationServerHost'),
+      s('Common', 'API', 'Sap', 'Client'),
+      s('Common', 'API', 'Sap', 'SystemNumber'),
+    ],
     parameterValues:   {
-      applicationServerHost:   "@AppSetting('SAP_APPLICATION_SERVER_HOST')",
-      client:                  "@AppSetting('SAP_CLIENT')",
-      systemNumber:            "@AppSetting('SAP_SYSTEM_NUMBER')",
-      logonType:               'ApplicationServer',
+      applicationServerHost: `@AppSetting('${s('Common', 'API', 'Sap', 'ApplicationServerHost')}')`,
+      client:                `@AppSetting('${s('Common', 'API', 'Sap', 'Client')}')`,
+      systemNumber:          `@AppSetting('${s('Common', 'API', 'Sap', 'SystemNumber')}')`,
+      logonType:             'ApplicationServer',
     },
   },
   office365: {
@@ -134,48 +174,60 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/smtp',
     displayName:       'SMTP',
-    settingsKeys:      ['SMTP_SERVER_ADDRESS', 'SMTP_USERNAME', 'SMTP_PASSWORD'],
+    settingsKeys:      [
+      s('Common', 'API', 'Smtp', 'ServerAddress'),
+      s('Common', 'API', 'Smtp', 'Username'),
+      s('KVS',    'API', 'Smtp', 'Password'),
+    ],
     parameterValues:   {
-      serverAddress: "@AppSetting('SMTP_SERVER_ADDRESS')",
-      userName:      "@AppSetting('SMTP_USERNAME')",
-      password:      "@AppSetting('SMTP_PASSWORD')",
+      serverAddress: `@AppSetting('${s('Common', 'API', 'Smtp', 'ServerAddress')}')`,
+      userName:      `@AppSetting('${s('Common', 'API', 'Smtp', 'Username')}')`,
+      password:      `@AppSetting('${s('KVS',    'API', 'Smtp', 'Password')}')`,
     },
   },
   ibmMq: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/ibmMQ',
     displayName:       'IBM MQ',
-    settingsKeys:      ['IBM_MQ_HOSTNAME', 'IBM_MQ_PORT', 'IBM_MQ_CHANNEL', 'IBM_MQ_QUEUEMANAGER'],
+    settingsKeys:      [
+      s('Common', 'API', 'IbmMq', 'Hostname'),
+      s('Common', 'API', 'IbmMq', 'Port'),
+      s('Common', 'API', 'IbmMq', 'Channel'),
+      s('Common', 'API', 'IbmMq', 'QueueManager'),
+    ],
     parameterValues:   {
-      serverName:   "@AppSetting('IBM_MQ_HOSTNAME')",
-      port:         "@AppSetting('IBM_MQ_PORT')",
-      channelName:  "@AppSetting('IBM_MQ_CHANNEL')",
-      queueManager: "@AppSetting('IBM_MQ_QUEUEMANAGER')",
+      serverName:   `@AppSetting('${s('Common', 'API', 'IbmMq', 'Hostname')}')`,
+      port:         `@AppSetting('${s('Common', 'API', 'IbmMq', 'Port')}')`,
+      channelName:  `@AppSetting('${s('Common', 'API', 'IbmMq', 'Channel')}')`,
+      queueManager: `@AppSetting('${s('Common', 'API', 'IbmMq', 'QueueManager')}')`,
     },
   },
   db2: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/db2',
     displayName:       'IBM Db2',
-    settingsKeys:      ['DB2_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('DB2_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'Db2', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'Db2', 'ConnectionString')}')` },
   },
   azureTable: {
     type:              'managed',
     serviceProviderId: '/serviceProviders/azureTables',
     displayName:       'Azure Table Storage',
-    settingsKeys:      ['AZURE_TABLE_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('AZURE_TABLE_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'Storage', 'AzureTable', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'Storage', 'AzureTable', 'ConnectionString')}')` },
     managedApiId: '/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/managedApis/azuretables',
   },
   mllp: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/mllp',
     displayName:       'MLLP (HL7)',
-    settingsKeys:      ['MLLP_HOST', 'MLLP_PORT'],
+    settingsKeys:      [
+      s('Common', 'API', 'Mllp', 'Host'),
+      s('Common', 'API', 'Mllp', 'Port'),
+    ],
     parameterValues:   {
-      hostName: "@AppSetting('MLLP_HOST')",
-      port:     "@AppSetting('MLLP_PORT')",
+      hostName: `@AppSetting('${s('Common', 'API', 'Mllp', 'Host')}')`,
+      port:     `@AppSetting('${s('Common', 'API', 'Mllp', 'Port')}')`,
     },
   },
   as2: {
@@ -203,8 +255,8 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     type:              'managed',
     serviceProviderId: '/serviceProviders/oracle',
     displayName:       'Oracle Database',
-    settingsKeys:      ['ORACLE_CONNECTION_STRING'],
-    parameterValues:   { connectionString: "@AppSetting('ORACLE_CONNECTION_STRING')" },
+    settingsKeys:      [s('KVS', 'DB', 'Oracle', 'ConnectionString')],
+    parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'Oracle', 'ConnectionString')}')` },
     managedApiId: '/subscriptions/{subscriptionId}/providers/Microsoft.Web/locations/{location}/managedApis/oracle',
   },
 };

@@ -39,8 +39,17 @@ import { generateDesign }                       from '../../greenfield/design-ge
 import { listTemplates, getTemplate, cloneTemplateIntent } from '../../greenfield/template-library.js';
 import { refineIntent }                         from '../../greenfield/refinement-engine.js';
 import { isFeatureAvailable }                   from '../../licensing/index.js';
+import { constructIntent }                      from '../../stage1-understand/intent-constructor.js';
+import { readArtifact, listArtifacts }          from './file-tools.js';
+import { validateIntegrationIntent }            from '../../shared/intent-validator.js';
+import {
+  validateWorkflow,
+  validateConnections,
+  validatePackage,
+  scoreWorkflowQuality,
+}                                               from '../../validation/index.js';
 import type { BizTalkApplication }              from '../../types/biztalk.js';
-import type { IntegrationIntent }               from '../../shared/integration-intent.js';
+import type { IntegrationIntent, IntegrationPattern } from '../../shared/integration-intent.js';
 
 // ─── Handler Registry ─────────────────────────────────────────────────────────
 
@@ -316,6 +325,73 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
       intent,
       package:  buildResult,
     });
+  },
+
+  // ── File Tools ──────────────────────────────────────────────────────────────
+
+  read_artifact: async (args) => {
+    const result = await readArtifact(String(args['filePath']));
+    return ok(result);
+  },
+
+  list_artifacts: async (args) => {
+    const result = await listArtifacts(
+      String(args['directoryPath']),
+      args['recursive'] as boolean | undefined
+    );
+    return ok(result);
+  },
+
+  // ── Intent Construction ─────────────────────────────────────────────────────
+
+  construct_intent: async (args) => {
+    if (!isFeatureAvailable('build')) return featureGated('build');
+    const app = parseJson<BizTalkApplication>(args['applicationJson'] as string);
+    const patterns = args['patternsJson']
+      ? parseJson<IntegrationPattern[]>(args['patternsJson'] as string)
+      : undefined;
+    const intent = constructIntent(app, patterns);
+    return ok(intent);
+  },
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+
+  validate_intent: async (args) => {
+    const intent = parseJson<IntegrationIntent>(args['intentJson'] as string);
+    const result = validateIntegrationIntent(intent);
+    return ok(result);
+  },
+
+  validate_workflow: async (args) => {
+    const workflowJson = parseJson<unknown>(args['workflowJson'] as string);
+    const result = validateWorkflow(workflowJson);
+    return ok(result);
+  },
+
+  validate_connections: async (args) => {
+    const connectionsJson = parseJson<unknown>(args['connectionsJson'] as string);
+    const workflowJson = args['workflowJson']
+      ? parseJson<unknown>(args['workflowJson'] as string)
+      : undefined;
+    const result = validateConnections(connectionsJson, workflowJson);
+    return ok(result);
+  },
+
+  validate_package: async (args) => {
+    if (!isFeatureAvailable('build')) return featureGated('build');
+    const pkg = parseJson<Parameters<typeof validatePackage>[0]>(args['packageJson'] as string);
+    const result = validatePackage(pkg);
+    return ok(result);
+  },
+
+  score_migration_quality: async (args) => {
+    if (!isFeatureAvailable('build')) return featureGated('build');
+    const workflowJson = parseJson<unknown>(args['workflowJson'] as string);
+    const intentJson = args['intentJson']
+      ? parseJson<unknown>(args['intentJson'] as string)
+      : undefined;
+    const result = scoreWorkflowQuality(workflowJson, intentJson);
+    return ok(result);
   },
 
 };

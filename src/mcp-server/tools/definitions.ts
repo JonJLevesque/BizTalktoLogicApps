@@ -40,6 +40,14 @@ import {
   ApplyTemplateSchema,
   RefineWorkflowSchema,
   CreateWorkflowFromDescriptionSchema,
+  ReadArtifactSchema,
+  ListArtifactsSchema,
+  ConstructIntentSchema,
+  ValidateIntentSchema,
+  ValidateWorkflowSchema,
+  ValidateConnectionsSchema,
+  ValidatePackageSchema,
+  ScoreMigrationQualitySchema,
 } from './schemas.js';
 
 // ─── Tool Definition Type ─────────────────────────────────────────────────────
@@ -331,6 +339,98 @@ export const ALL_TOOLS: ToolDefinition[] = [
       'can review it before code is generated. ' +
       'Set skipDesignReview=true only when requirements are unambiguous.',
     inputSchema: schema(CreateWorkflowFromDescriptionSchema),
+  },
+
+  // ── File Tools ──────────────────────────────────────────────────────────────
+
+  {
+    name: 'read_artifact',
+    tier: 'free',
+    description:
+      'Read a BizTalk artifact file from disk. ' +
+      'Supports .odx (orchestration), .btm (map), .btp (pipeline), .xml (bindings/schemas), .xsd (schemas). ' +
+      'Returns raw file content as a string ready to pass to analyze_* tools. ' +
+      'Use this when given a file path instead of pasted XML content.',
+    inputSchema: schema(ReadArtifactSchema),
+  },
+
+  {
+    name: 'list_artifacts',
+    tier: 'free',
+    description:
+      'Scan a directory for BizTalk artifact files. ' +
+      'Returns categorized lists: orchestrations (.odx), maps (.btm), pipelines (.btp), bindings (.xml), schemas (.xsd). ' +
+      'Use this FIRST when given a directory path to a BizTalk project to discover all artifacts.',
+    inputSchema: schema(ListArtifactsSchema),
+  },
+
+  // ── Intent Construction ─────────────────────────────────────────────────────
+
+  {
+    name: 'construct_intent',
+    tier: 'standard',
+    description:
+      'Mechanically convert a BizTalkApplication object to a partial IntegrationIntent ' +
+      'using deterministic shape→step and adapter→connector mappings. ' +
+      'Returns an IntegrationIntent with TODO_CLAUDE markers where Claude\'s reasoning is needed ' +
+      '(expression translation, error strategy, connector config details). ' +
+      'Enrich the TODO_CLAUDE values before calling validate_intent + build_package.',
+    inputSchema: schema(ConstructIntentSchema),
+  },
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+
+  {
+    name: 'validate_intent',
+    tier: 'free',
+    description:
+      'Validate an IntegrationIntent for structural correctness and semantic consistency. ' +
+      'Returns valid/invalid with specific error messages and warnings. ' +
+      'Always call this before build_package to catch issues early.',
+    inputSchema: schema(ValidateIntentSchema),
+  },
+
+  {
+    name: 'validate_workflow',
+    tier: 'free',
+    description:
+      'Validate a Logic Apps workflow.json against WDL structural rules. ' +
+      'Checks: $schema, single trigger, runAfter ALL CAPS (SUCCEEDED/FAILED/TIMEDOUT/SKIPPED), ' +
+      'action references, no cycles, ServiceProvider configs, If expressions. ' +
+      'Returns errors, warnings, and suggestions. ' +
+      'Run this after generate_workflow or build_package — fix errors before deployment.',
+    inputSchema: schema(ValidateWorkflowSchema),
+  },
+
+  {
+    name: 'validate_connections',
+    tier: 'free',
+    description:
+      'Validate a Logic Apps connections.json. ' +
+      'Checks: structure, @appsetting() usage for sensitive values, ' +
+      'optional cross-check against workflow.json for orphan/missing connections.',
+    inputSchema: schema(ValidateConnectionsSchema),
+  },
+
+  {
+    name: 'validate_package',
+    tier: 'standard',
+    description:
+      'Full cross-file package validation: workflow + connections + appSettings coverage + map references. ' +
+      'Aggregates issues from all files and cross-validates references. ' +
+      'Returns errors, warnings, and suggestions across the complete deployment package.',
+    inputSchema: schema(ValidatePackageSchema),
+  },
+
+  {
+    name: 'score_migration_quality',
+    tier: 'standard',
+    description:
+      'Score the quality of a generated Logic Apps workflow on a 0-100 scale. ' +
+      'Four dimensions: Structural (40pts), Completeness (30pts), Best Practices (20pts), Naming (10pts). ' +
+      'Returns a letter grade (A-F) with specific recommendations. ' +
+      'Target grade B or higher (≥75/100) before presenting output to the user.',
+    inputSchema: schema(ScoreMigrationQualitySchema),
   },
 
 ];

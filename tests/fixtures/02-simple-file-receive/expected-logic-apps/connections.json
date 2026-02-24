@@ -1,0 +1,13 @@
+{
+  "serviceProviderConnections": {
+    "azureblob": {
+      "parameterValues": {
+        "connectionString": "@appsetting('KVS_Storage_Blob_ConnectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      }
+    }
+  },
+  "managedApiConnections": {}
+}

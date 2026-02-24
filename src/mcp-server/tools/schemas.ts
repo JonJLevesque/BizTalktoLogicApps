@@ -237,3 +237,69 @@ export const CreateWorkflowFromDescriptionSchema = z.object({
     'Not recommended unless requirements are very clear.'
   ),
 });
+
+// ─── File Tools ───────────────────────────────────────────────────────────────
+
+export const ReadArtifactSchema = z.object({
+  filePath: z.string().describe(
+    'Absolute path to a BizTalk artifact file (.odx, .btm, .btp, .xml, .xsd)'
+  ),
+});
+
+export const ListArtifactsSchema = z.object({
+  directoryPath: z.string().describe(
+    'Absolute path to a directory containing BizTalk artifact files'
+  ),
+  recursive: z.boolean().optional().default(false).describe(
+    'Whether to scan subdirectories recursively'
+  ),
+});
+
+// ─── Intent Construction ──────────────────────────────────────────────────────
+
+export const ConstructIntentSchema = z.object({
+  applicationJson: z.string().describe(
+    'JSON-serialized BizTalkApplication object (output of analyze_biztalk_application)'
+  ),
+  patternsJson: z.string().optional().describe(
+    'JSON-serialized IntegrationPattern[] array (output of detect_patterns)'
+  ),
+});
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+export const ValidateIntentSchema = z.object({
+  intentJson: z.string().describe(
+    'JSON-serialized IntegrationIntent object to validate'
+  ),
+});
+
+export const ValidateWorkflowSchema = z.object({
+  workflowJson: z.string().describe(
+    'JSON-serialized Logic Apps workflow.json content to validate'
+  ),
+});
+
+export const ValidateConnectionsSchema = z.object({
+  connectionsJson: z.string().describe(
+    'JSON-serialized Logic Apps connections.json content'
+  ),
+  workflowJson: z.string().optional().describe(
+    'Optional JSON-serialized workflow.json for cross-validation of connectionName references'
+  ),
+});
+
+export const ValidatePackageSchema = z.object({
+  packageJson: z.string().describe(
+    'JSON-serialized object with { workflowJson?, connectionsJson?, appSettings?, mapFiles? } for full cross-validation'
+  ),
+});
+
+export const ScoreMigrationQualitySchema = z.object({
+  workflowJson: z.string().describe(
+    'JSON-serialized workflow.json to score'
+  ),
+  intentJson: z.string().optional().describe(
+    'Optional JSON-serialized IntegrationIntent to compare against for completeness scoring'
+  ),
+});

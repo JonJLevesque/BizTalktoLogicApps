@@ -10,6 +10,7 @@ export { analyzeBindings, analyzeBindingsXml, BindingParseError } from './bindin
 export { detectPatterns, detectOrchestrationPatterns } from './pattern-detector.js';
 export { scoreApplication, scoreOrchestration } from './complexity-scorer.js';
 export type { ComplexityBreakdown, ComplexityContributor } from './complexity-scorer.js';
+export { constructIntent, TODO_CLAUDE } from './intent-constructor.js';
 
 import { readdir, stat } from 'node:fs/promises';
 import { join, extname, basename } from 'node:path';

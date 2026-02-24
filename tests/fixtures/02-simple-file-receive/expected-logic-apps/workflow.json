@@ -1,0 +1,68 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Poll_For_Order_Files": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "containerName": "orders-inbound",
+            "blobMatchingCondition": { "matchWildcardPattern": "*.xml" }
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "azureblob",
+            "operationId": "getBlob",
+            "serviceProviderId": "/serviceProviders/AzureBlob"
+          }
+        },
+        "recurrence": { "frequency": "Minute", "interval": 1 }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Transform_Order": {
+            "type": "Xslt",
+            "inputs": {
+              "content": "@{triggerBody()}",
+              "integrationAccount": { "map": { "name": "OrderToProcessedOrderMap" } }
+            },
+            "runAfter": {}
+          },
+          "Write_Processed_Order": {
+            "type": "ServiceProvider",
+            "inputs": {
+              "parameters": {
+                "containerName": "orders-outbound",
+                "blobName": "@{triggerBody()?['Name']}",
+                "content": "@{body('Transform_Order')}"
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "azureblob",
+                "operationId": "createBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "runAfter": { "Transform_Order": ["SUCCEEDED"] }
+          }
+        },
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "500",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": { "Scope_Main": ["FAILED", "TIMEDOUT"] }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

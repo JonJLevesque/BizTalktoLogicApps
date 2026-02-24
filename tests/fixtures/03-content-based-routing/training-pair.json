@@ -1,0 +1,331 @@
+{
+  "metadata": {
+    "name": "ContentBasedRouter",
+    "pattern": "content-based-routing",
+    "complexity": "simple",
+    "description": "Route incoming orders based on priority and total: HIGH priority or total > $10,000 goes to high-priority processing; all others to standard processing."
+  },
+  "biztalkInput": {
+    "orchestrationXml": "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n<!--\n  BizTalk Orchestration (ODX) — Content-Based Routing via Decide Shape\n  =====================================================================\n  Shapes: Receive (activating) → Decide (two branches by priority/total) → Send (two output ports)\n  Pattern: Content-Based Routing using orchestration-level conditional logic\n  Complexity: Simple–Moderate\n\n  MIGRATION KEY POINTS:\n  - Decide shape → If (Condition) action in Logic Apps\n  - XLANG/s expression (C#-like syntax) → WDL expression (JSON predicate format)\n  - Two Send shapes for different destinations → two parallel branches in If action\n  - FILE adapter → Blob Storage or ServiceBus depending on target architecture\n-->\n<om:Module xmlns:om=\"http://schemas.microsoft.com/BizTalk/2003/DesignerData\">\n  <om:Property Name=\"InitialCodeFile\" Value=\"OrderRouter.odx\"/>\n  <om:Property Name=\"InitialNamespace\" Value=\"ContentBasedRouting\"/>\n  <om:Property Name=\"InitialTypeName\" Value=\"OrderRouterOrchestration\"/>\n  <om:Property Name=\"Notes\" Value=\"Routes incoming orders to high-priority or standard processing based on Priority field and OrderTotal\"/>\n\n  <om:Service Name=\"OrderRouterOrchestration\">\n    <om:Property Name=\"Type\" Value=\"Public\"/>\n    <om:Property Name=\"Compensation\" Value=\"Default\"/>\n    <om:Property Name=\"Transaction\" Value=\"None\"/>\n\n    <!--\n      Message declarations.\n      Note: all three messages use the same schema type.\n      IncomingOrder is the original; HighPriorityOrder and StandardOrder are\n      used for the two routing branches (message assignment copies IncomingOrder).\n    -->\n    <om:MessageDeclaration Name=\"IncomingOrder\" Type=\"ContentBasedRouting.Schemas.OrderMessage\"/>\n    <om:MessageDeclaration Name=\"HighPriorityOrder\" Type=\"ContentBasedRouting.Schemas.OrderMessage\"/>\n    <om:MessageDeclaration Name=\"StandardOrder\" Type=\"ContentBasedRouting.Schemas.OrderMessage\"/>\n\n    <!--\n      Port declarations — three ports: one inbound, two outbound (one per routing branch).\n      Migration: Receive port → Trigger; Send ports → two possible Action paths in If branches.\n    -->\n    <om:PortDeclaration Name=\"ReceiveOrderPort\"\n                        Type=\"ContentBasedRouting.PortTypes.IReceiveOrder\"\n                        Modifier=\"Private\"\n                        Polarity=\"Implements\"/>\n\n    <om:PortDeclaration Name=\"HighPrioritySendPort\"\n                        Type=\"ContentBasedRouting.PortTypes.ISendHighPriorityOrder\"\n                        Modifier=\"Private\"\n                        Polarity=\"Uses\"/>\n\n    <om:PortDeclaration Name=\"StandardSendPort\"\n                        Type=\"ContentBasedRouting.PortTypes.ISendStandardOrder\"\n                        Modifier=\"Private\"\n                        Polarity=\"Uses\"/>\n\n    <om:Body>\n      <om:Shape Name=\"BeginOrchestration\" Type=\"BodyShape\">\n\n        <!-- RECEIVE — creates orchestration instance when order file arrives (FILE adapter) -->\n        <om:Shape Name=\"ReceiveOrder\" Type=\"ReceiveShape\">\n          <om:Property Name=\"ActivatesCorrelation\" Value=\"true\"/>\n          <om:Property Name=\"Message\" Value=\"IncomingOrder\"/>\n          <om:Property Name=\"Notes\" Value=\"Activating receive — one instance per incoming order file\"/>\n          <om:Port Name=\"ReceiveOrderPort\"/>\n        </om:Shape>\n\n        <!--\n          DECIDE SHAPE — the CBR decision point.\n          DecideBranch shapes represent the IF/ELSE branches.\n          The first non-else branch whose Expression evaluates to true is taken.\n          Only the LAST branch may use \"else\" as its expression.\n\n          XLANG/s expression syntax:\n          - Uses C#-like operators: ==, !=, &&, ||, >, <, >=, <=\n          - Message field access: MessageName.FieldName (promoted property XPath shorthand)\n          - String literals: quoted with \"\"\n          - Numeric literals: unquoted (10000.0, not \"10000.0\")\n\n          Migration → Logic Apps:\n          - Decide with 2 branches → If action with true/false paths\n          - Decide with 3+ branches → nested If actions or Switch action\n          - XLANG/s  a || b  → WDL  \"or\": [{condition1}, {condition2}]\n          - XLANG/s  a && b  → WDL  \"and\": [{condition1}, {condition2}]\n        -->\n        <om:Shape Name=\"RouteByPriority\" Type=\"DecideShape\">\n          <om:Property Name=\"Notes\" Value=\"Route order to high-priority or standard processing path\"/>\n\n          <!--\n            Branch 1: HIGH PRIORITY\n            Condition: Priority is \"HIGH\" OR total exceeds $10,000\n            XLANG/s: IncomingOrder.Priority == \"HIGH\" || IncomingOrder.OrderTotal > 10000.0\n            WDL: { \"or\": [ {\"equals\": [..., \"HIGH\"]}, {\"greater\": [..., 10000]} ] }\n          -->\n          <om:Shape Name=\"HighPriorityBranch\" Type=\"DecideBranch\">\n            <om:Property Name=\"Expression\">\n              <![CDATA[IncomingOrder.Priority == \"HIGH\" || IncomingOrder.OrderTotal > 10000.0]]>\n            </om:Property>\n            <om:Property Name=\"Notes\" Value=\"High priority: Priority=HIGH or OrderTotal > $10,000\"/>\n\n            <!--\n              Construct the HighPriorityOrder message by copying IncomingOrder.\n              MessageAssignment is the simplest BizTalk message construction:\n              just assigns one message to another (no transformation).\n              Migration: this becomes a Compose action or is eliminated if we send directly.\n            -->\n            <om:Shape Name=\"ConstructHighPriority\" Type=\"ConstructShape\">\n              <om:Property Name=\"Messages\" Value=\"HighPriorityOrder\"/>\n              <om:Shape Name=\"AssignHighPriority\" Type=\"MessageAssignmentShape\">\n                <om:Property Name=\"Expression\">\n                  <![CDATA[HighPriorityOrder = IncomingOrder;]]>\n                </om:Property>\n              </om:Shape>\n            </om:Shape>\n\n            <!-- Send the high-priority order to the high-priority send port -->\n            <om:Shape Name=\"SendHighPriority\" Type=\"SendShape\">\n              <om:Property Name=\"Message\" Value=\"HighPriorityOrder\"/>\n              <om:Property Name=\"Notes\" Value=\"Send to HighPriority FILE output path\"/>\n              <om:Port Name=\"HighPrioritySendPort\"/>\n            </om:Shape>\n          </om:Shape>\n\n          <!--\n            Branch 2: STANDARD (else — all other orders)\n            The \"else\" expression is the default branch (no condition needed).\n            Migration: becomes the \"else\" path of the If action.\n          -->\n          <om:Shape Name=\"StandardBranch\" Type=\"DecideBranch\">\n            <om:Property Name=\"Expression\" Value=\"else\"/>\n            <om:Property Name=\"Notes\" Value=\"Standard priority: all orders not matching high-priority criteria\"/>\n\n            <om:Shape Name=\"ConstructStandard\" Type=\"ConstructShape\">\n              <om:Property Name=\"Messages\" Value=\"StandardOrder\"/>\n              <om:Shape Name=\"AssignStandard\" Type=\"MessageAssignmentShape\">\n                <om:Property Name=\"Expression\">\n                  <![CDATA[StandardOrder = IncomingOrder;]]>\n                </om:Property>\n              </om:Shape>\n            </om:Shape>\n\n            <om:Shape Name=\"SendStandard\" Type=\"SendShape\">\n              <om:Property Name=\"Message\" Value=\"StandardOrder\"/>\n              <om:Property Name=\"Notes\" Value=\"Send to Standard FILE output path\"/>\n              <om:Port Name=\"StandardSendPort\"/>\n            </om:Shape>\n          </om:Shape>\n\n        </om:Shape>\n        <!-- End Decide shape -->\n\n      </om:Shape>\n    </om:Body>\n  </om:Service>\n</om:Module>",
+    "bindingXml": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!--\n  BizTalk Binding File — Content-Based Routing\n  =============================================\n  Two send ports with FILTER CONDITIONS demonstrate how BizTalk does subscription-based CBR.\n  Even in orchestration-based CBR (like this fixture), the bindings show the send port\n  filter syntax — useful for the migration engine to understand both CBR approaches.\n\n  MIGRATION NOTE — Two CBR Approaches:\n\n  Approach A (this fixture): ORCHESTRATION-based CBR\n    Orchestration has Decide shape → sends to two different bound send ports.\n    Logic Apps: single workflow with If action, two branches writing to two destinations.\n\n  Approach B: MESSAGEBOX subscription-based CBR (no orchestration)\n    Send port filters create subscriptions in MessageBox.\n    When a message arrives, BizTalk evaluates all subscriptions and routes automatically.\n    Logic Apps equivalent: separate workflows with different trigger conditions,\n    OR a router workflow that evaluates conditions and calls downstream workflows.\n-->\n<BindingInfo xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n  <Description>Content-Based Routing Bindings — TEST ENVIRONMENT</Description>\n  <Timestamp>2026-02-23T00:00:00</Timestamp>\n  <Version>3.5.1.0</Version>\n\n  <ModuleRefCollection>\n    <ModuleRef DisplayName=\"ContentBasedRouting(1.0.0.0)\" Name=\"ContentBasedRouting\">\n      <ServiceRefCollection>\n        <ServiceRef Name=\"OrderRouterOrchestration\" FullName=\"ContentBasedRouting.OrderRouterOrchestration\" Type=\"1\">\n          <Ports>\n            <Port Name=\"ReceiveOrderPort\" PortModifier=\"2\">\n              <ReceivePortRef Name=\"RP_ReceiveOrders_FILE\"/>\n            </Port>\n            <Port Name=\"HighPrioritySendPort\" PortModifier=\"1\">\n              <SendPortRef Name=\"SP_HighPriority_FILE\"/>\n            </Port>\n            <Port Name=\"StandardSendPort\" PortModifier=\"1\">\n              <SendPortRef Name=\"SP_Standard_FILE\"/>\n            </Port>\n          </Ports>\n        </ServiceRef>\n      </ServiceRefCollection>\n    </ModuleRef>\n  </ModuleRefCollection>\n\n  <SendPortCollection>\n\n    <!--\n      HIGH PRIORITY send port.\n      Adapter: FILE → writes to C:\\Output\\HighPriority\\\n      Filter: ContentBasedRouting.Priority == \"HIGH\"\n\n      MIGRATION NOTE on filters:\n      When an orchestration explicitly sends to this port (via bound port), the filter is\n      technically redundant — the orchestration controls routing. However, if this were\n      a standalone send port (no orchestration), the filter creates the MessageBox subscription.\n\n      Filter condition shown here is for PROMOTED PROPERTY-based routing.\n      Migration → Logic Apps: promoted property filters map to:\n        - Service Bus filter expressions (if messages go through Service Bus)\n        - Logic Apps Condition expressions (if evaluated inline in workflow)\n    -->\n    <SendPort Name=\"SP_HighPriority_FILE\"\n              IsStatic=\"true\"\n              IsTwoWay=\"false\"\n              BindingOption=\"0\">\n\n      <PrimaryTransport>\n        <Address>C:\\Output\\HighPriority\\%SourceFileName%</Address>\n        <TransportType Name=\"FILE\" Capabilities=\"11\" ConfigurationClsid=\"5e49e3a6-b4fc-4077-b44c-22f34a242fdb\"/>\n        <TransportTypeData>\n          <![CDATA[<CustomProps><CopyMode vt=\"19\">0</CopyMode><AllowCacheOnWrite vt=\"11\">0</AllowCacheOnWrite></CustomProps>]]>\n        </TransportTypeData>\n        <RetryCount>3</RetryCount>\n        <RetryInterval>5</RetryInterval>\n      </PrimaryTransport>\n\n      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.PassThruTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>\n      <Description>High-priority order output — high-value or flagged orders</Description>\n\n      <!--\n        FILTER — subscription-based CBR condition (for reference).\n        Operator codes: 0 = equals, 1 = contains, 2 = starts with\n        These promoted property filters are what BizTalk evaluates against the MessageBox.\n        In orchestration-mode (this fixture), the orchestration controls routing instead.\n      -->\n      <Filter>\n        <Group>\n          <!-- Message type subscription -->\n          <Statement Property=\"BTS.MessageType\"\n                     Operator=\"0\"\n                     Value=\"http://ContentBasedRouting.Schemas.OrderMessage#Order\"/>\n          <!-- Promoted property filter: Priority = \"HIGH\" -->\n          <Statement Property=\"ContentBasedRouting.Priority\"\n                     Operator=\"0\"\n                     Value=\"HIGH\"/>\n        </Group>\n        <!-- OR: high-value order (OrderTotal > 10000 — not directly expressible in filter syntax)\n             Note: BizTalk filter syntax does NOT support > / < operators on numeric promoted properties.\n             This is a known BizTalk CBR limitation — complex numeric routing requires orchestration. -->\n      </Filter>\n\n    </SendPort>\n\n    <!-- STANDARD send port — all orders not matching high-priority criteria -->\n    <SendPort Name=\"SP_Standard_FILE\"\n              IsStatic=\"true\"\n              IsTwoWay=\"false\"\n              BindingOption=\"0\">\n\n      <PrimaryTransport>\n        <Address>C:\\Output\\Standard\\%SourceFileName%</Address>\n        <TransportType Name=\"FILE\" Capabilities=\"11\" ConfigurationClsid=\"5e49e3a6-b4fc-4077-b44c-22f34a242fdb\"/>\n        <TransportTypeData>\n          <![CDATA[<CustomProps><CopyMode vt=\"19\">0</CopyMode><AllowCacheOnWrite vt=\"11\">0</AllowCacheOnWrite></CustomProps>]]>\n        </TransportTypeData>\n        <RetryCount>3</RetryCount>\n        <RetryInterval>5</RetryInterval>\n      </PrimaryTransport>\n\n      <SendPipelineName>Microsoft.BizTalk.DefaultPipelines.PassThruTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</SendPipelineName>\n      <Description>Standard priority order output — normal orders</Description>\n\n      <Filter>\n        <Group>\n          <Statement Property=\"BTS.MessageType\"\n                     Operator=\"0\"\n                     Value=\"http://ContentBasedRouting.Schemas.OrderMessage#Order\"/>\n          <Statement Property=\"ContentBasedRouting.Priority\"\n                     Operator=\"0\"\n                     Value=\"NORMAL\"/>\n        </Group>\n      </Filter>\n\n    </SendPort>\n\n  </SendPortCollection>\n\n  <ReceivePortCollection>\n    <ReceivePort Name=\"RP_ReceiveOrders_FILE\" IsTwoWay=\"false\">\n      <Description>Receives order files for CBR routing</Description>\n      <ReceiveLocationCollection>\n        <ReceiveLocation Name=\"RL_ReceiveOrders_FILE\">\n          <Address>C:\\Input\\Orders\\*.xml</Address>\n          <TransportType Name=\"FILE\" Capabilities=\"11\" ConfigurationClsid=\"5e49e3a6-b4fc-4077-b44c-22f34a242fdb\"/>\n          <TransportTypeData>\n            <![CDATA[<CustomProps><PollingInterval vt=\"3\">30000</PollingInterval><FileMask vt=\"8\">*.xml</FileMask><BatchSize vt=\"3\">20</BatchSize></CustomProps>]]>\n          </TransportTypeData>\n          <ReceivePipelineName>Microsoft.BizTalk.DefaultPipelines.XMLReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</ReceivePipelineName>\n          <Description>Polls C:\\Input\\Orders for *.xml files every 30 seconds</Description>\n          <Enable>true</Enable>\n        </ReceiveLocation>\n      </ReceiveLocationCollection>\n    </ReceivePort>\n  </ReceivePortCollection>\n\n</BindingInfo>",
+    "parsedApplication": {
+      "name": "ContentBasedRoutingApp",
+      "biztalkVersion": "unknown",
+      "orchestrations": [
+        {
+          "name": "OrderRouterOrchestration",
+          "namespace": "ContentBasedRouting",
+          "filePath": "orchestration/OrderRouter.odx.xml",
+          "shapes": [
+            { "shapeType": "ReceiveShape", "shapeId": "receive_1", "name": "ReceiveOrder", "isActivating": true },
+            {
+              "shapeType": "DecisionShape",
+              "shapeId": "decide_1",
+              "name": "RouteByPriority",
+              "conditionExpression": "IncomingOrder.Priority == \"HIGH\" || IncomingOrder.OrderTotal > 10000.0",
+              "children": [
+                {
+                  "shapeType": "GroupShape",
+                  "shapeId": "branch_high",
+                  "name": "HighPriorityBranch",
+                  "conditionExpression": "IncomingOrder.Priority == \"HIGH\" || IncomingOrder.OrderTotal > 10000.0",
+                  "children": [
+                    { "shapeType": "ConstructShape", "shapeId": "construct_high", "name": "ConstructHighPriority", "children": [
+                      { "shapeType": "MessageAssignmentShape", "shapeId": "assign_high", "name": "AssignHighPriority" }
+                    ]},
+                    { "shapeType": "SendShape", "shapeId": "send_high", "name": "SendHighPriority" }
+                  ]
+                },
+                {
+                  "shapeType": "GroupShape",
+                  "shapeId": "branch_standard",
+                  "name": "StandardBranch",
+                  "children": [
+                    { "shapeType": "ConstructShape", "shapeId": "construct_standard", "name": "ConstructStandard", "children": [
+                      { "shapeType": "MessageAssignmentShape", "shapeId": "assign_standard", "name": "AssignStandard" }
+                    ]},
+                    { "shapeType": "SendShape", "shapeId": "send_standard", "name": "SendStandard" }
+                  ]
+                }
+              ]
+            }
+          ],
+          "ports": [
+            { "name": "ReceiveOrderPort", "portTypeRef": "ContentBasedRouting.PortTypes.IReceiveOrder", "polarity": "Implements", "binding": "RP_ReceiveOrders_FILE" },
+            { "name": "HighPrioritySendPort", "portTypeRef": "ContentBasedRouting.PortTypes.ISendHighPriorityOrder", "polarity": "Uses", "binding": "SP_HighPriority_FILE" },
+            { "name": "StandardSendPort", "portTypeRef": "ContentBasedRouting.PortTypes.ISendStandardOrder", "polarity": "Uses", "binding": "SP_Standard_FILE" }
+          ],
+          "correlationSets": [],
+          "messages": [
+            { "name": "IncomingOrder", "messageType": "ContentBasedRouting.Schemas.OrderMessage" },
+            { "name": "HighPriorityOrder", "messageType": "ContentBasedRouting.Schemas.OrderMessage" },
+            { "name": "StandardOrder", "messageType": "ContentBasedRouting.Schemas.OrderMessage" }
+          ],
+          "variables": [],
+          "hasAtomicTransactions": false,
+          "hasLongRunningTransactions": false,
+          "hasCompensation": false,
+          "hasBRECalls": false,
+          "hasSuspend": false,
+          "activatingReceiveCount": 1
+        }
+      ],
+      "maps": [],
+      "pipelines": [],
+      "schemas": [],
+      "bindingFiles": [
+        {
+          "applicationName": "ContentBasedRouting",
+          "filePath": "bindings/BindingInfo.xml",
+          "receiveLocations": [
+            {
+              "name": "RL_ReceiveOrders_FILE",
+              "receivePortName": "RP_ReceiveOrders_FILE",
+              "adapterType": "FILE",
+              "address": "C:\\Input\\Orders\\*.xml",
+              "pipelineName": "Microsoft.BizTalk.DefaultPipelines.XMLReceive",
+              "adapterProperties": { "PollingInterval": "30000", "FileMask": "*.xml" },
+              "isEnabled": true
+            }
+          ],
+          "sendPorts": [
+            {
+              "name": "SP_HighPriority_FILE",
+              "adapterType": "FILE",
+              "address": "C:\\Output\\HighPriority\\%SourceFileName%",
+              "pipelineName": "Microsoft.BizTalk.DefaultPipelines.PassThruTransmit",
+              "adapterProperties": {},
+              "filterExpression": "BTS.MessageType == \"http://ContentBasedRouting.Schemas.OrderMessage#Order\" AND ContentBasedRouting.Priority == \"HIGH\"",
+              "isDynamic": false,
+              "isTwoWay": false
+            },
+            {
+              "name": "SP_Standard_FILE",
+              "adapterType": "FILE",
+              "address": "C:\\Output\\Standard\\%SourceFileName%",
+              "pipelineName": "Microsoft.BizTalk.DefaultPipelines.PassThruTransmit",
+              "adapterProperties": {},
+              "filterExpression": "BTS.MessageType == \"http://ContentBasedRouting.Schemas.OrderMessage#Order\" AND ContentBasedRouting.Priority == \"NORMAL\"",
+              "isDynamic": false,
+              "isTwoWay": false
+            }
+          ]
+        }
+      ],
+      "complexityScore": 5,
+      "complexityClassification": "simple"
+    }
+  },
+  "integrationIntent": {
+    "trigger": {
+      "type": "polling",
+      "source": "Azure Blob Storage (orders-inbound container, polling every 1 minute)",
+      "connector": "azureblob",
+      "config": {
+        "containerName": "orders-inbound",
+        "blobMatchingCondition": { "matchWildcardPattern": "*.xml" },
+        "recurrence": { "frequency": "Minute", "interval": 1 }
+      }
+    },
+    "steps": [
+      {
+        "id": "step_route_by_priority",
+        "type": "condition",
+        "description": "Route order by priority: HIGH priority or OrderTotal > $10,000 goes to high-priority processing",
+        "actionType": "If",
+        "config": {
+          "expression": {
+            "or": [
+              { "equals": ["@body('Parse_Order')?['Priority']", "HIGH"] },
+              { "greater": ["@float(body('Parse_Order')?['OrderTotal'])", 10000] }
+            ]
+          }
+        },
+        "branches": {
+          "condition": "IncomingOrder.Priority == \"HIGH\" || IncomingOrder.OrderTotal > 10000.0",
+          "trueBranch": [
+            {
+              "id": "step_send_high_priority",
+              "type": "send",
+              "description": "Write high-priority order to high-priority blob container",
+              "connector": "azureblob",
+              "actionType": "ServiceProvider",
+              "config": {
+                "containerName": "orders-high-priority",
+                "blobName": "@{triggerBody()?['Name']}",
+                "content": "@{triggerBody()}"
+              },
+              "runAfter": []
+            }
+          ],
+          "falseBranch": [
+            {
+              "id": "step_send_standard",
+              "type": "send",
+              "description": "Write standard order to standard processing blob container",
+              "connector": "azureblob",
+              "actionType": "ServiceProvider",
+              "config": {
+                "containerName": "orders-standard",
+                "blobName": "@{triggerBody()?['Name']}",
+                "content": "@{triggerBody()}"
+              },
+              "runAfter": []
+            }
+          ]
+        },
+        "runAfter": []
+      }
+    ],
+    "errorHandling": {
+      "strategy": "terminate"
+    },
+    "systems": [
+      {
+        "name": "Azure Blob Storage (Input)",
+        "protocol": "HTTPS",
+        "role": "source",
+        "authentication": "connection-string",
+        "onPremises": false,
+        "requiresGateway": false
+      },
+      {
+        "name": "Azure Blob Storage (High Priority Output)",
+        "protocol": "HTTPS",
+        "role": "destination",
+        "authentication": "connection-string",
+        "onPremises": false,
+        "requiresGateway": false
+      },
+      {
+        "name": "Azure Blob Storage (Standard Output)",
+        "protocol": "HTTPS",
+        "role": "destination",
+        "authentication": "connection-string",
+        "onPremises": false,
+        "requiresGateway": false
+      }
+    ],
+    "dataFormats": {
+      "input": "xml",
+      "output": "xml"
+    },
+    "patterns": ["content-based-routing"],
+    "metadata": {
+      "source": "biztalk-migration",
+      "complexity": "simple",
+      "estimatedActions": 3,
+      "requiresIntegrationAccount": false,
+      "requiresOnPremGateway": false,
+      "sourceOrchestrationName": "OrderRouterOrchestration"
+    }
+  },
+  "logicAppsOutput": {
+    "workflowJson": {
+      "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+          "Poll_For_Order_Files": {
+            "type": "ServiceProvider",
+            "inputs": {
+              "parameters": {
+                "containerName": "orders-inbound",
+                "blobMatchingCondition": { "matchWildcardPattern": "*.xml" }
+              },
+              "serviceProviderConfiguration": {
+                "connectionName": "azureblob",
+                "operationId": "getBlob",
+                "serviceProviderId": "/serviceProviders/AzureBlob"
+              }
+            },
+            "recurrence": { "frequency": "Minute", "interval": 1 }
+          }
+        },
+        "actions": {
+          "Scope_Main": {
+            "type": "Scope",
+            "actions": {
+              "Route_By_Priority": {
+                "type": "If",
+                "expression": {
+                  "or": [
+                    { "equals": ["@triggerBody()?['Priority']", "HIGH"] },
+                    { "greater": ["@float(triggerBody()?['OrderTotal'])", 10000] }
+                  ]
+                },
+                "actions": {
+                  "Send_To_High_Priority": {
+                    "type": "ServiceProvider",
+                    "inputs": {
+                      "parameters": {
+                        "containerName": "orders-high-priority",
+                        "blobName": "@{triggerBody()?['Name']}",
+                        "content": "@{triggerBody()}"
+                      },
+                      "serviceProviderConfiguration": {
+                        "connectionName": "azureblob",
+                        "operationId": "createBlob",
+                        "serviceProviderId": "/serviceProviders/AzureBlob"
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Send_To_Standard": {
+                      "type": "ServiceProvider",
+                      "inputs": {
+                        "parameters": {
+                          "containerName": "orders-standard",
+                          "blobName": "@{triggerBody()?['Name']}",
+                          "content": "@{triggerBody()}"
+                        },
+                        "serviceProviderConfiguration": {
+                          "connectionName": "azureblob",
+                          "operationId": "createBlob",
+                          "serviceProviderId": "/serviceProviders/AzureBlob"
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {}
+          },
+          "Terminate_On_Error": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "500",
+                "message": "@{result('Scope_Main')[0]['error']['message']}"
+              }
+            },
+            "runAfter": { "Scope_Main": ["FAILED", "TIMEDOUT"] }
+          }
+        },
+        "outputs": {}
+      },
+      "kind": "Stateful"
+    },
+    "connectionsJson": {
+      "serviceProviderConnections": {
+        "azureblob": {
+          "parameterValues": {
+            "connectionString": "@appsetting('KVS_Storage_Blob_ConnectionString')"
+          },
+          "serviceProvider": { "id": "/serviceProviders/AzureBlob" }
+        }
+      },
+      "managedApiConnections": {}
+    },
+    "appSettings": {
+      "KVS_Storage_Blob_ConnectionString": "@Microsoft.KeyVault(SecretUri=https://{keyvault}.vault.azure.net/secrets/storage-blob-connection-string/)"
+    }
+  }
+}

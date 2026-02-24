@@ -30,8 +30,14 @@ jobs:
       - name: TypeScript compile check
         run: npx tsc --noEmit
 
-      - name: Run tests
+      - name: Run unit and integration tests
         run: npm test
+
+      - name: Run golden-master tests
+        run: node --experimental-vm-modules node_modules/.bin/jest tests/golden-master/
+
+      - name: Run regression tests
+        run: node --experimental-vm-modules node_modules/.bin/jest tests/regression/
 
       - name: Build
         run: npm run build
