@@ -144,12 +144,12 @@ export async function sendLicenseEmail(
       <code style="font-family: 'Courier New', monospace; font-size:22px; font-weight:bold; color:#60a5fa; letter-spacing:2px;">${key}</code>
     </div>
     <h2 style="color:#e2e8f0; font-size:16px; margin:0 0 16px;">Get started in 3 minutes</h2>
-    <div style="background:#1e293b; border-radius:8px; padding:16px; margin:0 0 16px; font-family:'Courier New',monospace; font-size:13px; color:#94a3b8;">
-      <span style="color:#6b7280;"># 1. Install</span><br>
+    <div style="background:#1e293b; border-radius:8px; padding:16px; margin:0 0 16px; font-family:'Courier New',monospace; font-size:13px; color:#e2e8f0;">
+      <span style="color:#94a3b8;"># 1. Install</span><br>
       npm install -g biztalk-migrate<br><br>
-      <span style="color:#6b7280;"># 2. Set your key</span><br>
+      <span style="color:#94a3b8;"># 2. Set your key</span><br>
       export BTLA_LICENSE_KEY="${key}"<br><br>
-      <span style="color:#6b7280;"># 3. Run your first migration</span><br>
+      <span style="color:#94a3b8;"># 3. Run your first migration</span><br>
       biztalk-migrate run \\<br>
       &nbsp;&nbsp;--dir ./your-biztalk-files \\<br>
       &nbsp;&nbsp;--app "YourAppName" \\<br>
