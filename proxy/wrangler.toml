@@ -1,0 +1,40 @@
+name            = "btla-proxy"
+main            = "src/index.ts"
+compatibility_date  = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ANTHROPIC_MODEL    = "claude-sonnet-4-6"
+MONTHLY_CALL_LIMIT = "5000"   # hard kill at this many total AI calls/month (~$165 at current rates)
+
+# ── KV Namespaces ────────────────────────────────────────────────────────────
+
+[[kv_namespaces]]
+binding = "LICENSE_KEYS"
+id      = "b91739c093484cff872c3985e6586f7b"
+
+[[kv_namespaces]]
+binding = "RATE_LIMITS"
+id      = "b225597a544f4fa695a72587ab3a7ca5"
+
+[[kv_namespaces]]
+binding = "PROMPTS"
+id      = "8a9ff0e8cbd24c05bb655fdf589d9659"
+
+# ── Secrets — 4 layered system prompt components + API key ───────────────────
+# Set all at once with:  ./prompts/upload.sh
+# Or individually:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put SYSTEM_PROMPT_ROLE   < prompts/role.txt
+#   npx wrangler secret put SYSTEM_PROMPT_DOMAIN < prompts/domain.txt
+#   npx wrangler secret put SYSTEM_PROMPT_ENRICH < prompts/enrich.txt
+#   npx wrangler secret put SYSTEM_PROMPT_REVIEW < prompts/review.txt
+#
+# Layers 1 (ROLE) + 2 (DOMAIN) are shared + cached across both endpoints.
+# Layer 3 (ENRICH or REVIEW) is task-specific per endpoint.
+
+# ── Production route ──────────────────────────────────────────────────────────
+
+[[routes]]
+pattern   = "api.biztalkmigrate.com/*"
+zone_name = "biztalkmigrate.com"

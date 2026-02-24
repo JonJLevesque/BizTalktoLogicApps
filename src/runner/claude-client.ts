@@ -23,7 +23,7 @@ import type {
 } from './types.js';
 import type { IntegrationIntent } from '../shared/integration-intent.js';
 
-const DEFAULT_PROXY_URL = 'https://api.biztalk-migrate.com/v1';
+const DEFAULT_PROXY_URL = 'https://api.biztalkmigrate.com/v1';
 
 // ─── Client ───────────────────────────────────────────────────────────────────
 

@@ -31,8 +31,14 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Local AI context files (contain proprietary migration domain knowledge)
-# These files are for local dev sessions only — IP lives on the proxy server
+# AI context files — contain proprietary migration methodology and domain knowledge
+# IP lives on the proxy server. Do NOT commit these.
+CLAUDE.md
 CLAUDE.local.md
+GEMINI.md
 GEMINI.local.md
+.github/copilot-instructions.md
 COPILOT.local.md
+
+# Proxy local dev secrets
+proxy/.dev.vars

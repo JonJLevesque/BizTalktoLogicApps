@@ -1,7 +1,7 @@
 # BizTalk Migrate Proxy API — Specification
 
 **Version:** 1.0
-**Base URL:** `https://api.biztalk-migrate.com/v1`
+**Base URL:** `https://api.biztalkmigrate.com/v1`
 **Auth:** Bearer token (BTLA_LICENSE_KEY)
 **Privacy:** Request bodies contain structural metadata only — NO raw BizTalk XML is ever sent. No content logging.
 
@@ -149,7 +149,7 @@ The client automatically selects its mode based on environment variables:
 BTLA_DEV_MODE=true         → dev mode (no API calls, instant response)
 ANTHROPIC_API_KEY=sk-...   → direct mode (Anthropic API, model: claude-sonnet-4-6)
 BTLA_LICENSE_KEY=...    → proxy mode (default for production deployments)
-BTLA_PROXY_URL=...      → override proxy URL (default: https://api.biztalk-migrate.com/v1)
+BTLA_PROXY_URL=...      → override proxy URL (default: https://api.biztalkmigrate.com/v1)
 ```
 
 ---
