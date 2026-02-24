@@ -18,15 +18,27 @@
  */
 
 import { Hono }                              from 'hono';
+import { cors }                              from 'hono/cors';
 import type { AppEnv, AnthropicSystemBlock } from './types.js';
 import { authMiddleware }                    from './auth.js';
 import { rateLimitMiddleware }               from './rate-limit.js';
 import { callAnthropic, AnthropicError }     from './anthropic.js';
 import { getDomainPrompt }                   from './prompt-loader.js';
+import {
+  provisionTrialKey,
+  sendLicenseEmail,
+  addToWaitlist,
+  sendWaitlistEmail,
+} from './license-provisioner.js';
 
 const VERSION = '1.0.0';
 
 const app = new Hono<AppEnv>();
+
+// ── CORS — allow biztalkmigrate.com for public routes ─────────────────────────
+
+app.use('/v1/license/*', cors({ origin: ['https://biztalkmigrate.com', 'http://localhost:3000'] }));
+app.use('/v1/waitlist',  cors({ origin: ['https://biztalkmigrate.com', 'http://localhost:3000'] }));
 
 // ── Health ────────────────────────────────────────────────────────────────────
 
@@ -141,6 +153,78 @@ app.post('/v1/review',
     }
   },
 );
+
+// ── Trial key ─────────────────────────────────────────────────────────────────
+
+app.post('/v1/license/trial', async (c) => {
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json<Record<string, unknown>>();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const { email, name, company } = body;
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return c.json({ error: 'Valid email is required' }, 400);
+  }
+
+  const nameStr    = typeof name    === 'string' ? name.trim()    : '';
+  const companyStr = typeof company === 'string' ? company.trim() : '';
+
+  try {
+    const { key, alreadyExists } = await provisionTrialKey(
+      email.trim(),
+      nameStr,
+      companyStr,
+      c.env.LICENSE_KEYS,
+    );
+
+    // Fire-and-forget — don't let email failure block the response
+    c.executionCtx?.waitUntil(
+      sendLicenseEmail(email.trim(), key, nameStr, c.env.RESEND_API_KEY),
+    );
+
+    if (alreadyExists) {
+      return c.json({ success: true, message: 'Check your email — we already sent you a key.' });
+    }
+    return c.json({ success: true, message: 'Check your email for your license key.' });
+  } catch (err) {
+    console.error('[btla-proxy] /v1/license/trial error:', err);
+    return c.json({ error: 'Failed to provision trial key' }, 500);
+  }
+});
+
+// ── Waitlist ──────────────────────────────────────────────────────────────────
+
+app.post('/v1/waitlist', async (c) => {
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json<Record<string, unknown>>();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const { email } = body;
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return c.json({ error: 'Valid email is required' }, 400);
+  }
+
+  try {
+    const { alreadySignedUp } = await addToWaitlist(email.trim(), c.env.LICENSE_KEYS);
+
+    if (!alreadySignedUp) {
+      c.executionCtx?.waitUntil(
+        sendWaitlistEmail(email.trim(), c.env.RESEND_API_KEY),
+      );
+    }
+
+    return c.json({ success: true, message: "You're on the waitlist." });
+  } catch (err) {
+    console.error('[btla-proxy] /v1/waitlist error:', err);
+    return c.json({ error: 'Failed to add to waitlist' }, 500);
+  }
+});
 
 // ── Catch-all ─────────────────────────────────────────────────────────────────
 

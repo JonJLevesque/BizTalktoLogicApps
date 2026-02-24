@@ -19,6 +19,7 @@ export interface Bindings {
   SYSTEM_PROMPT_ENRICH: string; // Layer 3: enrich task instructions (~1 KB)
   SYSTEM_PROMPT_REVIEW: string; // Layer 3: review task instructions (~1 KB)
   // Layer 2 (domain, ~18 KB) lives in PROMPTS KV under key "domain"
+  RESEND_API_KEY: string;       // Resend transactional email API key
 
   // Vars (set in wrangler.toml)
   ANTHROPIC_MODEL:    string;

@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BizTalk Migrate — Automated BizTalk to Azure Logic Apps Migration</title>
+  <meta name="description" content="Migrate BizTalk Server to Azure Logic Apps automatically. Point it at your BizTalk files, get back a deployable Azure project, a gap analysis, and a migration report.">
+  <meta property="og:title" content="BizTalk Migrate — Automated BizTalk to Azure Logic Apps Migration">
+  <meta property="og:description" content="Point it at your BizTalk files. Get back a deployable Azure project, a gap analysis, and a migration report.">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { 950: '#020817', 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569' },
+          },
+          fontFamily: {
+            display: ['"Bebas Neue"', 'sans-serif'],
+            body:    ['"DM Sans"', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #0f172a;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(59,130,246,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.025) 1px, transparent 1px);
+      background-size: 64px 64px;
+    }
+    .hero-mesh {
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 55%, rgba(59,130,246,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 15%, rgba(96,165,250,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 65% 85%, rgba(37,99,235,0.08) 0%, transparent 50%);
+    }
+    .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: #3b82f6; font-weight: 500;
+    }
+    /* Terminal */
+    .terminal { background: #020817; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+    .terminal-bar {
+      background: #0f172a; padding: 10px 16px;
+      display: flex; align-items: center; gap: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .terminal-body { padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; }
+    .tc-comment { color: #334155; }
+    .tc-prompt  { color: #3b82f6; }
+    .tc-text    { color: #e2e8f0; }
+    .tc-flag    { color: #94a3b8; }
+    .tc-value   { color: #34d399; }
+    .tc-stage   { color: #f59e0b; }
+    .tc-success { color: #34d399; }
+    .cursor {
+      display: inline-block; width: 7px; height: 14px;
+      background: #3b82f6; margin-left: 2px; vertical-align: middle;
+      animation: blink 1.1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .tl { opacity: 0; transform: translateY(3px); transition: opacity .25s ease, transform .25s ease; }
+    .tl.show { opacity: 1; transform: translateY(0); }
+    /* Badges */
+    .badge-urgent {
+      display: inline-block;
+      background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25);
+      color: #fbbf24; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.08em; padding: 5px 14px; border-radius: 4px; text-transform: uppercase;
+    }
+    .badge-num {
+      display: inline-block;
+      background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.20);
+      color: #60a5fa; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; padding: 3px 10px; border-radius: 4px;
+    }
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 15px;
+      padding: 14px 28px; border-radius: 8px; border: none; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+    }
+    .btn-primary:hover  { opacity:.92; box-shadow: 0 0 24px rgba(59,130,246,0.28); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity:.55; cursor:not-allowed; }
+    .btn-secondary {
+      background: transparent; color: #94a3b8;
+      font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px;
+      padding: 13px 28px; border-radius: 8px; border: 1px solid #334155; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+      transition: all .18s;
+    }
+    .btn-secondary:hover { border-color: #60a5fa; color: #60a5fa; background: rgba(59,130,246,0.05); }
+    /* Cards */
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; transition: border-color .2s, transform .2s; }
+    .card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+    .step-bg {
+      font-family: 'Bebas Neue', sans-serif; font-size: 90px; line-height: 1;
+      color: rgba(59,130,246,0.06); position: absolute; top: -16px; left: -8px;
+      z-index: 0; user-select: none; pointer-events: none;
+    }
+    /* Nav */
+    nav { transition: background .3s, border-color .3s; }
+    nav.scrolled {
+      background: rgba(15,23,42,0.93) !important;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom-color: rgba(51,65,85,0.5) !important;
+    }
+    /* Modal */
+    .modal-wrap {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(2,8,23,0.80); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+      opacity: 0; pointer-events: none; transition: opacity .22s ease;
+    }
+    .modal-wrap.open { opacity: 1; pointer-events: all; }
+    .modal-card {
+      background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 36px;
+      width: 100%; max-width: 460px; position: relative;
+      transform: translateY(18px) scale(.98); transition: transform .22s ease;
+      max-height: 92vh; overflow-y: auto;
+    }
+    .modal-wrap.open .modal-card { transform: translateY(0) scale(1); }
+    /* Forms */
+    .form-label { display: block; font-size: 13px; color: #94a3b8; font-weight: 500; margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+      border-radius: 8px; padding: 12px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .form-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.14); }
+    .form-input::placeholder { color: #334155; }
+    .form-error {
+      display: none; color: #f87171; font-size: 13px; padding: 10px 14px;
+      background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.18); border-radius: 6px;
+    }
+    /* Spinner — shown via data-loading attribute on the button */
+    .btn-spinner {
+      display: none; width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+      border-radius: 50%; animation: spin .55s linear infinite; flex-shrink: 0;
+    }
+    [data-loading="true"] .btn-spinner { display: block; }
+    [data-loading="true"] .btn-label   { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* File tree */
+    .file-tree { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; }
+    .ft-dir  { color: #60a5fa; }
+    .ft-json { color: #34d399; }
+    .ft-md   { color: #fbbf24; }
+    .ft-bicep{ color: #c084fc; }
+    .ft-dim  { color: #475569; }
+    /* Grade bars */
+    .grade-row   { display: flex; align-items: center; gap: 12px; }
+    .grade-letter{ font-family: 'Bebas Neue', sans-serif; font-size: 22px; width: 18px; flex-shrink: 0; }
+    .grade-track { flex: 1; height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden; }
+    .grade-fill  { height: 100%; border-radius: 2px; }
+    .grade-label { font-size: 12px; color: #475569; white-space: nowrap; flex-shrink: 0; }
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid #1e293b; }
+    .faq-item summary {
+      cursor: pointer; list-style: none;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 0; color: #e2e8f0; font-weight: 500; font-size: 16px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: '+'; font-size: 22px; color: #3b82f6; transition: transform .18s; flex-shrink: 0; }
+    .faq-item details[open] summary::after { transform: rotate(45deg); }
+    .faq-answer { padding-bottom: 20px; color: #64748b; line-height: 1.72; font-size: 15px; }
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav" class="fixed top-0 left-0 right-0 z-50 border-b border-transparent">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-3" style="text-decoration:none;">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="rgba(59,130,246,.12)" stroke="rgba(59,130,246,.35)" stroke-width="1"/>
+        <path d="M8 9h7M8 14h12M8 19h9" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="21" cy="9" r="2.2" fill="#3b82f6"/>
+      </svg>
+      <span class="font-display text-slate-100" style="font-size:19px; letter-spacing:.05em;">BizTalk Migrate</span>
+    </a>
+    <button onclick="openModal('trial')" class="btn-primary" style="padding:9px 20px; font-size:14px;">
+      Request Test Key
+    </button>
+  </div>
+</nav>
+
+
+<!-- HERO -->
+<section class="relative min-h-screen flex flex-col justify-center grid-bg hero-mesh" style="padding:110px 0 80px;">
+  <div class="absolute left-0 right-0" style="top:38%;height:1px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.12),transparent);pointer-events:none;"></div>
+  <div class="absolute left-0 right-0" style="top:62%;height:1px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.06),transparent);pointer-events:none;"></div>
+
+  <div class="max-w-7xl mx-auto px-6 w-full">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+      <div>
+        <div class="reveal mb-7">
+          <span class="badge-urgent">&#9889; BizTalk extended support ends October 2028</span>
+        </div>
+        <h1 class="reveal font-display mb-6 leading-none" style="font-size:clamp(52px,7.5vw,88px);color:#f1f5f9;animation-delay:.07s;">
+          Migrate BizTalk<br>
+          <span style="color:#3b82f6;">to Azure Logic Apps.</span><br>
+          Automatically.
+        </h1>
+        <p class="reveal text-slate-400 mb-10 max-w-xl" style="font-size:19px;line-height:1.65;animation-delay:.14s;">
+          Point it at your BizTalk files. Get back a deployable Azure project, a gap analysis, and a migration report.
+          <strong style="color:#94a3b8;font-weight:500;">No deep Azure expertise required.</strong>
+        </p>
+        <div class="reveal flex flex-wrap gap-4 mb-12" style="animation-delay:.2s;">
+          <button onclick="openModal('trial')" class="btn-primary" style="font-size:16px;padding:15px 32px;">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2l2.09 6.26 6.09.01-4.73 3.7 1.73 6.21L10 14.77l-5.18 3.41 1.73-6.21L1.82 8.27l6.09-.01L10 2z" fill="currentColor"/></svg>
+            Request a 3-Day Test Key
+          </button>
+          <button onclick="openModal('waitlist')" class="btn-secondary" style="font-size:16px;padding:15px 32px;">
+            Join the Waitlist
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <p class="reveal" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#334155;animation-delay:.25s;">
+          npm install -g biztalk-migrate &nbsp;&#183;&nbsp; node 20+
+        </p>
+      </div>
+
+      <div class="reveal" style="animation-delay:.18s;">
+        <div class="terminal" style="box-shadow:0 0 80px rgba(59,130,246,.08);">
+          <div class="terminal-bar">
+            <div class="terminal-dot" style="background:#ef4444;"></div>
+            <div class="terminal-dot" style="background:#f59e0b;"></div>
+            <div class="terminal-dot" style="background:#22c55e;"></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#334155;margin-left:8px;">terminal</span>
+          </div>
+          <div class="terminal-body" id="hero-term">
+            <div class="tl" id="tl0"><span class="tc-comment"># Install the CLI</span></div>
+            <div class="tl" id="tl1"><span class="tc-prompt">$</span> <span class="tc-text">npm install -g biztalk-migrate</span></div>
+            <div class="tl" id="tl2" style="margin-top:10px;"><span class="tc-comment"># Run your migration</span></div>
+            <div class="tl" id="tl3"><span class="tc-prompt">$</span> <span class="tc-text">BTLA_LICENSE_KEY=<span class="tc-value">your-key</span> biztalk-migrate run \</span></div>
+            <div class="tl" id="tl4" style="padding-left:14px;"><span class="tc-flag">--dir</span> <span class="tc-value">./biztalk-artifacts</span> <span class="tc-flag">--app</span> <span class="tc-value">"OrderSystem"</span></div>
+            <div class="tl" id="tl5" style="margin-top:10px;"><span class="tc-stage">[PARSE   ]</span> <span class="tc-text">Found 4 artifacts &#8212; 2 orchestrations, 1 map, 1 binding</span></div>
+            <div class="tl" id="tl6"><span class="tc-stage">[REASON  ]</span> <span class="tc-text">Enriching migration intent...</span></div>
+            <div class="tl" id="tl7"><span class="tc-stage">[SCAFFOLD]</span> <span class="tc-text">Generating Logic Apps package...</span></div>
+            <div class="tl" id="tl8"><span class="tc-stage">[VALIDATE]</span> <span class="tc-text">Quality: <span class="tc-success">83/100</span> &nbsp;Grade <span class="tc-success">B</span></span></div>
+            <div class="tl" id="tl9"><span class="tc-success">&#10004;</span> <span class="tc-text">Migration complete &#8212; output written to <span class="tc-value">./output</span></span><span class="cursor"></span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="absolute bottom-0 left-0 right-0 h-20 pointer-events-none" style="background:linear-gradient(transparent,#0f172a);"></div>
+</section>
+
+
+<!-- PROBLEM -->
+<section class="py-24" style="background:#080e1a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal text-center mb-16">
+      <span class="section-label">The Problem</span>
+      <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,58px);color:#f1f5f9;line-height:1.05;">
+        Manual migration takes months.<br>
+        <span style="color:#3b82f6;">This takes minutes.</span>
+      </h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-5">
+      <div class="reveal card p-8" style="position:relative;overflow:hidden;animation-delay:.06s;">
+        <div class="step-bg">01</div>
+        <div style="position:relative;z-index:1;">
+          <div class="mb-4" style="font-size:28px;" role="img" aria-label="gear">&#9881;&#65039;</div>
+          <h3 class="font-display mb-3" style="font-size:21px;color:#e2e8f0;letter-spacing:.04em;">Complex Orchestrations</h3>
+          <p style="color:#475569;line-height:1.7;font-size:14px;">Every BizTalk shape&#8202;&#8212;&#8202;Decide, Loop, Scope, Parallel Actions&#8202;&#8212;&#8202;requires expert Azure knowledge to map manually. That expertise turns into sprawling tickets and delayed timelines.</p>
+        </div>
+      </div>
+      <div class="reveal card p-8" style="position:relative;overflow:hidden;animation-delay:.12s;">
+        <div class="step-bg">02</div>
+        <div style="position:relative;z-index:1;">
+          <div class="mb-4" style="font-size:28px;" role="img" aria-label="adapter">&#128268;</div>
+          <h3 class="font-display mb-3" style="font-size:21px;color:#e2e8f0;letter-spacing:.04em;">Adapter Rewrites</h3>
+          <p style="color:#475569;line-height:1.7;font-size:14px;">30+ BizTalk adapters need individual Azure connector mappings. FILE, FTP, SAP, MQ, EDI&#8202;&#8212;&#8202;each one is days of research and config work without a reference map.</p>
+        </div>
+      </div>
+      <div class="reveal card p-8" style="position:relative;overflow:hidden;animation-delay:.18s;">
+        <div class="step-bg">03</div>
+        <div style="position:relative;z-index:1;">
+          <div class="mb-4" style="font-size:28px;" role="img" aria-label="chart">&#128202;</div>
+          <h3 class="font-display mb-3" style="font-size:21px;color:#e2e8f0;letter-spacing:.04em;">Gap Analysis</h3>
+          <p style="color:#475569;line-height:1.7;font-size:14px;">Before writing a SOW, you need to know what migrates automatically and what needs redesign. Without tooling, that analysis is expensive guesswork.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- HOW IT WORKS -->
+<section class="py-24 grid-bg" style="background:#0f172a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal text-center mb-16">
+      <span class="section-label">How It Works</span>
+      <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,58px);color:#f1f5f9;">Three commands.</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-8">
+
+      <div class="reveal" style="animation-delay:.05s;">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="badge-num">01</span>
+          <span style="color:#60a5fa;font-weight:600;font-size:17px;">Install</span>
+        </div>
+        <div class="terminal mb-5">
+          <div class="terminal-body" style="padding:14px 18px;">
+            <span class="tc-prompt">$</span> <span class="tc-text">npm install -g biztalk-migrate</span>
+          </div>
+        </div>
+        <p style="color:#475569;font-size:14px;line-height:1.7;">Node.js 20+ and npm. No Azure SDK, no Python environment, no complex setup.</p>
+      </div>
+
+      <div class="reveal" style="animation-delay:.12s;">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="badge-num">02</span>
+          <span style="color:#60a5fa;font-weight:600;font-size:17px;">Run</span>
+        </div>
+        <div class="terminal mb-5">
+          <div class="terminal-body" style="padding:14px 18px;">
+            <div><span class="tc-prompt">$</span> <span class="tc-text">biztalk-migrate run \</span></div>
+            <div style="padding-left:14px;"><span class="tc-flag">--dir</span> <span class="tc-value">./artifacts</span> <span class="tc-flag">--app</span> <span class="tc-value">"OrderSystem"</span></div>
+            <div style="padding-left:14px;"><span class="tc-flag">--output</span> <span class="tc-value">./output</span></div>
+          </div>
+        </div>
+        <p style="color:#475569;font-size:14px;line-height:1.7;">Point it at your BizTalk export folder. Your artifacts never leave your machine.</p>
+      </div>
+
+      <div class="reveal" style="animation-delay:.18s;">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="badge-num">03</span>
+          <span style="color:#60a5fa;font-weight:600;font-size:17px;">Deploy</span>
+        </div>
+        <div class="file-tree p-4 rounded-lg mb-5" style="background:#020817;border:1px solid #1e293b;">
+          <div class="ft-dim">output/</div>
+          <div class="pl-4"><span class="ft-dir">ProcessOrder/</span></div>
+          <div class="pl-8"><span class="ft-json">workflow.json</span></div>
+          <div class="pl-4"><span class="ft-json">connections.json</span></div>
+          <div class="pl-4"><span class="ft-dim">host.json</span></div>
+          <div class="pl-4"><span class="ft-dir">infra/</span></div>
+          <div class="pl-8"><span class="ft-bicep">main.bicep</span></div>
+          <div class="pl-4"><span class="ft-md">migration-report.md</span></div>
+        </div>
+        <p style="color:#475569;font-size:14px;line-height:1.7;">Everything in that folder deploys directly to Azure Logic Apps Standard.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- WHAT YOU GET -->
+<section class="py-24" style="background:#080e1a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-14">
+      <span class="section-label">Output</span>
+      <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,58px);color:#f1f5f9;">What you get.</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <div class="space-y-4">
+        <div class="reveal card p-6 flex gap-4 items-start" style="animation-delay:.04s;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#34d399;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);padding:3px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;">workflow.json</code>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:4px;">Your migrated Logic Apps workflow</p>
+            <p style="color:#475569;font-size:14px;line-height:1.65;">Every orchestration shape mapped to its Logic Apps equivalent. Stateful, quality-scored, deployment-ready.</p>
+          </div>
+        </div>
+        <div class="reveal card p-6 flex gap-4 items-start" style="animation-delay:.08s;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#34d399;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);padding:3px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;">connections.json</code>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:4px;">Azure service connections</p>
+            <p style="color:#475569;font-size:14px;line-height:1.65;">Service Bus, Storage, SFTP, SQL&#8202;&#8212;&#8202;every adapter mapped to its Logic Apps connector.</p>
+          </div>
+        </div>
+        <div class="reveal card p-6 flex gap-4 items-start" style="animation-delay:.12s;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.2);padding:3px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;">host.json</code>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:4px;">Runtime configuration</p>
+            <p style="color:#475569;font-size:14px;line-height:1.65;">Logic Apps Standard runtime settings, pre-configured for production workloads.</p>
+          </div>
+        </div>
+        <div class="reveal card p-6 flex gap-4 items-start" style="animation-delay:.16s;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c084fc;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2);padding:3px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;">main.bicep</code>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:4px;">Azure deployment template</p>
+            <p style="color:#475569;font-size:14px;line-height:1.65;">Production-ready Bicep. One <code style="color:#60a5fa;font-size:12px;">az deployment group create</code> provisions everything.</p>
+          </div>
+        </div>
+        <div class="reveal card p-6 flex gap-4 items-start" style="animation-delay:.2s;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);padding:3px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;">migration-report.md</code>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:4px;">Gap analysis + effort estimates</p>
+            <p style="color:#475569;font-size:14px;line-height:1.65;">What migrates automatically, what needs manual work, and how many days each gap takes. Share with your client before touching Azure.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal" style="animation-delay:.1s;">
+        <div class="card p-8" style="height:100%;">
+          <p class="section-label mb-6">Quality Scoring &#8212; Every Workflow Graded 0&#8211;100</p>
+          <div class="space-y-5">
+            <div class="grade-row">
+              <span class="grade-letter" style="color:#22c55e;">A</span>
+              <div class="grade-track"><div class="grade-fill" style="width:95%;background:linear-gradient(90deg,#22c55e,#4ade80);"></div></div>
+              <span class="grade-label">&#8805;90 &#183; Deployment-ready</span>
+            </div>
+            <div class="grade-row">
+              <span class="grade-letter" style="color:#60a5fa;">B</span>
+              <div class="grade-track"><div class="grade-fill" style="width:80%;background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div></div>
+              <span class="grade-label">75&#8211;89 &#183; Ready to deploy</span>
+            </div>
+            <div class="grade-row">
+              <span class="grade-letter" style="color:#f59e0b;">C</span>
+              <div class="grade-track"><div class="grade-fill" style="width:65%;background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div></div>
+              <span class="grade-label">60&#8211;74 &#183; Review before production</span>
+            </div>
+            <div class="grade-row">
+              <span class="grade-letter" style="color:#ef4444;">D</span>
+              <div class="grade-track"><div class="grade-fill" style="width:45%;background:linear-gradient(90deg,#ef4444,#f87171);"></div></div>
+              <span class="grade-label">40&#8211;59 &#183; Issues to address</span>
+            </div>
+            <div class="grade-row">
+              <span class="grade-letter" style="color:#475569;">F</span>
+              <div class="grade-track"><div class="grade-fill" style="width:25%;background:#334155;"></div></div>
+              <span class="grade-label">&lt;40 &#183; Structural problems</span>
+            </div>
+          </div>
+          <div class="mt-8 p-4 rounded-lg" style="background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.12);">
+            <p style="color:#475569;font-size:13px;line-height:1.65;"><span style="color:#60a5fa;">Target Grade B or higher</span> before handing off to a customer. The tool tells you exactly what to fix if the score is lower.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- WHAT MIGRATES -->
+<section class="py-24 grid-bg" style="background:#0f172a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-14">
+      <span class="section-label">Coverage</span>
+      <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,58px);color:#f1f5f9;">What migrates automatically.</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <div class="reveal card p-8" style="animation-delay:.05s;">
+        <div class="flex items-center gap-2 mb-6">
+          <span style="color:#22c55e;">&#10003;</span>
+          <span class="font-display" style="font-size:17px;color:#22c55e;letter-spacing:.06em;">DIRECT MAPPINGS &#8212; NO MANUAL WORK</span>
+        </div>
+        <div class="space-y-2" style="font-size:14px;color:#64748b;line-height:1.65;">
+          <p>&#8599; <strong style="color:#94a3b8;font-weight:500;">Adapters:</strong> FILE, FTP, SFTP, HTTP, SOAP, Service Bus, SQL, SMTP, Event Hubs, Azure Blob, IBM MQ, SAP, EDI/X12/EDIFACT/AS2</p>
+          <p>&#8599; Receive shape &#8594; trigger (type maps to adapter)</p>
+          <p>&#8599; Decide shape &#8594; If / Switch action</p>
+          <p>&#8599; While loop &#8594; Until action (condition auto-inverted)</p>
+          <p>&#8599; Transform + XSLT maps &#8594; Transform action</p>
+          <p>&#8599; Delay shape &#8594; Delay action</p>
+          <p>&#8599; Terminate shape &#8594; Terminate action</p>
+          <p>&#8599; Scope + exception handling &#8594; Scope + FAILED runAfter branch</p>
+          <p>&#8599; Call Orchestration &#8594; child Workflow action</p>
+          <p>&#8599; Sequential Convoy &#8594; Service Bus sessions</p>
+          <p>&#8599; Parallel actions &#8594; concurrent runAfter chains</p>
+        </div>
+      </div>
+
+      <div class="reveal card p-8" style="animation-delay:.1s;">
+        <div class="flex items-center gap-2 mb-6">
+          <span style="color:#f59e0b;">&#9888;</span>
+          <span class="font-display" style="font-size:17px;color:#f59e0b;letter-spacing:.06em;">GAPS &#8212; FLAGGED IN MIGRATION REPORT</span>
+        </div>
+        <div class="space-y-5" style="font-size:14px;">
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:3px;">WCF-NetNamedPipe</p>
+            <p style="color:#475569;line-height:1.6;">No Azure equivalent. Architectural redesign required&#8202;&#8212;&#8202;HTTP, Service Bus, or Azure Relay.</p>
+          </div>
+          <div style="border-top:1px solid #1e293b;padding-top:16px;">
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:3px;">MSDTC atomic transactions</p>
+            <p style="color:#475569;line-height:1.6;">No 2-phase commit in Azure. Saga/compensation pattern required.</p>
+          </div>
+          <div style="border-top:1px solid #1e293b;padding-top:16px;">
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:3px;">WCF-NetTcp (binary TCP)</p>
+            <p style="color:#475569;line-height:1.6;">Wrap in Azure Functions or redesign as HTTP REST.</p>
+          </div>
+          <div style="border-top:1px solid #1e293b;padding-top:16px;">
+            <p style="color:#e2e8f0;font-weight:500;margin-bottom:3px;">MessageBox pub/sub</p>
+            <p style="color:#475569;line-height:1.6;">Redesigned as Service Bus Topics + Event Grid.</p>
+          </div>
+        </div>
+        <div class="mt-6 p-4 rounded-lg" style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.12);">
+          <p style="color:#64748b;font-size:13px;line-height:1.65;"><span style="color:#fbbf24;">The migration report</span> categorizes every component: direct mappings, partial mappings, and gaps requiring redesign. You&#8217;ll know exactly what needs attention before writing a line of JSON.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- FOR CONSULTANTS -->
+<section class="py-24" style="background:#080e1a;">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid md:grid-cols-2 gap-16 items-center">
+      <div class="reveal">
+        <span class="section-label">For Consultants</span>
+        <h2 class="font-display mt-4 mb-6" style="font-size:clamp(34px,5vw,52px);color:#f1f5f9;line-height:1.05;">
+          Size the engagement<br>
+          <span style="color:#3b82f6;">before the first meeting.</span>
+        </h2>
+        <p style="color:#475569;line-height:1.75;margin-bottom:20px;font-size:15px;">Run Stage 1&#43;2 analysis on the client&#8217;s BizTalk export before the kickoff call. Get the complexity score and gap analysis in seconds&#8202;&#8212;&#8202;enough to write a SOW and identify blockers before you&#8217;ve billed a single hour.</p>
+        <p style="color:#475569;line-height:1.75;margin-bottom:32px;font-size:15px;">Stage 1&#43;2 analysis runs <strong style="color:#94a3b8;">completely free</strong>&#8202;&#8212;&#8202;no license key required.</p>
+        <button onclick="openModal('trial')" class="btn-primary">
+          Get Your Test Key
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="reveal" style="animation-delay:.12s;">
+        <div class="terminal" style="box-shadow:0 0 60px rgba(59,130,246,.06);">
+          <div class="terminal-bar">
+            <div class="terminal-dot" style="background:#ef4444;"></div>
+            <div class="terminal-dot" style="background:#f59e0b;"></div>
+            <div class="terminal-dot" style="background:#22c55e;"></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#334155;margin-left:8px;">pre-engagement analysis</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="tc-comment"># Run before the first meeting (free)</span></div>
+            <div><span class="tc-prompt">$</span> <span class="tc-text">biztalk-migrate analyze \</span></div>
+            <div style="padding-left:14px;"><span class="tc-flag">--app</span> <span class="tc-value">"ClientOrderSystem"</span> <span class="tc-flag">--dir</span> <span class="tc-value">./client-export</span></div>
+            <div style="margin-top:10px;"><span class="tc-stage">[PARSE   ]</span> <span class="tc-text">12 orchestrations, 8 maps, 4 pipelines</span></div>
+            <div><span class="tc-stage">[ANALYZE ]</span> <span class="tc-text">Complexity: <span style="color:#f59e0b;">MODERATE</span> (67/100)</span></div>
+            <div><span class="tc-stage">[GAPS    ]</span> <span class="tc-text">3 critical, 5 high, 8 medium</span></div>
+            <div><span class="tc-stage">[EFFORT  ]</span> <span class="tc-text">Estimated: <span class="tc-value">18&#8211;24 person-days</span></span></div>
+            <div style="margin-top:10px;"><span class="tc-success">&#10004;</span> <span class="tc-text">Report written to <span class="tc-value">./migration-report.md</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- CTA REPEAT -->
+<section class="py-28 grid-bg" style="background:#0f172a;">
+  <div class="max-w-3xl mx-auto px-6 text-center">
+    <div class="reveal">
+      <span class="badge-urgent" style="margin-bottom:24px;">&#8986; October 2028 deadline approaching</span>
+      <h2 class="font-display mt-6 mb-4" style="font-size:clamp(40px,6.5vw,72px);color:#f1f5f9;line-height:1.05;">
+        Start your migration today.
+      </h2>
+      <p style="color:#475569;font-size:18px;line-height:1.65;margin-bottom:40px;max-width:520px;margin-left:auto;margin-right:auto;">
+        Get a 3-day trial key with full Standard access. No credit card, no commitment.
+      </p>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <button onclick="openModal('trial')" class="btn-primary" style="font-size:16px;padding:16px 36px;">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2l2.09 6.26 6.09.01-4.73 3.7 1.73 6.21L10 14.77l-5.18 3.41 1.73-6.21L1.82 8.27l6.09-.01L10 2z" fill="currentColor"/></svg>
+          Request a 3-Day Test Key
+        </button>
+        <button onclick="openModal('waitlist')" class="btn-secondary" style="font-size:16px;padding:16px 36px;">
+          Join the Waitlist
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- FAQ -->
+<section class="py-24" style="background:#080e1a;">
+  <div class="max-w-3xl mx-auto px-6">
+    <div class="reveal mb-12">
+      <span class="section-label">FAQ</span>
+      <h2 class="font-display mt-4" style="font-size:clamp(34px,5vw,52px);color:#f1f5f9;">Common questions.</h2>
+    </div>
+    <div>
+      <div class="faq-item reveal" style="animation-delay:.04s;">
+        <details>
+          <summary>What BizTalk files do I need?</summary>
+          <p class="faq-answer">Export from BizTalk Administration Console: right-click your application &#8594; <strong style="color:#e2e8f0;">Export &#8594; MSI file</strong> to get your .odx, .btm, and .btp files. Then right-click again &#8594; <strong style="color:#e2e8f0;">Export &#8594; Bindings</strong> to save <code style="color:#60a5fa;font-size:13px;">BindingInfo.xml</code>. Put everything in one folder and point the tool at it.</p>
+        </details>
+      </div>
+      <div class="faq-item reveal" style="animation-delay:.08s;">
+        <details>
+          <summary>Does my BizTalk data leave my machine?</summary>
+          <p class="faq-answer">No. 100% local processing. Your .odx, .btm, .btp, and BindingInfo.xml files are parsed entirely on your machine. Only <strong style="color:#e2e8f0;">license validation</strong> makes a network call&#8202;&#8212;&#8202;your BizTalk artifacts never leave your environment.</p>
+        </details>
+      </div>
+      <div class="faq-item reveal" style="animation-delay:.12s;">
+        <details>
+          <summary>What do I need to install?</summary>
+          <p class="faq-answer"><strong style="color:#e2e8f0;">Node.js 20+</strong> and <strong style="color:#e2e8f0;">npm</strong>. That&#8217;s it. No Azure CLI required to run the migration (you&#8217;ll need it to deploy the output). No Python, no .NET SDK, no Visual Studio.</p>
+        </details>
+      </div>
+      <div class="faq-item reveal" style="animation-delay:.16s;">
+        <details>
+          <summary>What Azure services does the output target?</summary>
+          <p class="faq-answer"><strong style="color:#e2e8f0;">Logic Apps Standard (single-tenant)</strong>. Always stateful workflows&#8202;&#8212;&#8202;required for BizTalk migration scenarios involving long-running transactions, message correlation, and run history. The Bicep template provisions everything at the correct tier.</p>
+        </details>
+      </div>
+      <div class="faq-item reveal" style="animation-delay:.2s;">
+        <details>
+          <summary>What if my app uses WCF-NetNamedPipe or MSDTC?</summary>
+          <p class="faq-answer">The tool handles these gracefully. WCF-NetNamedPipe and MSDTC distributed transactions have no direct Logic Apps equivalent&#8202;&#8212;&#8202;the migration report flags them as <strong style="color:#fbbf24;">requiring redesign</strong>, estimates the effort, and describes the recommended pattern (Azure Relay, Saga/compensation). The tool generates the surrounding workflow correctly and clearly marks the gaps. You&#8217;ll know exactly what needs human attention before touching Azure.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer style="background:#020817;border-top:1px solid #0f172a;padding:44px 24px;">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="flex items-center gap-3">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="rgba(59,130,246,.10)" stroke="rgba(59,130,246,.25)" stroke-width="1"/>
+        <path d="M8 9h7M8 14h12M8 19h9" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="21" cy="9" r="2.2" fill="#3b82f6"/>
+      </svg>
+      <span class="font-display" style="font-size:17px;color:#334155;letter-spacing:.05em;">BizTalk Migrate</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-6">
+      <a href="mailto:me@jonlevesque.com" style="color:#334155;font-size:14px;text-decoration:none;transition:color .18s;" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#334155'">me@jonlevesque.com</a>
+      <a href="https://www.npmjs.com/package/biztalk-migrate" target="_blank" rel="noopener noreferrer" style="color:#334155;font-size:14px;text-decoration:none;transition:color .18s;" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#334155'">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;">npm</span> biztalk-migrate
+      </a>
+    </div>
+    <p style="color:#1e293b;font-size:13px;">&#169; 2026 BizTalk Migrate</p>
+  </div>
+</footer>
+
+
+<!-- TRIAL MODAL -->
+<div id="trial-modal" class="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="trial-title">
+  <div class="modal-card">
+    <button onclick="closeModal('trial')" aria-label="Close dialog" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#334155;cursor:pointer;font-size:22px;line-height:1;padding:8px;transition:color .15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#334155'">&#215;</button>
+
+    <div id="trial-form-wrap">
+      <div class="mb-7">
+        <h2 id="trial-title" class="font-display" style="font-size:26px;color:#f1f5f9;letter-spacing:.03em;">Get Your 3-Day Trial Key</h2>
+        <p style="color:#475569;font-size:14px;margin-top:4px;">Full Standard access. No credit card required.</p>
+      </div>
+      <form id="trial-form" onsubmit="submitTrial(event)" novalidate>
+        <div class="space-y-4">
+          <div>
+            <label class="form-label" for="t-name">Name</label>
+            <input type="text" id="t-name" class="form-input" placeholder="Jon Smith" autocomplete="name">
+          </div>
+          <div>
+            <label class="form-label" for="t-email">Work Email <span style="color:#ef4444;" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input type="email" id="t-email" class="form-input" placeholder="jon@company.com" required autocomplete="email">
+          </div>
+          <div>
+            <label class="form-label" for="t-company">Company</label>
+            <input type="text" id="t-company" class="form-input" placeholder="Acme Corp" autocomplete="organization">
+          </div>
+          <div id="trial-err" class="form-error" role="alert"></div>
+          <button type="submit" id="trial-btn" class="btn-primary" style="width:100%;justify-content:center;padding:14px;margin-top:4px;">
+            <div class="btn-spinner" aria-hidden="true"></div>
+            <span class="btn-label">Send My Trial Key</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="trial-success" style="display:none;text-align:center;padding:12px 0;">
+      <div style="font-size:44px;margin-bottom:16px;" role="img" aria-label="Email">&#9993;</div>
+      <h3 class="font-display" style="font-size:26px;color:#f1f5f9;margin-bottom:8px;letter-spacing:.03em;">Check your inbox.</h3>
+      <p style="color:#475569;margin-bottom:22px;line-height:1.65;font-size:15px;">Your key is on its way. While you wait:</p>
+      <div class="terminal" style="text-align:left;">
+        <div class="terminal-body" style="padding:14px 18px;font-size:12px;">
+          <div><span class="tc-prompt">$</span> <span class="tc-text">npm install -g biztalk-migrate</span></div>
+          <div style="margin-top:6px;"><span class="tc-prompt">$</span> <span class="tc-text">export BTLA_LICENSE_KEY=<span class="tc-value">your-key-here</span></span></div>
+          <div style="margin-top:6px;"><span class="tc-prompt">$</span> <span class="tc-text">biztalk-migrate run --dir ./artifacts --app "App"</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- WAITLIST MODAL -->
+<div id="waitlist-modal" class="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="waitlist-title">
+  <div class="modal-card">
+    <button onclick="closeModal('waitlist')" aria-label="Close dialog" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#334155;cursor:pointer;font-size:22px;line-height:1;padding:8px;transition:color .15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#334155'">&#215;</button>
+
+    <div id="waitlist-form-wrap">
+      <div class="mb-7">
+        <h2 id="waitlist-title" class="font-display" style="font-size:26px;color:#f1f5f9;letter-spacing:.03em;">Join the Waitlist</h2>
+        <p style="color:#475569;font-size:14px;margin-top:4px;">We&#8217;ll reach out when full licenses are available.</p>
+      </div>
+      <form id="waitlist-form" onsubmit="submitWaitlist(event)" novalidate>
+        <div class="space-y-4">
+          <div>
+            <label class="form-label" for="w-email">Email <span style="color:#ef4444;" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input type="email" id="w-email" class="form-input" placeholder="you@company.com" required autocomplete="email">
+          </div>
+          <div id="waitlist-err" class="form-error" role="alert"></div>
+          <button type="submit" id="waitlist-btn" class="btn-primary" style="width:100%;justify-content:center;padding:14px;margin-top:4px;">
+            <div class="btn-spinner" aria-hidden="true"></div>
+            <span class="btn-label">Join the Waitlist</span>
+          </button>
+          <p style="text-align:center;font-size:13px;color:#334155;">
+            Or <button type="button" onclick="closeModal('waitlist'); openModal('trial');" style="background:none;border:none;color:#60a5fa;cursor:pointer;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;">get a free 3-day trial key</button> right now.
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <div id="waitlist-success" style="display:none;text-align:center;padding:12px 0;">
+      <div style="font-size:44px;margin-bottom:16px;" role="img" aria-label="Target">&#127919;</div>
+      <h3 class="font-display" style="font-size:26px;color:#f1f5f9;margin-bottom:8px;letter-spacing:.03em;">You&#8217;re on the list.</h3>
+      <p style="color:#475569;line-height:1.65;font-size:15px;margin-bottom:16px;">We&#8217;ll be in touch when full licenses are available.</p>
+      <p style="color:#475569;font-size:14px;">
+        In the meantime, <button onclick="closeModal('waitlist'); openModal('trial');" style="background:none;border:none;color:#60a5fa;cursor:pointer;font-size:14px;padding:0;text-decoration:underline;text-underline-offset:3px;">grab a free 3-day trial key</button> and run your first migration today.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── Modal ─────────────────────────────────────────────────────────────────────
+var _prevFocus = null;
+
+function openModal(id) {
+  _prevFocus = document.activeElement;
+  var m = document.getElementById(id + '-modal');
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() {
+    var f = m.querySelector('input');
+    if (f) f.focus();
+  }, 60);
+}
+
+function closeModal(id) {
+  document.getElementById(id + '-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  if (_prevFocus) _prevFocus.focus();
+}
+
+document.querySelectorAll('.modal-wrap').forEach(function(m) {
+  m.addEventListener('click', function(e) {
+    if (e.target === m) closeModal(m.id.replace('-modal', ''));
+  });
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  ['trial','waitlist'].forEach(function(id) {
+    if (document.getElementById(id + '-modal').classList.contains('open')) closeModal(id);
+  });
+});
+
+document.querySelectorAll('.modal-card').forEach(function(card) {
+  card.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    var els = card.querySelectorAll('input, button, [tabindex]:not([tabindex="-1"])');
+    var first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+});
+
+// ── Button loading state (no innerHTML) ──────────────────────────────────────
+function setLoading(btn, loading) {
+  btn.disabled = loading;
+  btn.setAttribute('data-loading', loading ? 'true' : 'false');
+}
+
+// ── Form: Trial ───────────────────────────────────────────────────────────────
+async function submitTrial(e) {
+  e.preventDefault();
+  var btn    = document.getElementById('trial-btn');
+  var errEl  = document.getElementById('trial-err');
+  var email  = document.getElementById('t-email').value.trim();
+  var name   = document.getElementById('t-name').value.trim();
+  var company= document.getElementById('t-company').value.trim();
+
+  errEl.style.display = 'none';
+  errEl.textContent   = '';
+
+  if (!email || !email.includes('@')) {
+    errEl.textContent   = 'Please enter a valid email address.';
+    errEl.style.display = 'block';
+    document.getElementById('t-email').focus();
+    return;
+  }
+
+  setLoading(btn, true);
+  try {
+    var res  = await fetch('https://api.biztalkmigrate.com/v1/license/trial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, name: name, company: company }),
+    });
+    var data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong.');
+    document.getElementById('trial-form-wrap').style.display = 'none';
+    document.getElementById('trial-success').style.display   = 'block';
+  } catch (err) {
+    console.error('[BizTalk Migrate] trial key error:', err);
+    errEl.textContent   = (err && err.message) ? err.message : 'Something went wrong. Please try again.';
+    errEl.style.display = 'block';
+    setLoading(btn, false);
+  }
+}
+
+// ── Form: Waitlist ────────────────────────────────────────────────────────────
+async function submitWaitlist(e) {
+  e.preventDefault();
+  var btn   = document.getElementById('waitlist-btn');
+  var errEl = document.getElementById('waitlist-err');
+  var email = document.getElementById('w-email').value.trim();
+
+  errEl.style.display = 'none';
+  errEl.textContent   = '';
+
+  if (!email || !email.includes('@')) {
+    errEl.textContent   = 'Please enter a valid email address.';
+    errEl.style.display = 'block';
+    document.getElementById('w-email').focus();
+    return;
+  }
+
+  setLoading(btn, true);
+  try {
+    var res  = await fetch('https://api.biztalkmigrate.com/v1/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    });
+    var data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong.');
+    document.getElementById('waitlist-form-wrap').style.display = 'none';
+    document.getElementById('waitlist-success').style.display   = 'block';
+  } catch (err) {
+    console.error('[BizTalk Migrate] waitlist error:', err);
+    errEl.textContent   = (err && err.message) ? err.message : 'Something went wrong. Please try again.';
+    errEl.style.display = 'block';
+    setLoading(btn, false);
+  }
+}
+
+// ── Nav scroll ────────────────────────────────────────────────────────────────
+var nav = document.getElementById('main-nav');
+window.addEventListener('scroll', function() {
+  nav.classList.toggle('scrolled', window.scrollY > 24);
+}, { passive: true });
+
+// ── Terminal animation ────────────────────────────────────────────────────────
+(function() {
+  var delays = [0, 350, 780, 1050, 1320, 1800, 2280, 2700, 3100, 3600];
+  delays.forEach(function(d, i) {
+    setTimeout(function() {
+      var el = document.getElementById('tl' + i);
+      if (el) el.classList.add('show');
+    }, d + 600);
+  });
+})();
+
+// ── Scroll reveal ─────────────────────────────────────────────────────────────
+var obs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(en) {
+    if (en.isIntersecting) { en.target.classList.add('in'); obs.unobserve(en.target); }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -36px 0px' });
+
+document.querySelectorAll('.reveal').forEach(function(el) { obs.observe(el); });
+</script>
+
+</body>
+</html>
