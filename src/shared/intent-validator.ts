@@ -16,7 +16,7 @@ const PatternSchema = z.enum([
   'publish-subscribe', 'request-reply', 'message-aggregator',
   'message-enricher', 'dead-letter-queue', 'retry-idempotent',
   'claim-check', 'process-manager', 'message-filter', 'splitter',
-  'wire-tap', 'fan-out', 'correlation',
+  'wire-tap', 'fan-out', 'correlation', 'custom-pipeline',
 ]);
 
 const StepSchema: z.ZodType<unknown> = z.lazy(() =>

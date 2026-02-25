@@ -19,11 +19,11 @@ import type { WorkflowJson } from '../types/logicapps.js';
 import type { IntegrationIntent, IntegrationPattern } from '../shared/integration-intent.js';
 import type { MigrationRunOptions, MigrationRunResult, MigrationStep } from './types.js';
 
-import { listArtifacts, readArtifact }  from '../mcp-server/tools/file-tools.js';
+import { listArtifacts }                from '../mcp-server/tools/file-tools.js';
 import { analyzeOrchestration, analyzeOrchestrationXml } from '../stage1-understand/orchestration-analyzer.js';
 import { analyzeMap, analyzeMapXml }    from '../stage1-understand/map-analyzer.js';
-import { analyzePipelineXml }           from '../stage1-understand/pipeline-analyzer.js';
-import { analyzeBindingsXml }           from '../stage1-understand/binding-analyzer.js';
+import { analyzePipeline, analyzePipelineXml } from '../stage1-understand/pipeline-analyzer.js';
+import { analyzeBindings, analyzeBindingsXml } from '../stage1-understand/binding-analyzer.js';
 import { scoreApplication }             from '../stage1-understand/complexity-scorer.js';
 import { detectPatterns }               from '../stage1-understand/pattern-detector.js';
 import { constructIntent }              from '../stage1-understand/intent-constructor.js';
@@ -333,8 +333,8 @@ async function parseArtifacts(
   for (const f of inventory.pipelines) {
     try {
       onStep(`Parsing pipeline: ${f.split('/').pop()}`);
-      const artifact = await readArtifact(f);
-      pipelines.push(analyzePipelineXml(artifact.content));
+      // Use analyzePipeline (not analyzePipelineXml) — it calls readBizTalkFile for UTF-16 LE support.
+      pipelines.push(await analyzePipeline(f));
     } catch (err) {
       errors.push(`Failed to parse pipeline ${f}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -343,8 +343,9 @@ async function parseArtifacts(
   for (const f of inventory.bindings) {
     try {
       onStep(`Parsing bindings: ${f.split('/').pop()}`);
-      const artifact = await readArtifact(f);
-      bindingFiles.push(analyzeBindingsXml(artifact.content));
+      // Use analyzeBindings (not analyzeBindingsXml) — it calls readBizTalkFile
+      // which handles UTF-16 LE encoding that real BizTalk BindingInfo.xml files use.
+      bindingFiles.push(await analyzeBindings(f));
     } catch (err) {
       errors.push(`Failed to parse bindings ${f}: ${err instanceof Error ? err.message : String(err)}`);
     }

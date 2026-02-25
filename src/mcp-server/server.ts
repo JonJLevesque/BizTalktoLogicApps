@@ -42,7 +42,12 @@ import {
   McpError,
 }                              from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync }        from 'fs';
-import { join }                from 'path';
+import { join, dirname }       from 'path';
+import { fileURLToPath }       from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+const PKG_VERSION = (JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8')) as { version: string }).version;
 
 import { ALL_TOOLS, getToolsForTier }    from './tools/definitions.js';
 import { dispatchTool }                  from './tools/handler.js';
@@ -53,7 +58,7 @@ import { validateLicense, getLicenseTier }         from '../licensing/index.js';
 
 const SERVER_INFO = {
   name:    'biztalk-to-logicapps',
-  version: '0.1.0',
+  version: PKG_VERSION,
 };
 
 const SERVER_CAPABILITIES = {
@@ -139,7 +144,8 @@ async function main() {
 
   // ── Resources ───────────────────────────────────────────────────────────────
 
-  const PROJECT_ROOT = process.cwd();
+  // Resolve relative to the compiled server.js location so npm global installs work correctly
+  const PROJECT_ROOT = join(__dirname, '..', '..');
 
   const RESOURCES = [
     {

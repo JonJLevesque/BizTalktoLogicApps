@@ -24,13 +24,18 @@
 
 import { Command }        from 'commander';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
-import { join, basename, extname } from 'path';
+import { join, basename, extname, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+const PKG_VERSION = (JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8')) as { version: string }).version;
 import chalk              from 'chalk';
 import ora                from 'ora';
-import { analyzeOrchestrationXml } from '../stage1-understand/orchestration-analyzer.js';
-import { analyzeMapXml }           from '../stage1-understand/map-analyzer.js';
-import { analyzePipelineXml }      from '../stage1-understand/pipeline-analyzer.js';
-import { analyzeBindingsXml }      from '../stage1-understand/binding-analyzer.js';
+import { analyzeOrchestration, analyzeOrchestrationXml } from '../stage1-understand/orchestration-analyzer.js';
+import { analyzeMap, analyzeMapXml }           from '../stage1-understand/map-analyzer.js';
+import { analyzePipeline, analyzePipelineXml } from '../stage1-understand/pipeline-analyzer.js';
+import { analyzeBindings, analyzeBindingsXml } from '../stage1-understand/binding-analyzer.js';
 import { scoreApplication }        from '../stage1-understand/complexity-scorer.js';
 import { detectPatterns }          from '../stage1-understand/pattern-detector.js';
 import { analyzeGaps }         from '../stage2-document/gap-analyzer.js';
@@ -52,7 +57,7 @@ const program = new Command();
 program
   .name('biztalk-migrate')
   .description('BizTalk Server → Azure Logic Apps Standard migration tool')
-  .version('0.1.0')
+  .version(PKG_VERSION)
   .option('--license <key>', 'License key (overrides BTLA_LICENSE_KEY env var)')
   .hook('preAction', async (cmd) => {
     if (process.env['BTLA_DEV_MODE'] === 'true') {
@@ -81,6 +86,19 @@ program
   .option('--output <dir>', 'Output directory for generated Logic Apps project', './logic-apps-output')
   .option('--skip-enrichment', 'Skip Claude AI enrichment (offline/dev mode)')
   .action(async (opts) => {
+    // Fail fast if no credentials are configured (avoids silent TODO_CLAUDE-filled output)
+    const hasDevMode   = process.env['BTLA_DEV_MODE'] === 'true';
+    const hasApiKey    = !!process.env['ANTHROPIC_API_KEY'];
+    const hasLicenseKey = !!(process.env['BTLA_LICENSE_KEY'] ?? (opts as { license?: string }).license);
+    if (!hasDevMode && !hasApiKey && !hasLicenseKey) {
+      console.error(chalk.red('✗ No credentials configured.'));
+      console.error(chalk.yellow('  Set one of:'));
+      console.error(chalk.yellow('    BTLA_LICENSE_KEY=<key>       (production — proxy mode)'));
+      console.error(chalk.yellow('    ANTHROPIC_API_KEY=sk-...     (direct Anthropic API, dev use)'));
+      console.error(chalk.yellow('    BTLA_DEV_MODE=true           (offline, no AI enrichment)'));
+      process.exit(1);
+    }
+
     const spinner = ora().start();
 
     const steps: string[] = [];
@@ -166,25 +184,34 @@ program
       const dir  = opts.dir as string;
       const appName = opts.app as string;
 
-      // Collect artifact files
-      const orchestrations = collectFiles(dir, '.odx').map(f => {
+      // Collect artifact files — use file-path analyzers for UTF-16 LE support
+      const orchestrations = [];
+      for (const f of collectFiles(dir, '.odx')) {
         spinner.text = `Parsing orchestration: ${basename(f)}`;
-        return analyzeOrchestrationXml(readFileSync(f, 'utf8'));
-      });
+        orchestrations.push(await analyzeOrchestration(f));
+      }
 
-      const maps = collectFiles(dir, '.btm').map(f => {
+      const maps = [];
+      for (const f of collectFiles(dir, '.btm')) {
         spinner.text = `Parsing map: ${basename(f)}`;
-        return analyzeMapXml(readFileSync(f, 'utf8'));
-      });
+        maps.push(await analyzeMap(f));
+      }
 
-      const pipelines = collectFiles(dir, '.btp').map(f => {
+      const pipelines = [];
+      for (const f of collectFiles(dir, '.btp')) {
         spinner.text = `Parsing pipeline: ${basename(f)}`;
-        return analyzePipelineXml(readFileSync(f, 'utf8'));
-      });
+        pipelines.push(await analyzePipeline(f));
+      }
 
-      const bindingFiles = opts.bindings
-        ? [analyzeBindingsXml(readFileSync(opts.bindings as string, 'utf8'))]
-        : [];
+      // Auto-discover BindingInfo.xml from --dir if --bindings not specified
+      const bindingPaths: string[] = opts.bindings
+        ? [opts.bindings as string]
+        : collectFiles(dir, '.xml').filter(f => basename(f).toLowerCase() === 'bindinginfo.xml');
+      const bindingFiles = [];
+      for (const bp of bindingPaths) {
+        spinner.text = `Parsing bindings: ${basename(bp)}`;
+        bindingFiles.push(await analyzeBindings(bp));
+      }
 
       spinner.text = 'Scoring complexity...';
       const app: BizTalkApplication = {
@@ -388,13 +415,20 @@ program
 
 function collectFiles(dir: string, ext: string): string[] {
   if (!existsSync(dir)) return [];
+  const results: string[] = [];
   try {
-    return readdirSync(dir)
-      .filter(f => extname(f).toLowerCase() === ext)
-      .map(f => join(dir, f));
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...collectFiles(fullPath, ext));
+      } else if (extname(entry.name).toLowerCase() === ext) {
+        results.push(fullPath);
+      }
+    }
   } catch {
-    return [];
+    // ignore permission errors
   }
+  return results;
 }
 
 function ensureDir(dir: string): void {
@@ -403,16 +437,39 @@ function ensureDir(dir: string): void {
   }
 }
 
+function adapterToConnector(adapterType: string | undefined): string {
+  switch ((adapterType ?? '').toUpperCase()) {
+    case 'FILE':            return 'azureblob';
+    case 'HTTP':
+    case 'WCF-BASICHTTP':
+    case 'WCF-WSHTTP':      return 'request';
+    case 'SB-MESSAGING':
+    case 'WCF-NETMSMQ':
+    case 'MSMQ':            return 'serviceBus';
+    case 'SFTP':            return 'sftp';
+    case 'FTP':             return 'ftp';
+    case 'SQL':             return 'sql';
+    case 'EVENT HUBS':
+    case 'EVENTHUBS':       return 'eventhub';
+    case 'SCHEDULE':        return 'recurrence';
+    default:                return 'serviceBus';
+  }
+}
+
 function buildSyntheticIntent(app: BizTalkApplication): import('../shared/integration-intent.js').IntegrationIntent {
   // Build a minimal intent from the application for the migration spec
   const firstBinding = app.bindingFiles[0];
   const firstReceive = firstBinding?.receiveLocations[0];
+  const connector = adapterToConnector(firstReceive?.adapterType);
+  const triggerType = (connector === 'request' || connector === 'recurrence')
+    ? (connector === 'recurrence' ? 'schedule' : 'webhook')
+    : 'polling';
 
   return {
     trigger: {
-      type:      'polling',
+      type:      triggerType,
       source:    firstReceive?.adapterType ?? 'BizTalk receive location',
-      connector: 'serviceBus',
+      connector,
       config:    {},
     },
     steps: [],
