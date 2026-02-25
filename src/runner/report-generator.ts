@@ -217,7 +217,7 @@ export function generateMigrationReport(input: ReportInput): string {
     }
 
     lines.push('');
-    lines.push('> See `docs/reference/enterprise-patterns.md` for full pattern details and effort estimates.');
+    lines.push('> See the migration report above for pattern details and effort estimates.');
     lines.push('');
   }
 

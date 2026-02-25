@@ -227,7 +227,17 @@ async function main() {
         }],
       };
     } catch {
-      throw new McpError(ErrorCode.InternalError, `Failed to read resource file for: ${uri}`);
+      // Resource files aren't shipped in the npm package — graceful fallback
+      return {
+        contents: [{
+          uri,
+          mimeType: 'text/plain',
+          text: `Resource "${resource.name}" is not available in this installation.\n\n`
+              + `This resource requires the full repository clone from:\n`
+              + `https://github.com/JonJLevesque/BTtoLA\n\n`
+              + `Description: ${resource.description}`,
+        }],
+      };
     }
   });
 
