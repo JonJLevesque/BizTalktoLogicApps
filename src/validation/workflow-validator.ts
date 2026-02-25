@@ -88,6 +88,110 @@ export function collectAllActions(
 }
 
 /**
+ * Recursively validate runAfter references within each scope level.
+ * Each action's runAfter keys must reference siblings in the SAME actions block.
+ * Actions in separate If/Switch branches may share names — they are independent paths.
+ */
+function validateRunAfterRefsRecursive(
+  actionsObj: Record<string, unknown>,
+  addIssue: (severity: ValidationIssue['severity'], rule: string, message: string, path?: string) => void
+): void {
+  const siblingNames = new Set(Object.keys(actionsObj));
+
+  for (const [actionName, action] of Object.entries(actionsObj)) {
+    if (!isRecord(action)) continue;
+
+    const runAfter = action['runAfter'];
+    if (isRecord(runAfter)) {
+      for (const depName of Object.keys(runAfter)) {
+        if (!siblingNames.has(depName)) {
+          addIssue('error', 'runafter-refs-exist',
+            `Action "${actionName}" has runAfter referencing "${depName}" which does not exist in its scope`,
+            `definition.actions.${actionName}.runAfter`
+          );
+        }
+      }
+    }
+
+    // Recurse into nested action blocks
+    if (isRecord(action['actions'])) {
+      validateRunAfterRefsRecursive(action['actions'] as Record<string, unknown>, addIssue);
+    }
+    if (isRecord(action['else'])) {
+      const elseBlock = action['else'] as Record<string, unknown>;
+      if (isRecord(elseBlock['actions'])) {
+        validateRunAfterRefsRecursive(elseBlock['actions'] as Record<string, unknown>, addIssue);
+      }
+    }
+    if (isRecord(action['cases'])) {
+      for (const caseObj of Object.values(action['cases'] as Record<string, unknown>)) {
+        if (isRecord(caseObj) && isRecord((caseObj as Record<string, unknown>)['actions'])) {
+          validateRunAfterRefsRecursive(
+            (caseObj as Record<string, unknown>)['actions'] as Record<string, unknown>, addIssue
+          );
+        }
+      }
+    }
+    if (isRecord(action['default'])) {
+      const defaultBlock = action['default'] as Record<string, unknown>;
+      if (isRecord(defaultBlock['actions'])) {
+        validateRunAfterRefsRecursive(defaultBlock['actions'] as Record<string, unknown>, addIssue);
+      }
+    }
+  }
+}
+
+/**
+ * Recursively check for duplicate action names within each individual actions block.
+ * Actions in separate If/Switch branches are allowed to share names (different execution paths).
+ */
+function checkDuplicateNamesRecursive(
+  actionsObj: Record<string, unknown>,
+  addIssue: (severity: ValidationIssue['severity'], rule: string, message: string, path?: string) => void
+): void {
+  const seen = new Map<string, number>();
+  for (const name of Object.keys(actionsObj)) {
+    seen.set(name, (seen.get(name) ?? 0) + 1);
+  }
+  for (const [name, count] of seen) {
+    if (count > 1) {
+      addIssue('error', 'no-duplicate-action-names',
+        `Action name "${name}" appears ${count} times in the same scope`,
+        `definition.actions.${name}`
+      );
+    }
+  }
+
+  for (const [, action] of Object.entries(actionsObj)) {
+    if (!isRecord(action)) continue;
+    if (isRecord(action['actions'])) {
+      checkDuplicateNamesRecursive(action['actions'] as Record<string, unknown>, addIssue);
+    }
+    if (isRecord(action['else'])) {
+      const elseBlock = action['else'] as Record<string, unknown>;
+      if (isRecord(elseBlock['actions'])) {
+        checkDuplicateNamesRecursive(elseBlock['actions'] as Record<string, unknown>, addIssue);
+      }
+    }
+    if (isRecord(action['cases'])) {
+      for (const caseObj of Object.values(action['cases'] as Record<string, unknown>)) {
+        if (isRecord(caseObj) && isRecord((caseObj as Record<string, unknown>)['actions'])) {
+          checkDuplicateNamesRecursive(
+            (caseObj as Record<string, unknown>)['actions'] as Record<string, unknown>, addIssue
+          );
+        }
+      }
+    }
+    if (isRecord(action['default'])) {
+      const defaultBlock = action['default'] as Record<string, unknown>;
+      if (isRecord(defaultBlock['actions'])) {
+        checkDuplicateNamesRecursive(defaultBlock['actions'] as Record<string, unknown>, addIssue);
+      }
+    }
+  }
+}
+
+/**
  * Build adjacency list for cycle detection (name -> runAfter names).
  */
 export function buildRunAfterGraph(actions: Record<string, unknown>): Map<string, string[]> {
@@ -246,16 +350,8 @@ export function validateWorkflow(workflowJson: unknown): WorkflowValidationResul
   const allActions = collectAllActions(actions);
   const topLevelActionNames = new Set(Object.keys(actions));
 
-  // Rule 14: no-duplicate-action-names
-  const seenNames = new Map<string, number>();
-  for (const [name] of allActions) {
-    seenNames.set(name, (seenNames.get(name) ?? 0) + 1);
-  }
-  for (const [name, count] of seenNames) {
-    if (count > 1) {
-      addIssue('error', 'no-duplicate-action-names', `Action name "${name}" appears ${count} times across all scopes`, `definition.actions.${name}`);
-    }
-  }
+  // Rule 14: no-duplicate-action-names (within each scope level — branches may share names)
+  checkDuplicateNamesRecursive(actions, addIssue);
 
   // Rules 5, 6, 8, 9 — iterate all actions
   for (const [actionName, action] of allActions) {
@@ -281,15 +377,6 @@ export function validateWorkflow(workflowJson: unknown): WorkflowValidationResul
       }
     }
 
-    // Rule 6: runafter-refs-exist (only for top-level actions in their scope)
-    if (isRecord(runAfter)) {
-      for (const depName of Object.keys(runAfter)) {
-        if (!topLevelActionNames.has(depName)) {
-          addIssue('error', 'runafter-refs-exist', `Action "${actionName}" has runAfter referencing "${depName}" which does not exist in definition.actions`, `definition.actions.${actionName}.runAfter`);
-        }
-      }
-    }
-
     // Rule 8: serviceprovider-has-config
     if (actionType === 'ServiceProvider') {
       const inputs = action['inputs'];
@@ -307,6 +394,9 @@ export function validateWorkflow(workflowJson: unknown): WorkflowValidationResul
       }
     }
   }
+
+  // Rule 6: runafter-refs-exist — scope-aware recursive check
+  validateRunAfterRefsRecursive(actions, addIssue);
 
   // Rule 7: no-cycles
   const graph = buildRunAfterGraph(actions);

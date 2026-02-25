@@ -145,7 +145,8 @@ export type IntegrationPattern =
   | 'splitter'
   | 'wire-tap'
   | 'fan-out'
-  | 'correlation';
+  | 'correlation'
+  | 'custom-pipeline';
 
 // ─── IntegrationIntent ────────────────────────────────────────────────────────
 

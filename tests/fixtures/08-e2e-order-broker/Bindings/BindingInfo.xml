@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BindingInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Assembly="Microsoft.BizTalk.WebServices, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" Version="3.0.1.0">
+  <ReceivePortCollection>
+    <ReceivePort Name="WebPort_Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker_Proxy/Microsoft_Samples_BizTalk_SouthridgeVideo_OrderBroker_OrderBrokerOrch_OrderPort" IsTwoWay="false">
+      <ReceiveLocations>
+        <ReceiveLocation Name="WebService_Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker_Proxy/Microsoft_Samples_BizTalk_SouthridgeVideo_OrderBroker_OrderBrokerOrch_OrderPort">
+          <Address>/Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker_Proxy/Microsoft_Samples_BizTalk_SouthridgeVideo_OrderBroker_OrderBrokerOrch_OrderPort.asmx</Address>
+          <PublicAddress xsi:nil="true" />
+          <Primary>true</Primary>
+          <ReceiveLocationTransportType Name="SOAP" />
+          <ReceiveLocationTransportTypeData />
+          <ReceivePipeline Name="PassThruReceive" FullyQualifiedName="Microsoft.BizTalk.DefaultPipelines.PassThruReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" Type="1" />
+          <ReceivePipelineData xsi:nil="true" />
+          <Enable>true</Enable>
+          <ReceiveHandler xsi:nil="true" />
+        </ReceiveLocation>
+      </ReceiveLocations>
+      <SendPipelineData xsi:nil="true" />
+      <Authentication>0</Authentication>
+      <Tracking>0</Tracking>
+    </ReceivePort>
+  </ReceivePortCollection>
+</BindingInfo>

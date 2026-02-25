@@ -14,7 +14,7 @@
  *   - Derived flags (hasAtomicTransactions, hasBRECalls, etc.)
  */
 
-import { readFile } from 'node:fs/promises';
+import { readBizTalkFile } from './read-biztalk-file.js';
 import { XMLParser } from 'fast-xml-parser';
 import type {
   ParsedOrchestration,
@@ -36,10 +36,11 @@ function makeParser(): XMLParser {
     attributeNamePrefix: '@_',
     removeNSPrefix: true,           // Strip om:, baf:, etc. → clean attribute names
     isArray: (name) =>
-      // These elements always come back as arrays even when singular
+      // These elements always come back as arrays even when singular.
+      // 'Element' and 'Property' cover the real BizTalk MetaModel format.
       ['Service', 'PortDeclaration', 'MessageDeclaration', 'CorrelationDeclaration',
        'VariableDeclaration', 'Shape', 'Branch', 'ExceptionHandler',
-       'PropertyDeclaration', 'Parameter'].includes(name),
+       'PropertyDeclaration', 'Parameter', 'Element', 'Property'].includes(name),
     parseTagValue: true,
     trimValues: true,
   });
@@ -52,8 +53,28 @@ function makeParser(): XMLParser {
  * The filePath should point to the raw .odx XML file (not compiled .dll).
  */
 export async function analyzeOrchestration(filePath: string): Promise<ParsedOrchestration> {
-  const xml = await readFile(filePath, 'utf-8');
+  const raw = await readBizTalkFile(filePath);
+  // Real .odx files embed the XML designer data inside a C# preprocessor block:
+  //   #if __DESIGNER_DATA
+  //   <Module xmlns="...">...</Module>
+  //   #endif
+  // Extract just the XML portion if the wrapper is present.
+  const xml = extractOdxXml(raw);
   return analyzeOrchestrationXml(xml, filePath);
+}
+
+/**
+ * Extracts the XML designer data block from a raw .odx file.
+ * If the content is already pure XML (e.g. a .odx.xml fixture), returns it unchanged.
+ */
+function extractOdxXml(raw: string): string {
+  const start = raw.indexOf('#if __DESIGNER_DATA');
+  const end   = raw.indexOf('#endif', start);
+  if (start !== -1 && end !== -1) {
+    // Grab everything between the two markers, trimmed
+    return raw.slice(start + '#if __DESIGNER_DATA'.length, end).trim();
+  }
+  return raw;
 }
 
 /**
@@ -63,7 +84,13 @@ export function analyzeOrchestrationXml(xml: string, filePath: string = '<inline
   const parser = makeParser();
   const doc = parser.parse(xml) as Record<string, unknown>;
 
-  // Root is Module → contains Service array
+  // Real BizTalk ODX files use om:MetaModel as root (strips to 'MetaModel' via removeNSPrefix).
+  const metaModel = doc['MetaModel'] as Record<string, unknown> | undefined;
+  if (metaModel) {
+    return parseMetaModelFormat(metaModel, filePath);
+  }
+
+  // Simplified fixture format: root is Module → contains Service array
   const moduleEl = doc['Module'] as Record<string, unknown> | undefined;
   if (!moduleEl) {
     throw new OdxParseError(`Root <Module> element not found in ${filePath}`);
@@ -349,12 +376,15 @@ function normalizeShapeType(raw: string): ShapeType {
     'transformshape': 'TransformShape',
     'transform': 'TransformShape',
     'decisionshape': 'DecisionShape',
-    'decideshape':   'DecisionShape',   // ODX uses Type="DecideShape" in the XML
-    'decidebranch':  'GroupShape',      // branch container — treated as a group
+    'decideshape':    'DecisionShape',   // ODX uses Type="DecideShape" in the XML
+    'decidebranch':   'GroupShape',      // branch container — treated as a group
+    'decisionbranch': 'GroupShape',      // real ODX: Type="DecisionBranch"
     'decide': 'DecisionShape',
     'decision': 'DecisionShape',
     'loopshape': 'LoopShape',
     'loop': 'LoopShape',
+    'while': 'LoopShape',               // real ODX: Type="While"
+    'catch': 'GroupShape',              // real ODX: Type="Catch" (exception handler)
     'listenshape': 'ListenShape',
     'listen': 'ListenShape',
     'parallelactionsshape': 'ParallelActionsShape',
@@ -374,14 +404,19 @@ function normalizeShapeType(raw: string): ShapeType {
     'expression': 'ExpressionShape',
     'callorchestrationshape': 'CallOrchestrationShape',
     'callorchestration': 'CallOrchestrationShape',
+    'call': 'CallOrchestrationShape',           // Real ODX: Type="Call"
     'startorchestrationshape': 'StartOrchestrationShape',
     'startorchestration': 'StartOrchestrationShape',
+    'start': 'StartOrchestrationShape',         // Real ODX: Type="Start"
     'callrulesshape': 'CallRulesShape',
     'callrules': 'CallRulesShape',
     'suspendshape': 'SuspendShape',
     'suspend': 'SuspendShape',
     'groupshape': 'GroupShape',
     'group': 'GroupShape',
+    'parallelbranch': 'GroupShape',             // Real ODX: parallel branch container
+    'task': 'GroupShape',                       // Real ODX: task group container
+    'variableassignment': 'ExpressionShape',    // Real ODX: variable assignment statement
     'rolelinkshape': 'RoleLinkShape',
     'rolelink': 'RoleLinkShape',
     'commentshape': 'CommentShape',
@@ -431,6 +466,226 @@ function getNestedArray(
   if (!container) return undefined;
   const items = container[itemKey] as Record<string, unknown>[] | undefined;
   return items;
+}
+
+// ─── MetaModel Format Parser ───────────────────────────────────────────────────
+//
+// Real BizTalk ODX files use a generic Element/Property tree rooted at <om:MetaModel>.
+// Every node is <om:Element Type="..."> with <om:Property Name="..." Value="..."> children.
+
+/**
+ * Element types within ServiceBody (and nested containers) that represent
+ * actual orchestration shapes. All others are declarations or containers.
+ */
+const SHAPE_ELEMENT_TYPES = new Set([
+  'Receive', 'Send', 'Construct', 'Transform', 'MessageAssignment',
+  'Call', 'Start', 'CallRules',
+  'Decide', 'Decision', 'Loop', 'While', 'Listen',
+  'DecisionBranch', 'Parallel', 'ParallelBranch',
+  'Scope', 'Catch', 'Compensate', 'Delay',
+  'Expression', 'VariableAssignment',
+  'Suspend', 'Terminate', 'Throw',
+  'Task', 'Group',
+]);
+
+function parseMetaModelFormat(metaModel: Record<string, unknown>, filePath: string): ParsedOrchestration {
+  const topElements = mmArray(metaModel['Element']);
+
+  // Find the Module element
+  const moduleEl = topElements.find(e => mmType(e) === 'Module');
+  if (!moduleEl) {
+    throw new OdxParseError(`No Module element found in MetaModel in ${filePath}`);
+  }
+
+  const moduleProps = mmProps(moduleEl);
+  const moduleName = moduleProps['Name'] ?? '';
+
+  // ServiceDeclaration = the orchestration class
+  const moduleChildren = mmArray(moduleEl['Element']);
+  const serviceDecl = moduleChildren.find(e => mmType(e) === 'ServiceDeclaration');
+  if (!serviceDecl) {
+    throw new OdxParseError(`No ServiceDeclaration element found in ${filePath}`);
+  }
+
+  const serviceProps = mmProps(serviceDecl);
+  const orchestrationName = serviceProps['Name'] ?? moduleName;
+  const namespace = moduleName;
+
+  const serviceChildren = mmArray(serviceDecl['Element']);
+
+  // Messages
+  const messages: OdxMessageDeclaration[] = serviceChildren
+    .filter(e => mmType(e) === 'MessageDeclaration')
+    .map(e => {
+      const p = mmProps(e);
+      return {
+        name: p['Name'] ?? '',
+        messageType: p['Type'] ?? '',
+        isMultiPart: false,
+      };
+    });
+
+  // Ports — polarity comes from PortModifier property
+  const ports: OdxPort[] = serviceChildren
+    .filter(e => mmType(e) === 'PortDeclaration')
+    .map(e => {
+      const p = mmProps(e);
+      return {
+        name: p['Name'] ?? '',
+        portTypeRef: p['Type'] ?? '',
+        polarity: (p['PortModifier'] === 'Implements' ? 'Implements' : 'Uses') as PortPolarity,
+      };
+    });
+
+  // Shapes from ServiceBody
+  const serviceBody = serviceChildren.find(e => mmType(e) === 'ServiceBody');
+  const shapes = serviceBody
+    ? extractMetaModelShapes(mmArray(serviceBody['Element']))
+    : [];
+
+  // Correlation sets (rare in SDK samples but handle anyway)
+  const correlationSets: OdxCorrelationSet[] = [];
+  const variables: OdxVariable[] = [];
+
+  const allShapes = flattenShapes(shapes);
+  const hasAtomicTransactions = allShapes.some(
+    s => s.shapeType === 'ScopeShape' && s['transactionType'] === 'Atomic',
+  );
+  const hasLongRunningTransactions = allShapes.some(
+    s => s.shapeType === 'ScopeShape' && s['transactionType'] === 'LongRunning',
+  );
+  const hasCompensation = allShapes.some(s => s.shapeType === 'CompensateShape');
+  const hasBRECalls = allShapes.some(s => s.shapeType === 'CallRulesShape');
+  const hasSuspend = allShapes.some(s => s.shapeType === 'SuspendShape');
+  const activatingReceiveCount = allShapes.filter(
+    s => s.shapeType === 'ReceiveShape' && s.isActivating === true,
+  ).length;
+
+  return {
+    name: orchestrationName,
+    namespace,
+    filePath,
+    shapes,
+    ports,
+    correlationSets,
+    messages,
+    variables,
+    hasAtomicTransactions,
+    hasLongRunningTransactions,
+    hasCompensation,
+    hasBRECalls,
+    hasSuspend,
+    activatingReceiveCount,
+  };
+}
+
+function extractMetaModelShapes(elements: Record<string, unknown>[]): OdxShape[] {
+  const result: OdxShape[] = [];
+  for (const el of elements) {
+    const type = mmType(el);
+    if (!SHAPE_ELEMENT_TYPES.has(type)) continue;
+    result.push(parseMetaModelShape(el, type));
+  }
+  return result;
+}
+
+function parseMetaModelShape(el: Record<string, unknown>, type: string): OdxShape {
+  const props = mmProps(el);
+  const shapeType = normalizeShapeType(type);
+  const name = props['Name'] ?? '';
+  const shapeId = String(el['@_OID'] ?? '');
+
+  const shape: OdxShape = {
+    shapeType,
+    shapeId,
+    ...(name ? { name } : {}),
+  };
+
+  switch (shapeType) {
+    case 'ReceiveShape':
+      shape.isActivating = props['Activate'] === 'True';
+      break;
+
+    case 'CallOrchestrationShape':
+    case 'StartOrchestrationShape':
+      // Invokee holds the fully-qualified called orchestration type name
+      shape.calledOrchestration = props['Invokee'] ?? '';
+      break;
+
+    case 'TransformShape':
+      shape.mapClass = props['ClassName'] ?? props['MapType'] ?? '';
+      break;
+
+    case 'ScopeShape': {
+      // Transaction type is encoded as a child Element (LongRunningTransaction / AtomicTransaction)
+      const childEls = mmArray(el['Element']);
+      const txEl = childEls.find(
+        c => mmType(c) === 'LongRunningTransaction' || mmType(c) === 'AtomicTransaction',
+      );
+      if (txEl) {
+        shape.transactionType = mmType(txEl) === 'AtomicTransaction' ? 'Atomic' : 'LongRunning';
+      } else {
+        shape.transactionType = 'None';
+      }
+      break;
+    }
+
+    case 'LoopShape': {
+      // While loop condition is stored in the Expression property
+      const exprProp = props['Expression'] ?? '';
+      if (exprProp) shape.conditionExpression = exprProp;
+      break;
+    }
+
+    case 'DecisionShape': {
+      // Condition expressions live on DecisionBranch children, not on Decision itself.
+      // Extract the first branch's Expression property as a representative condition.
+      const branchEls = mmArray(el['Element']).filter(c => mmType(c) === 'DecisionBranch');
+      const firstExpr = branchEls.length > 0 ? mmProps(branchEls[0]!)['Expression'] : undefined;
+      if (firstExpr) shape.conditionExpression = firstExpr;
+      break;
+    }
+
+    case 'ExpressionShape':
+    case 'MessageAssignmentShape': {
+      const exprProp = props['Expression'] ?? '';
+      if (exprProp) shape.codeExpression = exprProp;
+      break;
+    }
+  }
+
+  // Recursively extract child shapes (branches, scope body, etc.)
+  const childEls = mmArray(el['Element']);
+  const children = extractMetaModelShapes(childEls);
+  if (children.length > 0) shape.children = children;
+
+  return shape;
+}
+
+// ─── MetaModel Helpers ─────────────────────────────────────────────────────────
+
+/** Returns the Type attribute of an om:Element node */
+function mmType(el: Record<string, unknown>): string {
+  return String(el['@_Type'] ?? '');
+}
+
+/** Extracts all om:Property Name/Value pairs into a flat record */
+function mmProps(el: Record<string, unknown>): Record<string, string> {
+  const result: Record<string, string> = {};
+  const props = mmArray<Record<string, unknown>>(el['Property']);
+  for (const p of props) {
+    const name = String(p['@_Name'] ?? '');
+    const value = String(p['@_Value'] ?? '');
+    if (name) result[name] = value;
+  }
+  return result;
+}
+
+/** Ensures a value is always returned as an array */
+function mmArray<T = Record<string, unknown>>(val: unknown): T[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val as T[];
+  return [val as T];
 }
 
 // ─── Error ────────────────────────────────────────────────────────────────────

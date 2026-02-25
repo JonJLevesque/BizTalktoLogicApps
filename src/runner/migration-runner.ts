@@ -70,7 +70,7 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
 
   progress('parse', `Scanning artifacts in ${artifactDir}...`);
 
-  const inventory = await timeAsync('parse', () => listArtifacts(artifactDir, false));
+  const inventory = await timeAsync('parse', () => listArtifacts(artifactDir, true));
   const totalArtifacts =
     inventory.orchestrations.length +
     inventory.maps.length +

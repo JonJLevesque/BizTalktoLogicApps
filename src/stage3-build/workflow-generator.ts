@@ -304,10 +304,6 @@ function populateNameMap(
         for (const c of b.cases) populateNameMap(c.steps, nameMap, usedNames);
       }
     }
-    // Loop body
-    if (step.loopConfig && step.branches?.trueBranch) {
-      populateNameMap(step.branches.trueBranch, nameMap, usedNames);
-    }
   }
 }
 
@@ -442,7 +438,11 @@ function buildStep(
   switch (step.type) {
     case 'transform':      return buildTransformAction(step, runAfter);
     case 'route':          return buildRouteAction(step, nameMap, runAfter);
-    case 'condition':      return buildConditionAction(step, nameMap, runAfter);
+    case 'condition':
+      // If the intent constructor produced cases (3+ branch Decision → Switch), use route builder
+      return (step.branches?.cases && step.branches.cases.length > 0)
+        ? buildRouteAction(step, nameMap, runAfter)
+        : buildConditionAction(step, nameMap, runAfter);
     case 'send':           return buildSendAction(step, runAfter);
     case 'enrich':         return buildEnrichAction(step, runAfter);
     case 'validate':       return buildValidateAction(step, nameMap, runAfter);

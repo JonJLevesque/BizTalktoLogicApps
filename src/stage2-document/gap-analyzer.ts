@@ -254,6 +254,20 @@ const GAP_DEFS = {
 const ADAPTER_GAPS: Record<string, GapDefinition> = {
   'WCF-NetNamedPipe': GAP_DEFS.wcfNetNamedPipe,
   'WCF-NetTcp':       GAP_DEFS.wcfNetTcp,
+  'WCF-Custom': {
+    capability: 'WCF-Custom Adapter',
+    severity: 'medium' as RiskSeverity,
+    description:
+      'WCF-Custom is a wrapper adapter that hosts an arbitrary WCF binding (NetTcp, NetNamedPipe, ' +
+      'or a custom binding element chain). The actual transport cannot be determined without parsing ' +
+      'TransportTypeData — it may hide a non-migratable binding (e.g. NetNamedPipe).',
+    mitigation:
+      'Inspect the binding type in TransportTypeData of the adapter configuration. ' +
+      'If the inner binding is HTTP-based, use the Logic Apps HTTP connector. ' +
+      'If NetTcp, follow the WCF-NetTcp mitigation. ' +
+      'If NetNamedPipe, redesign is required — no Azure equivalent.',
+    baseEffortDays: 1,
+  },
 };
 
 // ─── Gap factory ──────────────────────────────────────────────────────────────
@@ -335,13 +349,20 @@ export function analyzeGaps(app: BizTalkApplication): MigrationGap[] {
   }
 
   // ── Flat file pipeline components ─────────────────────────────────────────
-  const flatFileInUse = app.pipelines.some(p =>
-    p.components.some(c =>
-      c.fullTypeName.toLowerCase().includes('flatfile') ||
+  function isFlatFileComponent(c: { fullTypeName: string; componentType: string }): boolean {
+    const tn = c.fullTypeName.toLowerCase();
+    return (
+      tn.includes('flatfile') ||
+      tn.includes('ffdasm') ||
+      tn.includes('ffasm') ||
       c.componentType === 'FlatFileDasmComp' ||
-      c.componentType === 'FlatFileAsmComp'
-    )
-  );
+      c.componentType === 'FlatFileAsmComp' ||
+      c.componentType === 'FFDasmComp' ||
+      c.componentType === 'FFAsmComp'
+    );
+  }
+
+  const flatFileInUse = app.pipelines.some(p => p.components.some(isFlatFileComponent));
   if (flatFileInUse && !gapMap.has(GAP_DEFS.flatFilePipelineOutput.capability)) {
     gapMap.set(
       GAP_DEFS.flatFilePipelineOutput.capability,
@@ -349,7 +370,7 @@ export function analyzeGaps(app: BizTalkApplication): MigrationGap[] {
         GAP_DEFS.flatFilePipelineOutput,
         GAP_DEFS.flatFilePipelineOutput.baseEffortDays,
         app.pipelines
-          .filter(p => p.components.some(c => c.fullTypeName.toLowerCase().includes('flatfile')))
+          .filter(p => p.components.some(isFlatFileComponent))
           .map(p => p.name)
       )
     );

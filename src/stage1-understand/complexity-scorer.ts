@@ -128,6 +128,18 @@ export function scoreApplication(app: BizTalkApplication): ComplexityBreakdown {
     contributors.push(...scoreMap(map));
   }
 
+  // Score custom pipeline component penalties
+  for (const pipeline of app.pipelines) {
+    if (pipeline.hasCustomComponents) {
+      const customCount = pipeline.components.filter(c => c.isCustom).length;
+      contributors.push({
+        label: `Pipeline ${pipeline.name}: ${customCount} custom component(s) — require Azure Function`,
+        score: GAP_PENALTIES.hasCustomPipelineComponents * customCount,
+        category: 'gap',
+      });
+    }
+  }
+
   // Score adapter penalties from binding files
   for (const binding of app.bindingFiles) {
     for (const rl of binding.receiveLocations) {
@@ -184,6 +196,18 @@ export function scoreOrchestration(orch: ParsedOrchestration): ComplexityContrib
         });
         continue;
       }
+    }
+
+    // DecisionShape score scales with branch count (Switch is harder than If)
+    if (shape.shapeType === 'DecisionShape') {
+      const branchCount = shape.children?.filter(c => c.shapeType === 'GroupShape').length ?? 2;
+      const adjustedScore = branchCount > 2 ? branchCount : baseScore;
+      contributors.push({
+        label: `${name}: DecisionShape (${branchCount} branch${branchCount !== 1 ? 'es' : ''})${shape.name ? ` — ${shape.name}` : ''}`,
+        score: adjustedScore,
+        category: 'shape',
+      });
+      continue;
     }
 
     if (baseScore > 0) {

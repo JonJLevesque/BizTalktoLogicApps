@@ -23,9 +23,9 @@
  * Stage GUIDs map to the well-known BizTalk pipeline stage names.
  */
 
-import { readFile } from 'node:fs/promises';
 import { XMLParser } from 'fast-xml-parser';
 import { basename } from 'node:path';
+import { readBizTalkFile } from './read-biztalk-file.js';
 import type { ParsedPipeline, BtpComponent, PipelineStage, PipelineDirection } from '../types/biztalk.js';
 
 // ─── Stage GUID → Name Mapping ────────────────────────────────────────────────
@@ -65,6 +65,9 @@ const KNOWN_COMPONENTS = new Set([
   'Microsoft.BizTalk.Component.XmlAsmComp',
   'Microsoft.BizTalk.Component.FlatFileDasmComp',
   'Microsoft.BizTalk.Component.FlatFileAsmComp',
+  // FF abbreviation variants — actual names used in .btp files on disk
+  'Microsoft.BizTalk.Component.FFDasmComp',
+  'Microsoft.BizTalk.Component.FFAsmComp',
   'Microsoft.BizTalk.Component.XmlValidator',
   'Microsoft.BizTalk.Component.MIME_SMIME_Decoder',
   'Microsoft.BizTalk.Component.MIME_SMIME_Encoder',
@@ -92,7 +95,7 @@ const DEFAULT_PIPELINE_NAMES = new Set([
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 export async function analyzePipeline(filePath: string): Promise<ParsedPipeline> {
-  const xml = await readFile(filePath, 'utf-8');
+  const xml = await readBizTalkFile(filePath);
   return analyzePipelineXml(xml, filePath);
 }
 
@@ -108,16 +111,24 @@ export function analyzePipelineXml(xml: string, filePath: string = '<inline>'): 
 
   const doc = parser.parse(xml) as Record<string, unknown>;
 
-  // Root is Document → DocData
-  const docData = getNestedEl(doc, 'Document', 'DocData') as Record<string, unknown> | undefined
-    ?? getNestedEl(doc, 'DocData') as Record<string, unknown> | undefined
-    ?? doc;
+  // BTP structure varies:
+  //   Simplified fixtures: Document > DocData > Stages
+  //   Real BizTalk BTP:    Document > Stages  (no DocData wrapper)
+  //   Fallback:            DocData > Stages at root
+  const docEl = doc['Document'] as Record<string, unknown> | undefined;
+  const docData: Record<string, unknown> =
+    (docEl?.['DocData'] as Record<string, unknown> | undefined) ??  // Document > DocData
+    (docEl?.['Stages'] !== undefined ? docEl : undefined) ??         // Document > Stages (real BTP)
+    (doc['DocData'] as Record<string, unknown> | undefined) ??       // DocData at root
+    (doc['Document'] as Record<string, unknown> | undefined) ??      // Document at root
+    doc as Record<string, unknown>;
 
   if (!docData) {
     throw new BtpParseError(`Could not find DocData in ${filePath}`);
   }
 
-  // Pipeline class name (used for direction detection)
+  // Pipeline class name (used for direction detection).
+  // Real BTP uses filename as class name; simplified fixtures may have @_ClassName attribute.
   const className = String(
     getNestedEl(doc, 'Document', '@_ClassName') ??
     (doc as Record<string, unknown>)['@_ClassName'] ??
@@ -159,10 +170,14 @@ function extractStageComponents(stage: Record<string, unknown>): BtpComponent[] 
   if (!componentArray) return [];
 
   return componentArray.map(comp => {
+    // Attributes form (simplified fixtures): @_ClassName / @_ComponentName / @_Name
+    // Element child form (real BTP): <Name>...</Name> and <ComponentName>...</ComponentName>
     const fullTypeName = String(
       comp['@_ClassName'] ??
       comp['@_ComponentName'] ??
       comp['@_Name'] ??
+      comp['Name'] ??            // real BTP: <Name> element child
+      comp['ComponentName'] ??   // real BTP: <ComponentName> element child
       ''
     );
     const shortName = fullTypeName.split('.').pop() ?? fullTypeName;
@@ -212,6 +227,10 @@ function detectDirection(className: string, docData: Record<string, unknown>): P
     return 'receive';
   }
   if (lower.includes('send') || lower.includes('transmit') || lower.includes('output') || lower.includes('outbound')) {
+    return 'send';
+  }
+  // 'Snd' prefix — common Portuguese/European BizTalk naming convention
+  if (lower.startsWith('snd') || lower.includes('sndpipeline')) {
     return 'send';
   }
 

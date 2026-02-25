@@ -1,0 +1,1087 @@
+﻿#if __DESIGNER_DATA
+#error Do not define __DESIGNER_DATA.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<om:MetaModel MajorVersion="1" MinorVersion="3" Core="2b131234-7959-458d-834f-2dc0769ce683" ScheduleModel="66366196-361d-448d-976f-cab5e87496d2" xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+    <om:Element Type="Module" OID="596938d5-bf32-46c4-b484-e6dd21bff416" LowerBound="1.1" HigherBound="305.1">
+        <om:Property Name="ReportToAnalyst" Value="True" />
+        <om:Property Name="Name" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker" />
+        <om:Property Name="Signal" Value="False" />
+        <om:Element Type="PortType" OID="27461c89-f5a6-459b-bfda-2838d2087f55" ParentLink="Module_PortType" LowerBound="9.1" HigherBound="16.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="CSRPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="2a510d79-3257-41b7-bd30-7b698957aed6" ParentLink="PortType_OperationDeclaration" LowerBound="11.1" HigherBound="15.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Send" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="690e5521-72ca-4cb9-be63-7cfe25dee6e7" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="13.13" HigherBound="13.96">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="CSRResponse" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="59698644-e6de-428f-84e8-50225bc27341" ParentLink="Module_PortType" LowerBound="16.1" HigherBound="23.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Public" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="OrderPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="bd968d25-7010-4522-ae15-686313414d04" ParentLink="PortType_OperationDeclaration" LowerBound="18.1" HigherBound="22.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="SubmitOrder" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="a8cfc6ca-3b16-4810-984c-531650aacaf8" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="20.13" HigherBound="20.96">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="CSROrderMsg" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="5b82f443-5529-4b0b-beb3-9137b5ff536f" ParentLink="Module_PortType" LowerBound="23.1" HigherBound="30.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="HistoryPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="d60d6c85-7716-4e91-a82e-eddf608f689c" ParentLink="PortType_OperationDeclaration" LowerBound="25.1" HigherBound="29.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Insert" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="1ac549eb-c253-4b17-acad-487d9dc1f347" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="27.13" HigherBound="27.110">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.SQLHistoryInsertSchema.HistoryInsert" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="OrderLogEntry" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="a773d884-9f8d-40e7-91bf-ffe5aa0c4e43" ParentLink="Module_PortType" LowerBound="30.1" HigherBound="37.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="ServicingSystemPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="c398f88d-5466-48f6-b421-91abd9d7098c" ParentLink="PortType_OperationDeclaration" LowerBound="32.1" HigherBound="36.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Post" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="356af341-3d89-49a2-89ab-514b0c85ac44" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="34.13" HigherBound="34.102">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.Servicing_OrderRequestSchema" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="NewOrder" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="0547bdff-37b2-40ec-93ef-acb60488bec2" ParentLink="Module_PortType" LowerBound="37.1" HigherBound="44.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="PublishOrderPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="ef6def60-f88f-4dc3-aca1-4cca38872895" ParentLink="PortType_OperationDeclaration" LowerBound="39.1" HigherBound="43.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Publish" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="295b3b03-dc39-4c8f-b160-4c43671e2f59" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="41.13" HigherBound="41.26">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.OrderMgrMPMsg" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="OrderMsg" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="352f8254-90c7-48fc-b05f-be0f79863b13" ParentLink="Module_PortType" LowerBound="44.1" HigherBound="51.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="VendorPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="1767637b-f82e-46f0-89cb-55dc997a4dfb" ParentLink="PortType_OperationDeclaration" LowerBound="46.1" HigherBound="50.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Submit" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="793bddf9-f569-45af-9bb4-bba51678bcd5" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="48.13" HigherBound="48.96">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="CSROrderMsg" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="ServiceDeclaration" OID="f45889bb-d901-4e7f-9ef6-7df5e1abbc33" ParentLink="Module_ServiceDeclaration" LowerBound="51.1" HigherBound="304.1">
+            <om:Property Name="InitializedTransactionType" Value="True" />
+            <om:Property Name="IsInvokable" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="AnalystComments" Value="// Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.OrderBrokerOrch&#xD;&#xA;// Order Broker orchestration in the end to end Business Process Management Scenario.&#xD;&#xA;// &#xD;&#xA;//&#xD;&#xA;// Copyright (c) Microsoft Corporation. All rights reserved.  &#xD;&#xA;// THIS CODE AND INFORMATION ARE PROVIDED &quot;AS IS&quot; WITHOUT WARRANTY OF ANY KIND, &#xD;&#xA;// EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES &#xD;&#xA;// OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE." />
+            <om:Property Name="Name" Value="OrderBrokerOrch" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="VariableDeclaration" OID="2552c8c3-9e5e-4995-b344-296326bd92fc" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="73.1" HigherBound="74.1">
+                <om:Property Name="InitialValue" Value="System.String.Empty" />
+                <om:Property Name="UseDefaultConstructor" Value="False" />
+                <om:Property Name="Type" Value="System.String" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="FailureReason" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="VariableDeclaration" OID="ff936ba9-72ec-4943-9821-82c9d4756dc3" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="74.1" HigherBound="75.1">
+                <om:Property Name="UseDefaultConstructor" Value="False" />
+                <om:Property Name="Type" Value="System.String" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ActivityID" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="LongRunningTransaction" OID="02c24f24-88f4-41fb-b39b-334c792a536a" ParentLink="ServiceDeclaration_Transaction" LowerBound="52.21" HigherBound="52.61">
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="OrderBrokerTransaction" />
+                <om:Property Name="Signal" Value="False" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="2546d183-223f-4131-9fb9-88e5c60b6e31" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="67.1" HigherBound="68.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="CSRConfMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="8ce902db-a1f9-439f-a683-8e839610c1cb" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="68.1" HigherBound="69.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="CSROrderMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="a3a8ab1b-e1ed-4122-bfb3-bfae3b54693b" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="69.1" HigherBound="70.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.SQLHistoryInsertSchema.HistoryInsert" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="HistoryInsertMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="64a9cc1c-2d93-44a2-8315-ebd7344a19fd" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="70.1" HigherBound="71.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.Servicing_OrderRequestSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ServicingMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="2e5854fe-8a62-42bc-b4f2-25f51538b322" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="71.1" HigherBound="72.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="OrderMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="9190df67-0e67-40d7-b04f-0a3259f37077" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="72.1" HigherBound="73.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.OrderMgrMPMsg" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="OrderMgrMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="ServiceBody" OID="528fbae0-e4c7-4103-b034-d6db7c4b9dd9" ParentLink="ServiceDeclaration_ServiceBody">
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="Listen" OID="a061bb31-2194-4497-8408-b091f48f7b19" ParentLink="ServiceBody_Statement" LowerBound="77.1" HigherBound="121.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Listen For Orders" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="ListenBranch" OID="1c47a55d-fa66-4c66-ae55-3e88cce0a467" ParentLink="ReallyComplexStatement_Branch" LowerBound="77.1" HigherBound="77.1">
+                        <om:Property Name="IsGhostBranch" Value="True" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="ListenBranch_1" />
+                        <om:Property Name="Signal" Value="False" />
+                        <om:Element Type="Receive" OID="f236a8c9-c48d-4cc3-a69f-f6b285fbc139" ParentLink="ListenBranch_Statement" LowerBound="80.1" HigherBound="81.76">
+                            <om:Property Name="Activate" Value="True" />
+                            <om:Property Name="PortName" Value="OrderPort" />
+                            <om:Property Name="MessageName" Value="CSROrderMsg" />
+                            <om:Property Name="OperationName" Value="SubmitOrder" />
+                            <om:Property Name="OperationMessageName" Value="CSROrderMsg" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="CSR Order" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="1f1907e7-40e5-45fd-9e86-3b632701be71" ParentLink="ComplexStatement_Statement" LowerBound="85.1" HigherBound="90.1">
+                            <om:Property Name="Expression" Value="// [BAM] Start collecting BAM data [Customer Order Request]&#xD;&#xA;&#xD;&#xA;ActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.StartCollecting( CSROrderMsg.Header.ReqId );&#xD;&#xA;                &#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Start" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="a705c6ff-9514-4136-98ce-cea58ba23df1" ParentLink="ComplexStatement_Statement" LowerBound="90.1" HigherBound="99.1">
+                            <om:Property Name="Expression" Value="// [BAM] Update Activity [Customer Order Request] with [Received from CSR]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RequestReceivedFromCustomer(&#xD;&#xA;                ActivityID,                         // Activity ID&#xD;&#xA;                CSROrderMsg.RequestHeader.CRN,      // Customer ID&#xD;&#xA;                CSROrderMsg.RequestHeader.ORN,      // Order ID&#xD;&#xA;                CSROrderMsg.RequestHeader.ORNSeq,   // Order Sequence #&#xD;&#xA;                CSROrderMsg.Header.RequestType);    // Request Type&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Customer" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="ListenBranch" OID="db54fc60-be25-4207-8e6b-5fc3da23a646" ParentLink="ReallyComplexStatement_Branch" LowerBound="77.1" HigherBound="77.1">
+                        <om:Property Name="IsGhostBranch" Value="True" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="ListenBranch_3" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="Receive" OID="d827f10a-757f-45c6-9c52-6d53f0f3005b" ParentLink="ListenBranch_Statement" LowerBound="100.1" HigherBound="101.72">
+                            <om:Property Name="Activate" Value="True" />
+                            <om:Property Name="PortName" Value="VendorPort" />
+                            <om:Property Name="MessageName" Value="CSROrderMsg" />
+                            <om:Property Name="OperationName" Value="Submit" />
+                            <om:Property Name="OperationMessageName" Value="CSROrderMsg" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Vendor Order" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="40ee7336-68d3-4c4e-8d49-85208c3d935b" ParentLink="ComplexStatement_Statement" LowerBound="105.1" HigherBound="110.1">
+                            <om:Property Name="Expression" Value="// [BAM] Start collecting BAM data [Customer Order Request]&#xD;&#xA;&#xD;&#xA;ActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.StartCollecting( CSROrderMsg.Header.ReqId );&#xD;&#xA;                &#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Start" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="395c2aa8-9569-470d-9f6f-2543a836f5dc" ParentLink="ComplexStatement_Statement" LowerBound="110.1" HigherBound="119.1">
+                            <om:Property Name="Expression" Value="// [BAM] Update Activity [Customer Order Request] with [Received from Vendor]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RequestReceivedFromVendor(&#xD;&#xA;                ActivityID,                         // Activity ID&#xD;&#xA;                CSROrderMsg.RequestHeader.CRN,      // Customer ID&#xD;&#xA;                CSROrderMsg.RequestHeader.ORN,      // Order ID&#xD;&#xA;                CSROrderMsg.RequestHeader.ORNSeq,   // Order Sequence #&#xD;&#xA;                CSROrderMsg.Header.RequestType);    // Request Type&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Vendor" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="VariableAssignment" OID="272a8ddd-5d4b-48d1-a1af-00e2b48e41cc" ParentLink="ServiceBody_Statement" LowerBound="121.1" HigherBound="130.1">
+                    <om:Property Name="Expression" Value="System.Diagnostics.Debug.WriteLine( &quot;\n&lt;BROKER&gt;\n&quot; );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;   Req ID   : &quot; + CSROrderMsg.Header.ReqId );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;   Req Type : &quot; + CSROrderMsg.Header.RequestType );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;   Customer : &quot; + CSROrderMsg.RequestHeader.CRN );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;   Order    : &quot; + CSROrderMsg.RequestHeader.ORN );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;   Sequence : &quot; + System.Convert.ToString( CSROrderMsg.RequestHeader.ORNSeq ) );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( &quot;\n&lt;/BROKER&gt;\n&quot; ) ;&#xD;&#xA;&#xD;&#xA;" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="TRACE" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="VariableAssignment" OID="e10f0b4e-22c4-48a6-8196-bd5618fd9dff" ParentLink="ServiceBody_Statement" LowerBound="130.1" HigherBound="132.1">
+                    <om:Property Name="Expression" Value="CSRPort(Microsoft.XLANGs.BaseTypes.Address) = CSROrderMsg.Header.SourceSystem;" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Assign Destination" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+                <om:Element Type="Scope" OID="99e84478-2a6b-4b33-b766-74ce0fe8e5f7" ParentLink="ServiceBody_Statement" LowerBound="132.1" HigherBound="302.1">
+                    <om:Property Name="InitializedTransactionType" Value="True" />
+                    <om:Property Name="IsSynchronized" Value="False" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Order Handling Scope" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="LongRunningTransaction" OID="6a0930a9-488d-434a-b893-882207369b7f" ParentLink="Scope_Transaction" LowerBound="133.18" HigherBound="133.58">
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="OrderHandlingTx" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                    <om:Element Type="Scope" OID="b4586770-6c17-412c-a478-ed006cdcab0a" ParentLink="ComplexStatement_Statement" LowerBound="137.1" HigherBound="198.1">
+                        <om:Property Name="InitializedTransactionType" Value="True" />
+                        <om:Property Name="IsSynchronized" Value="False" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="AnalystComments" Value="To catch an exception from an atom scope you need to wrap it in a non-atomic scope with an exception handler." />
+                        <om:Property Name="Name" Value="Message Construction Scope" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="Construct" OID="ea2ee5ca-bdcf-46b7-bfc8-5ed6b8f4a51b" ParentLink="ComplexStatement_Statement" LowerBound="142.1" HigherBound="150.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Construct History Msg" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="MessageRef" OID="ebb9599d-53bb-4bd7-8e7e-e294c23e66a9" ParentLink="Construct_MessageRef" LowerBound="143.39" HigherBound="143.55">
+                                <om:Property Name="Ref" Value="HistoryInsertMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Transform" OID="f9dac345-ecd6-4090-ae43-e0c86f708ad2" ParentLink="ComplexStatement_Statement" LowerBound="145.1" HigherBound="147.1">
+                                <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_SQLHistoryInsert" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="CSR_OrderRequest to HistoryInsert" />
+                                <om:Property Name="Signal" Value="False" />
+                                <om:Element Type="MessagePartRef" OID="5897ebc9-28b1-4dd6-91f7-5787b555dc30" ParentLink="Transform_InputMessagePartRef" LowerBound="146.160" HigherBound="146.171">
+                                    <om:Property Name="MessageRef" Value="CSROrderMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_1" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                                <om:Element Type="MessagePartRef" OID="38e79bf7-bd08-4dd6-bf2d-7d80e7784f16" ParentLink="Transform_OutputMessagePartRef" LowerBound="146.44" HigherBound="146.60">
+                                    <om:Property Name="MessageRef" Value="HistoryInsertMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_2" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="MessageAssignment" OID="f8982f69-58d1-4579-a775-da868855177e" ParentLink="ComplexStatement_Statement" LowerBound="147.1" HigherBound="149.1">
+                                <om:Property Name="Expression" Value="HistoryInsertMsg = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.InsertOrderBody((System.Xml.XmlDocument)CSROrderMsg, (System.Xml.XmlDocument)HistoryInsertMsg );&#xD;&#xA;" />
+                                <om:Property Name="ReportToAnalyst" Value="False" />
+                                <om:Property Name="Name" Value="Assign Body" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Construct" OID="1c146960-499f-40b9-ba55-0c11de6c8041" ParentLink="ComplexStatement_Statement" LowerBound="150.1" HigherBound="156.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Construct Servicing Msg" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="MessageRef" OID="b3d1c4a3-8994-45aa-9d18-e876e69f864d" ParentLink="Construct_MessageRef" LowerBound="151.39" HigherBound="151.51">
+                                <om:Property Name="Ref" Value="ServicingMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Transform" OID="85e423db-9f0f-4325-abc4-fc9f3be8b0b3" ParentLink="ComplexStatement_Statement" LowerBound="153.1" HigherBound="155.1">
+                                <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_Servicing_OrderRequest" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="CSR_OrderRequest to Servicing_OrderRequest" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="MessagePartRef" OID="30b1f936-8974-4098-b70f-fd2ec30029c5" ParentLink="Transform_InputMessagePartRef" LowerBound="154.162" HigherBound="154.173">
+                                    <om:Property Name="MessageRef" Value="CSROrderMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_3" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                                <om:Element Type="MessagePartRef" OID="2b9921cc-0707-4be2-90ca-af3d05ed746e" ParentLink="Transform_OutputMessagePartRef" LowerBound="154.44" HigherBound="154.56">
+                                    <om:Property Name="MessageRef" Value="ServicingMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_4" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Construct" OID="a4d42386-2a05-49b2-9b71-0aa2857de789" ParentLink="ComplexStatement_Statement" LowerBound="156.1" HigherBound="163.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Construct Confirmation" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="MessageAssignment" OID="abab4b8b-26be-4c0e-b6bb-a99925a1731c" ParentLink="ComplexStatement_Statement" LowerBound="159.1" HigherBound="162.1">
+                                <om:Property Name="Expression" Value="CSRConfMsg = CSROrderMsg;&#xD;&#xA;CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status) = &quot;ACCEPTED&quot;;" />
+                                <om:Property Name="ReportToAnalyst" Value="False" />
+                                <om:Property Name="Name" Value="Confirmation" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="MessageRef" OID="120443ee-13d0-459b-80a8-00b138b890a1" ParentLink="Construct_MessageRef" LowerBound="157.39" HigherBound="157.49">
+                                <om:Property Name="Ref" Value="CSRConfMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Construct" OID="4b4da5ef-b2f6-4e8f-8b0d-dcf193c7c6ab" ParentLink="ComplexStatement_Statement" LowerBound="163.1" HigherBound="185.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Construct OrderMsg" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="MessageRef" OID="b243db33-c643-4f7d-8804-edb240c65852" ParentLink="Construct_MessageRef" LowerBound="164.39" HigherBound="164.47">
+                                <om:Property Name="Ref" Value="OrderMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="MessageRef" OID="e582ae50-ad5a-49cf-94c8-6be4eedfd1d9" ParentLink="Construct_MessageRef" LowerBound="164.49" HigherBound="164.60">
+                                <om:Property Name="Ref" Value="OrderMgrMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Transform" OID="bfa6e806-f985-4122-ad01-2160dea474d9" ParentLink="ComplexStatement_Statement" LowerBound="166.1" HigherBound="168.1">
+                                <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_Order" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="CSR_OrderRequest to OrderMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="MessagePartRef" OID="45136ceb-9869-4b1d-b5aa-cd5e9dd27538" ParentLink="Transform_InputMessagePartRef" LowerBound="167.141" HigherBound="167.152">
+                                    <om:Property Name="MessageRef" Value="CSROrderMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_5" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                                <om:Element Type="MessagePartRef" OID="0b4fe3b6-d1aa-4905-ada0-02b1579c3345" ParentLink="Transform_OutputMessagePartRef" LowerBound="167.44" HigherBound="167.52">
+                                    <om:Property Name="MessageRef" Value="OrderMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="MessagePartReference_6" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="MessageAssignment" OID="b4a779a7-e0bd-41b7-bc26-0f138502912e" ParentLink="ComplexStatement_Statement" LowerBound="168.1" HigherBound="184.1">
+                                <om:Property Name="Expression" Value="OrderMgrMsg.Routing = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.Routing();&#xD;&#xA;OrderMgrMsg.Routing.CustomerID = OrderMsg.CustNum;&#xD;&#xA;OrderMgrMsg.Routing.OrderID = OrderMsg.OrderNum;&#xD;&#xA;OrderMgrMsg.Routing.SeqNum = OrderMsg.OrderSeqNum;&#xD;&#xA;OrderMgrMsg.Routing.RequestID = OrderMsg.RequestID;&#xD;&#xA;&#xD;&#xA;OrderMgrMsg.Routing.RequestType = OrderMsg.Status;&#xD;&#xA;OrderMgrMsg.Routing.SourceSystem = OrderMsg.SourceSystem;&#xD;&#xA;OrderMgrMsg.Routing.OrderMgrType = &quot;CABLEORDER&quot;;&#xD;&#xA;OrderMgrMsg.Routing.Status = &quot;ACCEPTED&quot;;&#xD;&#xA;&#xD;&#xA;OrderMsg.Status = &quot;OK&quot;;&#xD;&#xA;OrderMsg.Header.RequestType = CSROrderMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status);&#xD;&#xA;&#xD;&#xA;OrderMgrMsg.Order = (System.Xml.XmlDocument)OrderMsg;" />
+                                <om:Property Name="ReportToAnalyst" Value="False" />
+                                <om:Property Name="Name" Value="Create OrderMgrMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Catch" OID="602dbdd3-4c47-484d-a4bb-95379414658b" ParentLink="Scope_Catch" LowerBound="188.1" HigherBound="196.1">
+                            <om:Property Name="ExceptionName" Value="MessageConstructionEx" />
+                            <om:Property Name="ExceptionType" Value="System.Exception" />
+                            <om:Property Name="IsFaultMessage" Value="False" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Catch Message Construction Exception" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="VariableAssignment" OID="43821f3c-0a87-495e-8280-890702c1f3f3" ParentLink="Catch_Statement" LowerBound="191.1" HigherBound="193.1">
+                                <om:Property Name="Expression" Value="FailureReason = &quot;Message Construction Failed because: &quot; + MessageConstructionEx.Message;" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Failure" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Throw" OID="de2bb20c-a03f-4380-89ad-5feaa07cc09e" ParentLink="Catch_Statement" LowerBound="193.1" HigherBound="195.1">
+                                <om:Property Name="ThrownReference" Value="MessageConstructionEx" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="ThrowException" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="Scope" OID="ed30b25f-38fc-49fe-8171-42d5da089863" ParentLink="ComplexStatement_Statement" LowerBound="198.1" HigherBound="244.1">
+                        <om:Property Name="InitializedTransactionType" Value="True" />
+                        <om:Property Name="IsSynchronized" Value="False" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="AnalystComments" Value="Putting all of the sends in a single scope is more efficient" />
+                        <om:Property Name="Name" Value="Send Scope" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="LongRunningTransaction" OID="29ac5891-4487-4976-8cb2-23268189f9c8" ParentLink="Scope_Transaction" LowerBound="199.26" HigherBound="199.57">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="SendTx" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="Scope" OID="b258f168-ce03-467b-beeb-49d1df2c9cc4" ParentLink="ComplexStatement_Statement" LowerBound="203.1" HigherBound="231.1">
+                            <om:Property Name="InitializedTransactionType" Value="True" />
+                            <om:Property Name="IsSynchronized" Value="False" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Atomic Send Scope" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="AtomicTransaction" OID="d2d36385-4ac0-4447-977f-50faf7f27596" ParentLink="Scope_Transaction" LowerBound="205.34" HigherBound="205.66">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="AtomicSendTx" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="VariableAssignment" OID="a9f00ad5-5867-44e9-a8c3-df3c599bf19e" ParentLink="ComplexStatement_Statement" LowerBound="209.1" HigherBound="215.1">
+                                <om:Property Name="Expression" Value="// Continuation&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateContinuation(&#xD;&#xA;                ActivityID,                         // Activity ID&#xD;&#xA;                CSROrderMsg.Header.ReqId);          // Request ID&#xD;&#xA;" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="BAM Continuation" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="VariableAssignment" OID="a5cc84a1-6818-407b-8d21-c9301d932e9d" ParentLink="ComplexStatement_Statement" LowerBound="215.1" HigherBound="221.1">
+                                <om:Property Name="Expression" Value="// Relationship&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateRelationship(&#xD;&#xA;               ActivityID,                         // Current Activity ID&#xD;&#xA;               CSROrderMsg.Header.ReqId);          // Request ID&#xD;&#xA;" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="BAM Relationship" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="Send" OID="3d934a73-eb04-4141-9cf1-5435e6685a5d" ParentLink="ComplexStatement_Statement" LowerBound="221.1" HigherBound="223.1">
+                                <om:Property Name="PortName" Value="HistoryPort" />
+                                <om:Property Name="MessageName" Value="HistoryInsertMsg" />
+                                <om:Property Name="OperationName" Value="Insert" />
+                                <om:Property Name="OperationMessageName" Value="OrderLogEntry" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Insert to History" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="Send" OID="b54bb8cf-ab3d-48b2-9503-16bc84dc5413" ParentLink="ComplexStatement_Statement" LowerBound="223.1" HigherBound="225.1">
+                                <om:Property Name="PortName" Value="ServicingSystemPort" />
+                                <om:Property Name="MessageName" Value="ServicingMsg" />
+                                <om:Property Name="OperationName" Value="Post" />
+                                <om:Property Name="OperationMessageName" Value="NewOrder" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="To Servicing System" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="Send" OID="10fa4c0a-b9bd-4c97-87b8-0a68ed9d679b" ParentLink="ComplexStatement_Statement" LowerBound="225.1" HigherBound="227.1">
+                                <om:Property Name="PortName" Value="CSRPort" />
+                                <om:Property Name="MessageName" Value="CSRConfMsg" />
+                                <om:Property Name="OperationName" Value="Send" />
+                                <om:Property Name="OperationMessageName" Value="CSRResponse" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Post Response" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="Send" OID="d5c3234d-77a0-4f18-b0a3-22ef66d14687" ParentLink="ComplexStatement_Statement" LowerBound="227.1" HigherBound="229.1">
+                                <om:Property Name="PortName" Value="PublishOrderPort" />
+                                <om:Property Name="MessageName" Value="OrderMgrMsg" />
+                                <om:Property Name="OperationName" Value="Publish" />
+                                <om:Property Name="OperationMessageName" Value="OrderMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="To Order Mgr" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="TransactionAttribute" OID="2f1c7b9f-e037-4c90-9aed-e29324d7ca26" ParentLink="Statement_CLRAttribute" LowerBound="204.1" HigherBound="205.1">
+                                <om:Property Name="Batch" Value="True" />
+                                <om:Property Name="Retry" Value="True" />
+                                <om:Property Name="Timeout" Value="60" />
+                                <om:Property Name="Isolation" Value="Serializable" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Catch" OID="8af1b13a-3f3d-4c77-89cd-024e6a51c809" ParentLink="Scope_Catch" LowerBound="234.1" HigherBound="242.1">
+                            <om:Property Name="ExceptionName" Value="SendEx" />
+                            <om:Property Name="ExceptionType" Value="System.Exception" />
+                            <om:Property Name="IsFaultMessage" Value="False" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Catch Send Exception" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="VariableAssignment" OID="378bec8a-b103-4e40-b5e6-bca67e49cef3" ParentLink="Catch_Statement" LowerBound="237.1" HigherBound="239.1">
+                                <om:Property Name="Expression" Value="FailureReason = &quot;Send failed because: &quot; + SendEx.Message;" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Failure" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Throw" OID="091710f4-6e30-4404-88cf-652c744636a5" ParentLink="Catch_Statement" LowerBound="239.1" HigherBound="241.1">
+                                <om:Property Name="ThrownReference" Value="SendEx" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Throw Exception" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="Task" OID="7e3367e7-52f6-4c44-a7e0-d7eb0fbffe96" ParentLink="ComplexStatement_Statement" LowerBound="244.1" HigherBound="264.1">
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Post BAM Events" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="VariableAssignment" OID="846b7b53-db25-49bd-856a-fb53807dfd75" ParentLink="ComplexStatement_Statement" LowerBound="244.1" HigherBound="249.1">
+                            <om:Property Name="Expression" Value="&#xD;&#xA;// [BAM] Update Activity [Customer Order Request] with [Posted to History DB]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.PostedToHistory( ActivityID );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Post History" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="849aa9db-2a3b-470e-a964-d3a5c97a4420" ParentLink="ComplexStatement_Statement" LowerBound="249.1" HigherBound="254.1">
+                            <om:Property Name="Expression" Value="&#xD;&#xA;// [BAM] Update Activity [Customer Order Request] with [Posted to Servicing]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.PostedToServicing( ActivityID );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Post Services" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="25df75eb-d96c-4a73-9b50-ae807c04ac10" ParentLink="ComplexStatement_Statement" LowerBound="254.1" HigherBound="259.1">
+                            <om:Property Name="Expression" Value="&#xD;&#xA;// [BAM] Update Activity [Customer Order Request] with [Reply to CSR]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RepliedToRequester( ActivityID );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Reply CSR" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="7de4bbc4-7d00-47ca-b674-ec12bf498891" ParentLink="ComplexStatement_Statement" LowerBound="259.1" HigherBound="264.1">
+                            <om:Property Name="Expression" Value="&#xD;&#xA;// [BAM] End Collecting BAM Data [Customer Order Request]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.EndCollecting( ActivityID );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM End" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="Catch" OID="72f4697a-0e45-45d4-8158-7c7146815d97" ParentLink="Scope_Catch" LowerBound="267.1" HigherBound="300.1">
+                        <om:Property Name="ExceptionName" Value="OrderEx" />
+                        <om:Property Name="ExceptionType" Value="System.Exception" />
+                        <om:Property Name="IsFaultMessage" Value="False" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Catch Order Exceptions" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="Decision" OID="fb4f6448-7a8f-4a5b-aee2-760fc1370fbc" ParentLink="Catch_Statement" LowerBound="270.1" HigherBound="276.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Get Exception" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="DecisionBranch" OID="9e9ed989-a56c-4f66-849b-fbf4891cb748" ParentLink="ReallyComplexStatement_Branch" LowerBound="271.25" HigherBound="276.1">
+                                <om:Property Name="Expression" Value="FailureReason == System.String.Empty" />
+                                <om:Property Name="IsGhostBranch" Value="True" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Uncaught Exception" />
+                                <om:Property Name="Signal" Value="False" />
+                                <om:Element Type="VariableAssignment" OID="7b925ec7-c33e-4fad-817b-0003909a29f6" ParentLink="ComplexStatement_Statement" LowerBound="273.1" HigherBound="275.1">
+                                    <om:Property Name="Expression" Value="FailureReason = &quot;Send failed because: &quot; + OrderEx.Message;" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Assign Reason" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="DecisionBranch" OID="39973a3e-c3fd-4dae-bc19-45fb3fb9b93f" ParentLink="ReallyComplexStatement_Branch">
+                                <om:Property Name="IsGhostBranch" Value="True" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Else" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="000e5d94-1e6e-44a9-9eac-5031f0f6515c" ParentLink="Catch_Statement" LowerBound="276.1" HigherBound="278.1">
+                            <om:Property Name="Expression" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( &quot;OrderBroker terminated because: &quot; + FailureReason );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Log Error" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="2f9f81c7-cac5-4fda-bec7-7c523a3be4d5" ParentLink="Catch_Statement" LowerBound="278.1" HigherBound="282.1">
+                            <om:Property Name="Expression" Value="// [BAM] Update Activity [Customer Order Request] with [Error]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ErrorOccurred( ActivityID, FailureReason );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM Error" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="50df2638-3cec-4751-bf9b-e962165ed232" ParentLink="Catch_Statement" LowerBound="282.1" HigherBound="287.1">
+                            <om:Property Name="Expression" Value="&#xD;&#xA;// [BAM] End Collecting BAM Data [Customer Order Request]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.EndCollecting( ActivityID );&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="BAM End" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="Construct" OID="1454de9d-c2b3-4878-b076-b8c1b9a3ec1d" ParentLink="Catch_Statement" LowerBound="287.1" HigherBound="295.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Construct Failure" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="MessageAssignment" OID="28459b2d-d4a0-452e-9ec7-23cee7817222" ParentLink="ComplexStatement_Statement" LowerBound="290.1" HigherBound="294.1">
+                                <om:Property Name="Expression" Value="CSRConfMsg = CSROrderMsg;&#xD;&#xA;CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status) = &quot;NOTACCEPTED&quot;;&#xD;&#xA;CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Error) = FailureReason;" />
+                                <om:Property Name="ReportToAnalyst" Value="False" />
+                                <om:Property Name="Name" Value="Failure" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="MessageRef" OID="b9749b4e-84ca-48e6-848f-e8b1b5082b52" ParentLink="Construct_MessageRef" LowerBound="288.35" HigherBound="288.45">
+                                <om:Property Name="Ref" Value="CSRConfMsg" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Send" OID="da5190b7-233b-49c0-925a-c44d60163c27" ParentLink="Catch_Statement" LowerBound="295.1" HigherBound="297.1">
+                            <om:Property Name="PortName" Value="CSRPort" />
+                            <om:Property Name="MessageName" Value="CSRConfMsg" />
+                            <om:Property Name="OperationName" Value="Send" />
+                            <om:Property Name="OperationMessageName" Value="CSRResponse" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Return Denial" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="Terminate" OID="aa6275ee-14ab-4ff6-b50d-d3a622fcd16b" ParentLink="Catch_Statement" LowerBound="297.1" HigherBound="299.1">
+                            <om:Property Name="ErrorMessage" Value="FailureReason;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Terminate" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="da6768d4-804f-40f4-bc68-6f875cb2a21e" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="54.1" HigherBound="56.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="7" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.VendorPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="VendorPort" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="LogicalBindingAttribute" OID="82740dd8-a071-46fa-8361-5adc2e1faa6e" ParentLink="PortDeclaration_CLRAttribute" LowerBound="54.1" HigherBound="55.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="491056cb-16e1-4f7b-b4fb-10ef99b705ae" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="56.1" HigherBound="58.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="7" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.OrderPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="OrderPort" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="LogicalBindingAttribute" OID="9b7d86ef-1f07-4bf1-aa80-437932a56e5a" ParentLink="PortDeclaration_CLRAttribute" LowerBound="56.1" HigherBound="57.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="72666e33-a7f7-4175-b918-b7b61bb25f19" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="58.1" HigherBound="60.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="151" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.CSRPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="CSRPort" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="PhysicalBindingAttribute" OID="b31f1b47-656c-4abf-a8e8-d5c048000796" ParentLink="PortDeclaration_CLRAttribute" LowerBound="58.1" HigherBound="59.1">
+                    <om:Property Name="InPipeline" Value="Microsoft.BizTalk.DefaultPipelines.XMLReceive" />
+                    <om:Property Name="OutPipeline" Value="Microsoft.BizTalk.DefaultPipelines.PassThruTransmit" />
+                    <om:Property Name="TransportType" Value="HTTP" />
+                    <om:Property Name="URI" Value="http://tempURI" />
+                    <om:Property Name="IsDynamic" Value="True" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="9e162cae-777f-4154-b6f0-7bd8713bb5ca" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="60.1" HigherBound="62.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="145" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.PublishOrderPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="PublishOrderPort" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="DirectBindingAttribute" OID="ef81242e-0cdc-464a-81e4-e6e171e8d418" ParentLink="PortDeclaration_CLRAttribute" LowerBound="60.1" HigherBound="61.1">
+                    <om:Property Name="DirectBindingType" Value="MessageBox" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="7ae41f71-5fa8-4869-bd33-9f9eb9ecb92c" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="62.1" HigherBound="64.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="140" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.ServicingSystemPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ServicingSystemPort" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="LogicalBindingAttribute" OID="4bdc9216-1425-4782-b356-d574098540a9" ParentLink="PortDeclaration_CLRAttribute" LowerBound="62.1" HigherBound="63.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="77514869-d53a-43ea-8d24-59ff7ff201d7" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="64.1" HigherBound="67.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="138" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="Transmitted" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker.HistoryPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="HistoryPort" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="5e1536dd-b1cf-47bf-a10a-9958c4c723fc" ParentLink="PortDeclaration_CLRAttribute" LowerBound="64.1" HigherBound="65.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="MultipartMessageType" OID="e2a6de34-1cd9-4166-a4bd-3a8cd08bb45a" ParentLink="Module_MessageType" LowerBound="4.1" HigherBound="9.1">
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="OrderMgrMPMsg" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="PartDeclaration" OID="54747b82-660a-4617-93de-15569b39e92c" ParentLink="MultipartMessageType_PartDeclaration" LowerBound="6.1" HigherBound="7.1">
+                <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.Routing" />
+                <om:Property Name="IsBodyPart" Value="True" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Routing" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="PartDeclaration" OID="95ce15a7-0c71-471d-8e63-f28ef08cc3ca" ParentLink="MultipartMessageType_PartDeclaration" LowerBound="7.1" HigherBound="8.1">
+                <om:Property Name="ClassName" Value="System.Xml.XmlDocument" />
+                <om:Property Name="IsBodyPart" Value="False" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Order" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+        </om:Element>
+    </om:Element>
+    <om:Element Type="PrintElement" OID="a99ade1d-a9f0-417f-86f3-5f587a983e05">
+        <om:Property Name="Bottom" Value="0" />
+        <om:Property Name="FooterBottom" Value="0" />
+        <om:Property Name="FooterCenter" Value="0" />
+        <om:Property Name="FooterMargin" Value="0" />
+        <om:Property Name="FooterTop" Value="0" />
+        <om:Property Name="HeaderBottom" Value="0" />
+        <om:Property Name="HeaderCenter" Value="3" />
+        <om:Property Name="HeaderMargin" Value="0" />
+        <om:Property Name="HeaderTop" Value="0" />
+        <om:Property Name="Left" Value="0" />
+        <om:Property Name="PagesAcross" Value="0" />
+        <om:Property Name="PagesDown" Value="0" />
+        <om:Property Name="Right" Value="0" />
+        <om:Property Name="Scaling" Value="60" />
+        <om:Property Name="Top" Value="0" />
+        <om:Property Name="Orientation" Value="Portrait" />
+        <om:Property Name="Signal" Value="False" />
+    </om:Element>
+</om:MetaModel>
+#endif // __DESIGNER_DATA
+[Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+module Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBroker
+{
+    internal messagetype OrderMgrMPMsg
+    {
+        body Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.Routing Routing;
+        System.Xml.XmlDocument Order;
+    };
+    internal porttype CSRPortType
+    {
+        oneway Send
+        {
+            Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema
+        };
+    };
+    public porttype OrderPortType
+    {
+        oneway SubmitOrder
+        {
+            Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema
+        };
+    };
+    internal porttype HistoryPortType
+    {
+        oneway Insert
+        {
+            Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.SQLHistoryInsertSchema.HistoryInsert
+        };
+    };
+    internal porttype ServicingSystemPortType
+    {
+        oneway Post
+        {
+            Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.Servicing_OrderRequestSchema
+        };
+    };
+    internal porttype PublishOrderPortType
+    {
+        oneway Publish
+        {
+            OrderMgrMPMsg
+        };
+    };
+    internal porttype VendorPortType
+    {
+        oneway Submit
+        {
+            Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema
+        };
+    };
+    [Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+    internal service longrunning transaction OrderBrokerOrch
+    {
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements VendorPortType VendorPort;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements OrderPortType OrderPort;
+        [Microsoft.XLANGs.BaseTypes.PhysicalBinding(typeof(Microsoft.BizTalk.DefaultPipelines.PassThruTransmit))]
+        port uses dynamic CSRPortType CSRPort;
+        [Microsoft.XLANGs.BaseTypes.DirectBinding()]
+        port uses PublishOrderPortType PublishOrderPort;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port uses ServicingSystemPortType ServicingSystemPort;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        [Microsoft.XLANGs.BaseTypes.DeliveryNotification(Microsoft.XLANGs.BaseTypes.DeliveryNotification.NotificationLevel.Transmitted)]
+        port uses HistoryPortType HistoryPort;
+        message Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema CSRConfMsg;
+        message Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.CSR_OrderRequestSchema CSROrderMsg;
+        message Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.SQLHistoryInsertSchema.HistoryInsert HistoryInsertMsg;
+        message Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerSchemas.Servicing_OrderRequestSchema ServicingMsg;
+        message Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderSchema OrderMsg;
+        message OrderMgrMPMsg OrderMgrMsg;
+        System.String FailureReason;
+        System.String ActivityID;
+        body ()
+        {
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("a061bb31-2194-4497-8408-b091f48f7b19")]
+            listen
+            {
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("f236a8c9-c48d-4cc3-a69f-f6b285fbc139")]
+                until activate receive (OrderPort.SubmitOrder, CSROrderMsg)
+                {
+                FailureReason = System.String.Empty;
+                ActivityID = "";
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("1f1907e7-40e5-45fd-9e86-3b632701be71")]
+                    // [BAM] Start collecting BAM data [Customer Order Request]
+                    
+                    ActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.StartCollecting( CSROrderMsg.Header.ReqId );
+                                    
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("a705c6ff-9514-4136-98ce-cea58ba23df1")]
+                    // [BAM] Update Activity [Customer Order Request] with [Received from CSR]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RequestReceivedFromCustomer(
+                                    ActivityID,                         // Activity ID
+                                    CSROrderMsg.RequestHeader.CRN,      // Customer ID
+                                    CSROrderMsg.RequestHeader.ORN,      // Order ID
+                                    CSROrderMsg.RequestHeader.ORNSeq,   // Order Sequence #
+                                    CSROrderMsg.Header.RequestType);    // Request Type
+                }
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("d827f10a-757f-45c6-9c52-6d53f0f3005b")]
+                until activate receive (VendorPort.Submit, CSROrderMsg)
+                {
+                FailureReason = System.String.Empty;
+                ActivityID = "";
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("40ee7336-68d3-4c4e-8d49-85208c3d935b")]
+                    // [BAM] Start collecting BAM data [Customer Order Request]
+                    
+                    ActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.StartCollecting( CSROrderMsg.Header.ReqId );
+                                    
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("395c2aa8-9569-470d-9f6f-2543a836f5dc")]
+                    // [BAM] Update Activity [Customer Order Request] with [Received from Vendor]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RequestReceivedFromVendor(
+                                    ActivityID,                         // Activity ID
+                                    CSROrderMsg.RequestHeader.CRN,      // Customer ID
+                                    CSROrderMsg.RequestHeader.ORN,      // Order ID
+                                    CSROrderMsg.RequestHeader.ORNSeq,   // Order Sequence #
+                                    CSROrderMsg.Header.RequestType);    // Request Type
+                }
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("272a8ddd-5d4b-48d1-a1af-00e2b48e41cc")]
+            System.Diagnostics.Debug.WriteLine( "\n<BROKER>\n" );
+            System.Diagnostics.Debug.WriteLine( "   Req ID   : " + CSROrderMsg.Header.ReqId );
+            System.Diagnostics.Debug.WriteLine( "   Req Type : " + CSROrderMsg.Header.RequestType );
+            System.Diagnostics.Debug.WriteLine( "   Customer : " + CSROrderMsg.RequestHeader.CRN );
+            System.Diagnostics.Debug.WriteLine( "   Order    : " + CSROrderMsg.RequestHeader.ORN );
+            System.Diagnostics.Debug.WriteLine( "   Sequence : " + System.Convert.ToString( CSROrderMsg.RequestHeader.ORNSeq ) );
+            System.Diagnostics.Debug.WriteLine( "\n</BROKER>\n" ) ;
+            
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("e10f0b4e-22c4-48a6-8196-bd5618fd9dff")]
+            CSRPort(Microsoft.XLANGs.BaseTypes.Address) = CSROrderMsg.Header.SourceSystem;
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("99e84478-2a6b-4b33-b766-74ce0fe8e5f7")]
+            scope longrunning transaction OrderHandlingTx
+            {
+                body
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("b4586770-6c17-412c-a478-ed006cdcab0a")]
+                    scope
+                    {
+                        body
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("ea2ee5ca-bdcf-46b7-bfc8-5ed6b8f4a51b")]
+                            construct HistoryInsertMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("f9dac345-ecd6-4090-ae43-e0c86f708ad2")]
+                                transform (HistoryInsertMsg) = Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_SQLHistoryInsert (CSROrderMsg);
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("f8982f69-58d1-4579-a775-da868855177e")]
+                                HistoryInsertMsg = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.InsertOrderBody((System.Xml.XmlDocument)CSROrderMsg, (System.Xml.XmlDocument)HistoryInsertMsg );
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("1c146960-499f-40b9-ba55-0c11de6c8041")]
+                            construct ServicingMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("85e423db-9f0f-4325-abc4-fc9f3be8b0b3")]
+                                transform (ServicingMsg) = Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_Servicing_OrderRequest (CSROrderMsg);
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("a4d42386-2a05-49b2-9b71-0aa2857de789")]
+                            construct CSRConfMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("abab4b8b-26be-4c0e-b6bb-a99925a1731c")]
+                                CSRConfMsg = CSROrderMsg;
+                                CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status) = "ACCEPTED";
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("4b4da5ef-b2f6-4e8f-8b0d-dcf193c7c6ab")]
+                            construct OrderMsg, OrderMgrMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("bfa6e806-f985-4122-ad01-2160dea474d9")]
+                                transform (OrderMsg) = Microsoft.Samples.BizTalk.SouthridgeVideo.OrderBrokerMaps.CSR_OrderRequest_To_Order (CSROrderMsg);
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("b4a779a7-e0bd-41b7-bc26-0f138502912e")]
+                                OrderMgrMsg.Routing = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.Routing();
+                                OrderMgrMsg.Routing.CustomerID = OrderMsg.CustNum;
+                                OrderMgrMsg.Routing.OrderID = OrderMsg.OrderNum;
+                                OrderMgrMsg.Routing.SeqNum = OrderMsg.OrderSeqNum;
+                                OrderMgrMsg.Routing.RequestID = OrderMsg.RequestID;
+                                
+                                OrderMgrMsg.Routing.RequestType = OrderMsg.Status;
+                                OrderMgrMsg.Routing.SourceSystem = OrderMsg.SourceSystem;
+                                OrderMgrMsg.Routing.OrderMgrType = "CABLEORDER";
+                                OrderMgrMsg.Routing.Status = "ACCEPTED";
+                                
+                                OrderMsg.Status = "OK";
+                                OrderMsg.Header.RequestType = CSROrderMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status);
+                                
+                                OrderMgrMsg.Order = (System.Xml.XmlDocument)OrderMsg;
+                            }
+                        }
+                        exceptions
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("602dbdd3-4c47-484d-a4bb-95379414658b")]
+                            catch (System.Exception MessageConstructionEx)
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("43821f3c-0a87-495e-8280-890702c1f3f3")]
+                                FailureReason = "Message Construction Failed because: " + MessageConstructionEx.Message;
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("de2bb20c-a03f-4380-89ad-5feaa07cc09e")]
+                                throw MessageConstructionEx;
+                            }
+                        }
+                    }
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("ed30b25f-38fc-49fe-8171-42d5da089863")]
+                    scope longrunning transaction SendTx
+                    {
+                        body
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("b258f168-ce03-467b-beeb-49d1df2c9cc4")]
+                            [Microsoft.XLANGs.BaseTypes.Transaction(Retry=true,Batch=true,Timeout=60,TranIsolationLevel=System.Data.IsolationLevel.Serializable)]
+                            scope atomic transaction AtomicSendTx
+                            {
+                                body
+                                {
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("a9f00ad5-5867-44e9-a8c3-df3c599bf19e")]
+                                    // Continuation
+                                    
+                                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateContinuation(
+                                                    ActivityID,                         // Activity ID
+                                                    CSROrderMsg.Header.ReqId);          // Request ID
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("a5cc84a1-6818-407b-8d21-c9301d932e9d")]
+                                    // Relationship
+                                    
+                                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateRelationship(
+                                                   ActivityID,                         // Current Activity ID
+                                                   CSROrderMsg.Header.ReqId);          // Request ID
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("3d934a73-eb04-4141-9cf1-5435e6685a5d")]
+                                    send (HistoryPort.Insert, HistoryInsertMsg);
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("b54bb8cf-ab3d-48b2-9503-16bc84dc5413")]
+                                    send (ServicingSystemPort.Post, ServicingMsg);
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("10fa4c0a-b9bd-4c97-87b8-0a68ed9d679b")]
+                                    send (CSRPort.Send, CSRConfMsg);
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("d5c3234d-77a0-4f18-b0a3-22ef66d14687")]
+                                    send (PublishOrderPort.Publish, OrderMgrMsg);
+                                }
+                            }
+                        }
+                        exceptions
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("8af1b13a-3f3d-4c77-89cd-024e6a51c809")]
+                            catch (System.Exception SendEx)
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("378bec8a-b103-4e40-b5e6-bca67e49cef3")]
+                                FailureReason = "Send failed because: " + SendEx.Message;
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("091710f4-6e30-4404-88cf-652c744636a5")]
+                                throw SendEx;
+                            }
+                        }
+                    }
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("846b7b53-db25-49bd-856a-fb53807dfd75")]
+                    
+                    // [BAM] Update Activity [Customer Order Request] with [Posted to History DB]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.PostedToHistory( ActivityID );
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("849aa9db-2a3b-470e-a964-d3a5c97a4420")]
+                    
+                    // [BAM] Update Activity [Customer Order Request] with [Posted to Servicing]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.PostedToServicing( ActivityID );
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("25df75eb-d96c-4a73-9b50-ae807c04ac10")]
+                    
+                    // [BAM] Update Activity [Customer Order Request] with [Reply to CSR]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.RepliedToRequester( ActivityID );
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("7de4bbc4-7d00-47ca-b674-ec12bf498891")]
+                    
+                    // [BAM] End Collecting BAM Data [Customer Order Request]
+                    
+                    Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.EndCollecting( ActivityID );
+                }
+                exceptions
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("72f4697a-0e45-45d4-8158-7c7146815d97")]
+                    catch (System.Exception OrderEx)
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("fb4f6448-7a8f-4a5b-aee2-760fc1370fbc")]
+                        if (FailureReason == System.String.Empty)
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("7b925ec7-c33e-4fad-817b-0003909a29f6")]
+                            FailureReason = "Send failed because: " + OrderEx.Message;
+                        }
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("000e5d94-1e6e-44a9-9eac-5031f0f6515c")]
+                        Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( "OrderBroker terminated because: " + FailureReason );
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("2f9f81c7-cac5-4fda-bec7-7c523a3be4d5")]
+                        // [BAM] Update Activity [Customer Order Request] with [Error]
+                        
+                        Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ErrorOccurred( ActivityID, FailureReason );
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("50df2638-3cec-4751-bf9b-e962165ed232")]
+                        
+                        // [BAM] End Collecting BAM Data [Customer Order Request]
+                        
+                        Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.EndCollecting( ActivityID );
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("1454de9d-c2b3-4878-b076-b8c1b9a3ec1d")]
+                        construct CSRConfMsg
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("28459b2d-d4a0-452e-9ec7-23cee7817222")]
+                            CSRConfMsg = CSROrderMsg;
+                            CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Status) = "NOTACCEPTED";
+                            CSRConfMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.Error) = FailureReason;
+                        }
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("da5190b7-233b-49c0-925a-c44d60163c27")]
+                        send (CSRPort.Send, CSRConfMsg);
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("aa6275ee-14ab-4ff6-b50d-d3a622fcd16b")]
+                        terminate FailureReason;;
+                    }
+                }
+            }
+        }
+    }
+}
+

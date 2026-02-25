@@ -1,0 +1,517 @@
+﻿#if __DESIGNER_DATA
+#error Do not define __DESIGNER_DATA.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<om:MetaModel MajorVersion="1" MinorVersion="3" Core="2b131234-7959-458d-834f-2dc0769ce683" ScheduleModel="66366196-361d-448d-976f-cab5e87496d2" xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+    <om:Element Type="Module" OID="bfeda054-5129-4c54-8923-35111dae249c" LowerBound="1.1" HigherBound="166.1">
+        <om:Property Name="ReportToAnalyst" Value="True" />
+        <om:Property Name="Name" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Orchestrations" />
+        <om:Property Name="Signal" Value="False" />
+        <om:Element Type="PortType" OID="9f251947-bdc4-47a4-8900-a5b28cf76547" ParentLink="Module_PortType" LowerBound="4.1" HigherBound="11.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="BatchNotification_PortType" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="OperationDeclaration" OID="8c3ebabd-5cef-43ed-ae24-cf07372e28c7" ParentLink="PortType_OperationDeclaration" LowerBound="6.1" HigherBound="10.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Operation_1" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="MessageRef" OID="34b71bd4-2988-40ad-900b-a44d53dc23fe" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="8.13" HigherBound="8.78">
+                    <om:Property Name="Ref" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_Notification" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="18ec3d26-332d-480e-9d68-fe0a96456312" ParentLink="Module_PortType" LowerBound="11.1" HigherBound="18.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="SendFInalizeBatchRequest_PortType" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="OperationDeclaration" OID="0d117ac7-fbab-493e-b0d4-45e7b8119e01" ParentLink="PortType_OperationDeclaration" LowerBound="13.1" HigherBound="17.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="sp_tb_BulkUpdateAccounts_FinalizeBatch" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="0a41bd35-3c1d-45ea-8a73-d21e6bda74ac" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="15.13" HigherBound="15.123">
+                    <om:Property Name="Ref" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_TypedProcedure_dbo.sp_tb_BulkUpdateAccounts_FinalizeBatch" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="828d6017-e119-433c-b06a-e8fd8d6c8618" ParentLink="Module_PortType" LowerBound="18.1" HigherBound="25.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="BulkUpdateAccountsOutput_PortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="6d82d0f8-1819-4c3d-a22c-8092c5741e97" ParentLink="PortType_OperationDeclaration" LowerBound="20.1" HigherBound="24.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Operation_1" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="MessageRef" OID="7ccf6428-0b59-4fd5-b096-f6208b962356" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="22.13" HigherBound="22.92">
+                    <om:Property Name="Ref" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.OutputSchemas.BulkUpdateOutput" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="ServiceDeclaration" OID="61e2ae43-281a-47ee-aa83-ebed3a73ae76" ParentLink="Module_ServiceDeclaration" LowerBound="25.1" HigherBound="165.1">
+            <om:Property Name="InitializedTransactionType" Value="False" />
+            <om:Property Name="IsInvokable" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="BulkUpdateAccountsRespCoordinator" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="VariableDeclaration" OID="d2732242-95a2-4754-88a9-5adfbefc1c40" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="34.1" HigherBound="35.1">
+                <om:Property Name="UseDefaultConstructor" Value="False" />
+                <om:Property Name="Type" Value="System.Guid" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="traceToken" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="VariableDeclaration" OID="8b5528b1-a865-4991-ab8f-c7e187ada836" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="35.1" HigherBound="36.1">
+                <om:Property Name="InitialValue" Value="&quot;MCH.Orch.BulkUpdateAccount.CoordinatorProcess - {0}&quot;" />
+                <om:Property Name="UseDefaultConstructor" Value="False" />
+                <om:Property Name="Type" Value="System.String" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="TRACE_INFO" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="1b628855-5c28-4519-9858-a099e3ae60aa" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="32.1" HigherBound="33.1">
+                <om:Property Name="Type" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_Notification" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="BatchNotificationMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="b993a5ef-96f0-42d1-9dfa-e6bca2d52dfb" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="33.1" HigherBound="34.1">
+                <om:Property Name="Type" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_TypedProcedure_dbo.sp_tb_BulkUpdateAccounts_FinalizeBatch" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="WCFFinalizeBatchReqMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="ServiceBody" OID="935cd6d2-2c2a-4552-83bf-c97447bf53b3" ParentLink="ServiceDeclaration_ServiceBody">
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="Receive" OID="6cb9ee5c-990c-4ba9-b531-4756609cbcd4" ParentLink="ServiceBody_Statement" LowerBound="38.1" HigherBound="41.1">
+                    <om:Property Name="Activate" Value="True" />
+                    <om:Property Name="PortName" Value="BatchNotification_Port" />
+                    <om:Property Name="MessageName" Value="BatchNotificationMsg" />
+                    <om:Property Name="OperationName" Value="Operation_1" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Rcv_BatchNotificationMsg" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="Task" OID="cb01bacd-9aec-4b83-8cb3-089cdd9b9ae7" ParentLink="ServiceBody_Statement" LowerBound="41.1" HigherBound="55.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Trace" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="VariableAssignment" OID="1e50189b-b383-4bb2-8e51-ed6548a53550" ParentLink="ComplexStatement_Statement" LowerBound="41.1" HigherBound="44.1">
+                        <om:Property Name="Expression" Value="traceToken = Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceIn();&#xD;&#xA;&#xD;&#xA;" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Trace In" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                    <om:Element Type="VariableAssignment" OID="f6893c54-7dd6-4b53-9017-60517f787148" ParentLink="ComplexStatement_Statement" LowerBound="44.1" HigherBound="55.1">
+                        <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceInfo(&#xD;&#xA;    System.String.Format(&#xD;&#xA;        TRACE_INFO,&#xD;&#xA;        System.String.Format(&#xD;&#xA;            &quot;BulkUpdateSingleInput: {0}&quot;,&#xD;&#xA;            Vantyx.CMC.SystemCommon.Serialization.SerializeToString(BatchNotificationMsg)&#xD;&#xA;        )&#xD;&#xA;    )&#xD;&#xA;);&#xD;&#xA;&#xD;&#xA;" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Trace Info" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Scope" OID="2040fa38-ca0c-40fd-b137-3adc22a93102" ParentLink="ServiceBody_Statement" LowerBound="55.1" HigherBound="157.1">
+                    <om:Property Name="InitializedTransactionType" Value="True" />
+                    <om:Property Name="IsSynchronized" Value="False" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Process" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="Decision" OID="0fa1571d-e8cf-49b0-8a9d-694e69772f49" ParentLink="ComplexStatement_Statement" LowerBound="60.1" HigherBound="135.1">
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Is Batch Complete?" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="DecisionBranch" OID="744aa377-adcf-4088-bd03-6cfa3b63c89a" ParentLink="ReallyComplexStatement_Branch" LowerBound="61.21" HigherBound="85.1">
+                            <om:Property Name="Expression" Value="BatchNotificationMsg.Info == &quot;Update&quot; &amp;&amp; &#xD;&#xA;BatchNotificationMsg.Source == &quot;Data&quot; &amp;&amp; &#xD;&#xA;BatchNotificationMsg.Type == &quot;Change&quot;&#xD;&#xA;" />
+                            <om:Property Name="IsGhostBranch" Value="True" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Update" />
+                            <om:Property Name="Signal" Value="False" />
+                            <om:Element Type="Construct" OID="051c1867-e94d-4169-88c7-efc53bbf1b4f" ParentLink="ComplexStatement_Statement" LowerBound="65.1" HigherBound="71.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Construct_ReqBatchResultsToDBMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="MessageRef" OID="c72ffe31-fe84-401f-a9b0-c7ee22b3b108" ParentLink="Construct_MessageRef" LowerBound="66.35" HigherBound="66.57">
+                                    <om:Property Name="Ref" Value="WCFFinalizeBatchReqMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                                <om:Element Type="Transform" OID="f7c74873-2d8e-493c-adc4-7d97c031031b" ParentLink="ComplexStatement_Statement" LowerBound="68.1" HigherBound="70.1">
+                                    <om:Property Name="ClassName" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Mapps.MapNotificationMsgToWCFFinalizeBatchReq" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Initialize WCFFinalizeBatvhReqMsg" />
+                                    <om:Property Name="Signal" Value="False" />
+                                    <om:Element Type="MessagePartRef" OID="e5619ee8-2305-45ce-a57e-72cc02c91e09" ParentLink="Transform_InputMessagePartRef" LowerBound="69.154" HigherBound="69.174">
+                                        <om:Property Name="MessageRef" Value="BatchNotificationMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_1" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="MessagePartRef" OID="59b4d106-68c3-470b-929b-afc7dfa59045" ParentLink="Transform_OutputMessagePartRef" LowerBound="69.40" HigherBound="69.62">
+                                        <om:Property Name="MessageRef" Value="WCFFinalizeBatchReqMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_2" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Task" OID="ea98d7c7-2270-49a8-a74a-85fe25e11ce8" ParentLink="ComplexStatement_Statement" LowerBound="71.1" HigherBound="82.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Trace" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="VariableAssignment" OID="6b189909-9262-44e2-81c1-e7adacc67433" ParentLink="ComplexStatement_Statement" LowerBound="71.1" HigherBound="82.1">
+                                    <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceInfo(&#xD;&#xA;    System.String.Format(&#xD;&#xA;        TRACE_INFO,&#xD;&#xA;        System.String.Format(&#xD;&#xA;            &quot;WCFFinalizeBatchReqMsg: {0}&quot;,&#xD;&#xA;            Vantyx.CMC.SystemCommon.Serialization.SerializeToString(WCFFinalizeBatchReqMsg)&#xD;&#xA;        )&#xD;&#xA;    )&#xD;&#xA;);&#xD;&#xA;&#xD;&#xA;" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Trace Info" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Send" OID="226901aa-5da0-4067-8755-3afba9eb6c66" ParentLink="ComplexStatement_Statement" LowerBound="82.1" HigherBound="84.1">
+                                <om:Property Name="PortName" Value="SendBatchRequest_Port" />
+                                <om:Property Name="MessageName" Value="WCFFinalizeBatchReqMsg" />
+                                <om:Property Name="OperationName" Value="sp_tb_BulkUpdateAccounts_FinalizeBatch" />
+                                <om:Property Name="OperationMessageName" Value="Request" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Snd_ReqBatchResultsFromDBMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="DecisionBranch" OID="b743732a-9822-4354-88fe-6a1ecf51121b" ParentLink="ReallyComplexStatement_Branch" LowerBound="85.26" HigherBound="119.1">
+                            <om:Property Name="Expression" Value="BatchNotificationMsg.Info == &quot;ListenerStarted&quot; &amp;&amp;&#xD;&#xA;BatchNotificationMsg.Source == &quot;SqlBinding&quot; &amp;&amp; &#xD;&#xA;BatchNotificationMsg.Type == &quot;Startup&quot;" />
+                            <om:Property Name="IsGhostBranch" Value="True" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="ListenerStarted" />
+                            <om:Property Name="Signal" Value="False" />
+                            <om:Element Type="Construct" OID="ec8c6ebd-e519-4320-b518-41791d83a15d" ParentLink="ComplexStatement_Statement" LowerBound="89.1" HigherBound="95.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Construct_ReqBatchResultsToDBMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="MessageRef" OID="25b093fa-f836-446c-889e-00d1fcd3b80b" ParentLink="Construct_MessageRef" LowerBound="90.35" HigherBound="90.57">
+                                    <om:Property Name="Ref" Value="WCFFinalizeBatchReqMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                                <om:Element Type="Transform" OID="2e228612-2404-4475-b732-591e7c348f8d" ParentLink="ComplexStatement_Statement" LowerBound="92.1" HigherBound="94.1">
+                                    <om:Property Name="ClassName" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Mapps.MapNotificationMsgToWCFFinalizeBatchReq" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Initialize WCFFinalizeBatvhReqMsg" />
+                                    <om:Property Name="Signal" Value="False" />
+                                    <om:Element Type="MessagePartRef" OID="700be518-c6e7-41dc-9409-bd01b3c844a9" ParentLink="Transform_InputMessagePartRef" LowerBound="93.154" HigherBound="93.174">
+                                        <om:Property Name="MessageRef" Value="BatchNotificationMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_1" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="MessagePartRef" OID="ca85b8ed-7b56-45d3-8453-ae6e61ce9657" ParentLink="Transform_OutputMessagePartRef" LowerBound="93.40" HigherBound="93.62">
+                                        <om:Property Name="MessageRef" Value="WCFFinalizeBatchReqMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_2" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Task" OID="82df8d63-fb10-4872-a1cd-9a1b16a5ecf8" ParentLink="ComplexStatement_Statement" LowerBound="95.1" HigherBound="108.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Trace" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="VariableAssignment" OID="59546f61-1ef6-43f4-a6f4-db0b14b540d2" ParentLink="ComplexStatement_Statement" LowerBound="95.1" HigherBound="108.1">
+                                    <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceWarning(&#xD;&#xA;    System.String.Format(&#xD;&#xA;        TRACE_INFO,&#xD;&#xA;        System.String.Format(&#xD;&#xA;            &quot;Received a ListenerStarted notification. Requesting a Batch finalization to the WCF SQL Adapter - Info: {0}; Source: {1}; Type: {2}&quot;,&#xD;&#xA;            BatchNotificationMsg.Info,&#xD;&#xA;            BatchNotificationMsg.Source,&#xD;&#xA;            BatchNotificationMsg.Type&#xD;&#xA;        )&#xD;&#xA;    )&#xD;&#xA;);&#xD;&#xA;&#xD;&#xA;" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Trace Warning" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="VariableAssignment" OID="ca5d01ac-dba7-43cf-8463-d48bb324ba40" ParentLink="ComplexStatement_Statement" LowerBound="108.1" HigherBound="116.1">
+                                <om:Property Name="Expression" Value="Vantyx.CMC.Biztalk.SupportLibrary.AppCasePublishing.PublishError(&#xD;&#xA;    &quot;BulkUpdateAccountRespCoordinator.odx&quot;, &#xD;&#xA;    &quot;Listener SQL foi reiniciado. Será feito um pedido de finalização de Batch, para no caso de algum ficheiro ter sido processado enquanto o Listener esteve offline.&quot;,&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.IntegrationSystem.None,&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.Process.BulkUpdateAccounts,&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.ErrorType.Other&#xD;&#xA;);&#xD;&#xA;" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Register Error" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="Send" OID="045e8740-36a8-4075-bd0e-555773089d1d" ParentLink="ComplexStatement_Statement" LowerBound="116.1" HigherBound="118.1">
+                                <om:Property Name="PortName" Value="SendBatchRequest_Port" />
+                                <om:Property Name="MessageName" Value="WCFFinalizeBatchReqMsg" />
+                                <om:Property Name="OperationName" Value="sp_tb_BulkUpdateAccounts_FinalizeBatch" />
+                                <om:Property Name="OperationMessageName" Value="Request" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Snd_ReqBatchResultsFromDBMsg" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="DecisionBranch" OID="6043823d-2495-40a2-bf03-71173fd6e847" ParentLink="ReallyComplexStatement_Branch">
+                            <om:Property Name="IsGhostBranch" Value="True" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Else" />
+                            <om:Property Name="Signal" Value="False" />
+                            <om:Element Type="Task" OID="d0e225ea-acc8-45c4-a0b2-0c274cb3be31" ParentLink="ComplexStatement_Statement" LowerBound="121.1" HigherBound="134.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Trace" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="VariableAssignment" OID="deb7e408-4caf-4f4b-9949-ac38f75eb42c" ParentLink="ComplexStatement_Statement" LowerBound="121.1" HigherBound="134.1">
+                                    <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceWarning(&#xD;&#xA;    System.String.Format(&#xD;&#xA;        TRACE_INFO,&#xD;&#xA;        System.String.Format(&#xD;&#xA;            &quot;Wrong BatchNotification received - Info: {0}; Source: {1}; Type: {2}&quot;,&#xD;&#xA;            BatchNotificationMsg.Info,&#xD;&#xA;            BatchNotificationMsg.Source,&#xD;&#xA;            BatchNotificationMsg.Type&#xD;&#xA;        )&#xD;&#xA;    )&#xD;&#xA;);&#xD;&#xA;&#xD;&#xA;" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Trace Warning" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="Catch" OID="d4233126-cb7a-4fff-a0bc-1e12ab78560b" ParentLink="Scope_Catch" LowerBound="138.1" HigherBound="155.1">
+                        <om:Property Name="ExceptionName" Value="ex" />
+                        <om:Property Name="ExceptionType" Value="System.Exception" />
+                        <om:Property Name="IsFaultMessage" Value="False" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Exception" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="Task" OID="553133bf-1dd9-495b-8287-ff8cc859cc1d" ParentLink="Catch_Statement" LowerBound="141.1" HigherBound="143.1">
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Trace" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="VariableAssignment" OID="7b01833d-cf55-4a44-b93d-ab68b8701873" ParentLink="ComplexStatement_Statement" LowerBound="141.1" HigherBound="143.1">
+                                <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceError(ex, true, traceToken);" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Trace Error" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="VariableAssignment" OID="32e63872-552f-4d0d-b6b8-564288de0f52" ParentLink="Catch_Statement" LowerBound="143.1" HigherBound="154.1">
+                            <om:Property Name="Expression" Value="Vantyx.CMC.Biztalk.SupportLibrary.AppCasePublishing.PublishError(&#xD;&#xA;    &quot;BulkUpdateAccountRespCoordinator.odx&quot;, &#xD;&#xA;    System.String.Format(&#xD;&#xA;        &quot;Erro inesperado ao processar a resposta do processo BulkUpdateAccounts. Detalhes: {0}&quot;,&#xD;&#xA;        ex.Message&#xD;&#xA;    ),&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.IntegrationSystem.None,&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.Process.BulkUpdateAccounts,&#xD;&#xA;    Vantyx.CMC.SystemCommon.Enums.ErrorType.Other&#xD;&#xA;);&#xD;&#xA;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Register Error" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Task" OID="c3d4fad6-3aec-4b2f-8428-342ec31ae152" ParentLink="ServiceBody_Statement" LowerBound="157.1" HigherBound="163.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Trace" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="VariableAssignment" OID="40d41f3c-ac44-4d56-9a21-1b240eeae745" ParentLink="ComplexStatement_Statement" LowerBound="157.1" HigherBound="163.1">
+                        <om:Property Name="Expression" Value="Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceOut(&#xD;&#xA;    traceToken&#xD;&#xA;);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Tarce Out" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="57b456dd-bb7f-4b75-ac85-5b3606db5e37" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="28.1" HigherBound="30.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="-1" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Orchestrations.BatchNotification_PortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="BatchNotification_Port" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="7ad4875f-ffdc-48e9-9587-2f7c3f484e69" ParentLink="PortDeclaration_CLRAttribute" LowerBound="28.1" HigherBound="29.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="a7225993-7bb8-4d7a-bf78-02a0b85f7518" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="30.1" HigherBound="32.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="61" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Inforflow.CMC.BizTalk.BulkUpdateAccounts.Orchestrations.SendFInalizeBatchRequest_PortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="SendBatchRequest_Port" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="DirectBindingAttribute" OID="16c467db-0573-4bee-b764-6752c41286f7" ParentLink="PortDeclaration_CLRAttribute" LowerBound="30.1" HigherBound="31.1">
+                    <om:Property Name="DirectBindingType" Value="MessageBox" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+    </om:Element>
+</om:MetaModel>
+#endif // __DESIGNER_DATA
+[Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+module Inforflow.CMC.BizTalk.BulkUpdateAccounts.Orchestrations
+{
+    internal porttype BatchNotification_PortType
+    {
+        oneway Operation_1
+        {
+            Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_Notification
+        };
+    };
+    internal porttype SendFInalizeBatchRequest_PortType
+    {
+        oneway sp_tb_BulkUpdateAccounts_FinalizeBatch
+        {
+            Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_TypedProcedure_dbo.sp_tb_BulkUpdateAccounts_FinalizeBatch
+        };
+    };
+    internal porttype BulkUpdateAccountsOutput_PortType
+    {
+        oneway Operation_1
+        {
+            Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.OutputSchemas.BulkUpdateOutput
+        };
+    };
+    [Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+    internal service BulkUpdateAccountsRespCoordinator
+    {
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements BatchNotification_PortType BatchNotification_Port;
+        [Microsoft.XLANGs.BaseTypes.DirectBinding()]
+        port uses SendFInalizeBatchRequest_PortType SendBatchRequest_Port;
+        message Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_Notification BatchNotificationMsg;
+        message Inforflow.CMC.BizTalk.BulkUpdateAccounts.Schemas.WCF_TypedProcedure_dbo.sp_tb_BulkUpdateAccounts_FinalizeBatch WCFFinalizeBatchReqMsg;
+        System.Guid traceToken;
+        System.String TRACE_INFO;
+        body ()
+        {
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("6cb9ee5c-990c-4ba9-b531-4756609cbcd4")]
+            activate receive (BatchNotification_Port.Operation_1, BatchNotificationMsg);
+            TRACE_INFO = "MCH.Orch.BulkUpdateAccount.CoordinatorProcess - {0}";
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("1e50189b-b383-4bb2-8e51-ed6548a53550")]
+            traceToken = Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceIn();
+            
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("f6893c54-7dd6-4b53-9017-60517f787148")]
+            Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceInfo(
+                System.String.Format(
+                    TRACE_INFO,
+                    System.String.Format(
+                        "BulkUpdateSingleInput: {0}",
+                        Vantyx.CMC.SystemCommon.Serialization.SerializeToString(BatchNotificationMsg)
+                    )
+                )
+            );
+            
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("2040fa38-ca0c-40fd-b137-3adc22a93102")]
+            scope
+            {
+                body
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("0fa1571d-e8cf-49b0-8a9d-694e69772f49")]
+                    if (BatchNotificationMsg.Info == "Update" && 
+                        BatchNotificationMsg.Source == "Data" && 
+                        BatchNotificationMsg.Type == "Change")
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("051c1867-e94d-4169-88c7-efc53bbf1b4f")]
+                        construct WCFFinalizeBatchReqMsg
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("f7c74873-2d8e-493c-adc4-7d97c031031b")]
+                            transform (WCFFinalizeBatchReqMsg) = Inforflow.CMC.BizTalk.BulkUpdateAccounts.Mapps.MapNotificationMsgToWCFFinalizeBatchReq (BatchNotificationMsg);
+                        }
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("6b189909-9262-44e2-81c1-e7adacc67433")]
+                        Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceInfo(
+                            System.String.Format(
+                                TRACE_INFO,
+                                System.String.Format(
+                                    "WCFFinalizeBatchReqMsg: {0}",
+                                    Vantyx.CMC.SystemCommon.Serialization.SerializeToString(WCFFinalizeBatchReqMsg)
+                                )
+                            )
+                        );
+                        
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("226901aa-5da0-4067-8755-3afba9eb6c66")]
+                        send (SendBatchRequest_Port.sp_tb_BulkUpdateAccounts_FinalizeBatch, WCFFinalizeBatchReqMsg);
+                    }
+                    else if (BatchNotificationMsg.Info == "ListenerStarted" &&
+                        BatchNotificationMsg.Source == "SqlBinding" && 
+                        BatchNotificationMsg.Type == "Startup")
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("ec8c6ebd-e519-4320-b518-41791d83a15d")]
+                        construct WCFFinalizeBatchReqMsg
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("2e228612-2404-4475-b732-591e7c348f8d")]
+                            transform (WCFFinalizeBatchReqMsg) = Inforflow.CMC.BizTalk.BulkUpdateAccounts.Mapps.MapNotificationMsgToWCFFinalizeBatchReq (BatchNotificationMsg);
+                        }
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("59546f61-1ef6-43f4-a6f4-db0b14b540d2")]
+                        Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceWarning(
+                            System.String.Format(
+                                TRACE_INFO,
+                                System.String.Format(
+                                    "Received a ListenerStarted notification. Requesting a Batch finalization to the WCF SQL Adapter - Info: {0}; Source: {1}; Type: {2}",
+                                    BatchNotificationMsg.Info,
+                                    BatchNotificationMsg.Source,
+                                    BatchNotificationMsg.Type
+                                )
+                            )
+                        );
+                        
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("ca5d01ac-dba7-43cf-8463-d48bb324ba40")]
+                        Vantyx.CMC.Biztalk.SupportLibrary.AppCasePublishing.PublishError(
+                            "BulkUpdateAccountRespCoordinator.odx", 
+                            "Listener SQL foi reiniciado. Será feito um pedido de finalização de Batch, para no caso de algum ficheiro ter sido processado enquanto o Listener esteve offline.",
+                            Vantyx.CMC.SystemCommon.Enums.IntegrationSystem.None,
+                            Vantyx.CMC.SystemCommon.Enums.Process.BulkUpdateAccounts,
+                            Vantyx.CMC.SystemCommon.Enums.ErrorType.Other
+                        );
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("045e8740-36a8-4075-bd0e-555773089d1d")]
+                        send (SendBatchRequest_Port.sp_tb_BulkUpdateAccounts_FinalizeBatch, WCFFinalizeBatchReqMsg);
+                    }
+                    else 
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("deb7e408-4caf-4f4b-9949-ac38f75eb42c")]
+                        Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceWarning(
+                            System.String.Format(
+                                TRACE_INFO,
+                                System.String.Format(
+                                    "Wrong BatchNotification received - Info: {0}; Source: {1}; Type: {2}",
+                                    BatchNotificationMsg.Info,
+                                    BatchNotificationMsg.Source,
+                                    BatchNotificationMsg.Type
+                                )
+                            )
+                        );
+                        
+                    }
+                }
+                exceptions
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("d4233126-cb7a-4fff-a0bc-1e12ab78560b")]
+                    catch (System.Exception ex)
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("7b01833d-cf55-4a44-b93d-ab68b8701873")]
+                        Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceError(ex, true, traceToken);
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("32e63872-552f-4d0d-b6b8-564288de0f52")]
+                        Vantyx.CMC.Biztalk.SupportLibrary.AppCasePublishing.PublishError(
+                            "BulkUpdateAccountRespCoordinator.odx", 
+                            System.String.Format(
+                                "Erro inesperado ao processar a resposta do processo BulkUpdateAccounts. Detalhes: {0}",
+                                ex.Message
+                            ),
+                            Vantyx.CMC.SystemCommon.Enums.IntegrationSystem.None,
+                            Vantyx.CMC.SystemCommon.Enums.Process.BulkUpdateAccounts,
+                            Vantyx.CMC.SystemCommon.Enums.ErrorType.Other
+                        );
+                    }
+                }
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("40d41f3c-ac44-4d56-9a21-1b240eeae745")]
+            Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation.TraceManager.WorkflowComponent.TraceOut(
+                traceToken
+            );
+            
+            
+        }
+    }
+}
+

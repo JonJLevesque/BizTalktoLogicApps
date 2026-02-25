@@ -36,6 +36,11 @@ export function detectPatterns(app: BizTalkApplication): IntegrationPattern[] {
     detected.add(pattern);
   }
 
+  // Pipeline-level patterns (custom components, flat file debatching)
+  for (const pattern of detectPipelinePatterns(app)) {
+    detected.add(pattern);
+  }
+
   return Array.from(detected);
 }
 
@@ -142,6 +147,39 @@ export function detectOrchestrationPatterns(orch: ParsedOrchestration): Integrat
   // Send to an audit/logging port alongside the main processing path
   if (detectWireTapPattern(shapes, orch)) {
     detected.add('wire-tap');
+  }
+
+  return Array.from(detected);
+}
+
+// ─── Pipeline-Level Pattern Detection ────────────────────────────────────────
+
+function detectPipelinePatterns(app: BizTalkApplication): IntegrationPattern[] {
+  const detected = new Set<IntegrationPattern>();
+
+  // Custom pipeline components → 'custom-pipeline' pattern
+  const hasCustomComponents = app.pipelines.some(p => p.hasCustomComponents);
+  if (hasCustomComponents) {
+    detected.add('custom-pipeline');
+  }
+
+  // Flat file disassembler pipeline → 'splitter' pattern (envelope debatching)
+  const hasFlatFile = app.pipelines.some(p =>
+    p.components.some(c => {
+      const tn = c.fullTypeName.toLowerCase();
+      return (
+        tn.includes('flatfile') ||
+        tn.includes('ffdasm') ||
+        tn.includes('ffasm') ||
+        c.componentType === 'FFDasmComp' ||
+        c.componentType === 'FFAsmComp' ||
+        c.componentType === 'FlatFileDasmComp' ||
+        c.componentType === 'FlatFileAsmComp'
+      );
+    })
+  );
+  if (hasFlatFile) {
+    detected.add('splitter');
   }
 
   return Array.from(detected);

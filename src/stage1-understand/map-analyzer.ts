@@ -24,7 +24,7 @@
  * does not support extension objects.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readBizTalkFile } from './read-biztalk-file.js';
 import { XMLParser } from 'fast-xml-parser';
 import { basename } from 'node:path';
 import type {
@@ -60,7 +60,7 @@ function classifyFunctoid(fid: number): FunctoidCategory {
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 export async function analyzeMap(filePath: string): Promise<ParsedMap> {
-  const xml = await readFile(filePath, 'utf-8');
+  const xml = await readBizTalkFile(filePath);
   return analyzeMapXml(xml, filePath);
 }
 
@@ -69,7 +69,7 @@ export function analyzeMapXml(xml: string, filePath: string = '<inline>'): Parse
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
     removeNSPrefix: true,
-    isArray: (name) => ['Functoid', 'Link', 'ScriptType', 'InputParam'].includes(name),
+    isArray: (name) => ['Functoid', 'Link', 'ScriptType', 'InputParam', 'Page', 'Script', 'Parameter'].includes(name),
     parseTagValue: true,
     trimValues: true,
     cdataPropName: '__cdata',
@@ -77,32 +77,45 @@ export function analyzeMapXml(xml: string, filePath: string = '<inline>'): Parse
 
   const doc = parser.parse(xml) as Record<string, unknown>;
 
-  // Root element varies: BizTalkFlatFileSchemas (older) or BizTalkMaps (newer)
-  const root = (doc['BizTalkMaps'] ?? doc['BizTalkFlatFileSchemas'] ?? doc['Root']) as
+  // Root element varies:
+  //   BizTalkMaps / BizTalkFlatFileSchemas — simplified fixture format
+  //   mapsource — real BizTalk BTM files from Visual Studio designer
+  const standardRoot = (doc['BizTalkMaps'] ?? doc['BizTalkFlatFileSchemas'] ?? doc['Root']) as
     Record<string, unknown> | undefined;
+  const mapSourceRoot = doc['mapsource'] as Record<string, unknown> | undefined;
 
-  if (!root) {
+  if (!standardRoot && !mapSourceRoot) {
     throw new BtmParseError(`Could not find root map element in ${filePath}`);
   }
 
-  // Class/namespace info
-  const className = String(root['CLRNamespace'] ?? root['ClassName'] ?? basename(filePath, '.btm'));
+  let functoidEls: Record<string, unknown>[];
+  let linkEls: Record<string, unknown>[];
+  let className: string;
+  let sourceSchemaRef: string;
+  let destinationSchemaRef: string;
+
+  if (mapSourceRoot) {
+    // Real BizTalk BTM format: functoids and links are inside Pages > Page > ...
+    className = basename(filePath, '.btm');
+    sourceSchemaRef = extractMapSourceSchemaRef(mapSourceRoot, 'SrcTree');
+    destinationSchemaRef = extractMapSourceSchemaRef(mapSourceRoot, 'TrgTree');
+    functoidEls = extractMapSourceFunctoids(mapSourceRoot);
+    linkEls = extractMapSourceLinks(mapSourceRoot);
+  } else {
+    const root = standardRoot!;
+    className = String(root['CLRNamespace'] ?? root['ClassName'] ?? basename(filePath, '.btm'));
+    sourceSchemaRef = extractSchemaRef(root, 'SourceSchema');
+    destinationSchemaRef = extractSchemaRef(root, 'DestinationSchema');
+    functoidEls = getArray(root, 'Functoids', 'Functoid')
+      ?? (root['Functoid'] as Record<string, unknown>[] | undefined)
+      ?? [];
+    linkEls = getArray(root, 'Links', 'Link')
+      ?? (root['Link'] as Record<string, unknown>[] | undefined)
+      ?? [];
+  }
+
   const name = className.split('.').pop() ?? className;
-
-  // Schema references
-  const sourceSchemaRef = extractSchemaRef(root, 'SourceSchema');
-  const destinationSchemaRef = extractSchemaRef(root, 'DestinationSchema');
-
-  // Functoids
-  const functoidEls = getArray(root, 'Functoids', 'Functoid')
-    ?? (root['Functoid'] as Record<string, unknown>[] | undefined)
-    ?? [];
   const functoids = functoidEls.map(parseFunctoid);
-
-  // Links
-  const linkEls = getArray(root, 'Links', 'Link')
-    ?? (root['Link'] as Record<string, unknown>[] | undefined)
-    ?? [];
   const links = linkEls.map(parseLink);
 
   // Derived properties
@@ -178,16 +191,20 @@ function parseFunctoid(el: Record<string, unknown>): BtmFunctoid {
 }
 
 function hasScriptBuffer(el: Record<string, unknown>): boolean {
-  // ScriptBuffer is the XML element containing the C# code in a scripting functoid
+  // ScriptBuffer — simplified fixture format
   if (el['ScriptBuffer'] !== undefined) return true;
   if (el['ScriptType'] !== undefined) return true;
-  // Check for userCSharp namespace marker in any string value
+  // ScripterCode — real BizTalk BTM designer format (Functoid-Name="Scripting")
+  if (el['ScripterCode'] !== undefined) return true;
+  // Functoid-Name attribute in real BTM format
+  if (String(el['@_Functoid-Name'] ?? '') === 'Scripting') return true;
+  // Check for userCSharp namespace marker in any string value (compiled XSLT format)
   const json = JSON.stringify(el);
   return json.includes('userCSharp') || json.includes('msxsl:script') || json.includes('ScriptBuffer');
 }
 
 function extractScriptCode(el: Record<string, unknown>): string | undefined {
-  // ScriptBuffer may be a CDATA section or a nested element
+  // ScriptBuffer — simplified fixture format
   const scriptBuffer = el['ScriptBuffer'] as Record<string, unknown> | string | undefined;
   if (typeof scriptBuffer === 'string') return scriptBuffer;
   if (scriptBuffer && typeof scriptBuffer === 'object') {
@@ -196,6 +213,22 @@ function extractScriptCode(el: Record<string, unknown>): string | undefined {
     const text = (scriptBuffer as Record<string, unknown>)['#text'];
     if (typeof text === 'string') return text;
   }
+
+  // ScripterCode — real BizTalk BTM designer format
+  // Structure: ScripterCode > Script[Language, CDATA]
+  const scripterCode = el['ScripterCode'] as Record<string, unknown> | undefined;
+  if (scripterCode) {
+    // Script may be a single object or array
+    const scripts = scripterCode['Script'];
+    const scriptArray = Array.isArray(scripts) ? scripts : (scripts ? [scripts] : []);
+    for (const script of scriptArray as Record<string, unknown>[]) {
+      const cdata = script['__cdata'];
+      if (typeof cdata === 'string' && cdata.trim()) return cdata;
+      const text = script['#text'];
+      if (typeof text === 'string' && text.trim()) return text;
+    }
+  }
+
   return undefined;
 }
 
@@ -206,8 +239,9 @@ function parseLink(el: Record<string, unknown>): BtmLink {
     ? parseInt(String(el['@_FunctoidID']), 10)
     : undefined;
   return {
-    from: String(el['@_SourceNode'] ?? el['@_From'] ?? el['@_Source'] ?? ''),
-    to: String(el['@_DestinationNode'] ?? el['@_To'] ?? el['@_Destination'] ?? ''),
+    // mapsource format uses LinkFrom/LinkTo; simplified format uses SourceNode/DestinationNode
+    from: String(el['@_LinkFrom'] ?? el['@_SourceNode'] ?? el['@_From'] ?? el['@_Source'] ?? ''),
+    to: String(el['@_LinkTo'] ?? el['@_DestinationNode'] ?? el['@_To'] ?? el['@_Destination'] ?? ''),
     ...(functoidRef !== undefined ? { functoidRef } : {}),
   };
 }
@@ -279,6 +313,63 @@ function determineMapMigrationPath(analysis: MapAnalysis): ParsedMap['recommende
 
   // Larger maps or cumulative functoids → XSLT (more expressive)
   return 'xslt';
+}
+
+// ─── mapsource Format Helpers ─────────────────────────────────────────────────
+//
+// Real BizTalk BTM files use <mapsource> as root. Functoids and links live inside
+// <Pages><Page Name="..."><Functoids>...</Functoids><Links>...</Links></Page></Pages>
+
+function extractMapSourceFunctoids(root: Record<string, unknown>): Record<string, unknown>[] {
+  const pagesEl = root['Pages'] as Record<string, unknown> | undefined;
+  if (!pagesEl) return [];
+  const pages = pagesEl['Page'];
+  const pageArray: Record<string, unknown>[] = Array.isArray(pages)
+    ? (pages as Record<string, unknown>[])
+    : pages ? [pages as Record<string, unknown>] : [];
+
+  const result: Record<string, unknown>[] = [];
+  for (const page of pageArray) {
+    const functoidsEl = page['Functoids'] as Record<string, unknown> | undefined;
+    if (!functoidsEl) continue;
+    const functoids = functoidsEl['Functoid'];
+    if (Array.isArray(functoids)) {
+      result.push(...(functoids as Record<string, unknown>[]));
+    } else if (functoids && typeof functoids === 'object') {
+      result.push(functoids as Record<string, unknown>);
+    }
+  }
+  return result;
+}
+
+function extractMapSourceLinks(root: Record<string, unknown>): Record<string, unknown>[] {
+  const pagesEl = root['Pages'] as Record<string, unknown> | undefined;
+  if (!pagesEl) return [];
+  const pages = pagesEl['Page'];
+  const pageArray: Record<string, unknown>[] = Array.isArray(pages)
+    ? (pages as Record<string, unknown>[])
+    : pages ? [pages as Record<string, unknown>] : [];
+
+  const result: Record<string, unknown>[] = [];
+  for (const page of pageArray) {
+    const linksEl = page['Links'] as Record<string, unknown> | undefined;
+    if (!linksEl) continue;
+    const links = linksEl['Link'];
+    if (Array.isArray(links)) {
+      result.push(...(links as Record<string, unknown>[]));
+    } else if (links && typeof links === 'object') {
+      result.push(links as Record<string, unknown>);
+    }
+  }
+  return result;
+}
+
+function extractMapSourceSchemaRef(root: Record<string, unknown>, treeKey: string): string {
+  const treeEl = root[treeKey] as Record<string, unknown> | undefined;
+  if (!treeEl) return '';
+  const ref = treeEl['Reference'] as Record<string, unknown> | undefined;
+  if (!ref) return '';
+  return String(ref['@_Location'] ?? '');
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────

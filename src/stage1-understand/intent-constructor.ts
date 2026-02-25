@@ -269,7 +269,7 @@ function buildStepFromShape(
     };
   }
 
-  // Decision
+  // Decision — actionType starts as 'If'; enrichStepWithChildren() upgrades to 'Switch' if 3+ branches
   if (shape.shapeType === 'DecisionShape') {
     return {
       id: `step_${shape.name ?? shape.shapeId}_route`,
@@ -282,14 +282,20 @@ function buildStepFromShape(
     };
   }
 
-  // Loop
+  // Loop — condition must be INVERTED: BizTalk while(cond) → Logic Apps Until(!cond)
   if (shape.shapeType === 'LoopShape') {
+    const rawCondition = shape.conditionExpression;
     return {
       id: `step_${shape.name ?? shape.shapeId}_loop`,
       type: 'loop',
-      description: `Loop: ${shape.conditionExpression ?? 'condition'}`,
+      description: `Loop: ${rawCondition ?? 'condition'}`,
       actionType: 'Until',
-      config: { untilExpression: shape.conditionExpression ?? TODO_CLAUDE },
+      config: {
+        untilExpression: rawCondition
+          ? `TODO_CLAUDE_INVERT: ${rawCondition}`
+          : TODO_CLAUDE,
+        inversionRequired: true,
+      },
       runAfter: prevStepId ? [prevStepId] : [],
     };
   }
@@ -366,8 +372,14 @@ function buildStepFromShape(
     };
   }
 
-  // ConstructShape / GroupShape / RoleLinkShape — skip (container shapes)
-  if (shape.shapeType === 'ConstructShape' || shape.shapeType === 'GroupShape' || shape.shapeType === 'RoleLinkShape') {
+  // ConstructShape / RoleLinkShape — skip (container shapes with no direct LA equivalent)
+  if (shape.shapeType === 'ConstructShape' || shape.shapeType === 'RoleLinkShape') {
+    return null;
+  }
+
+  // GroupShape — processShapes() handles this before calling buildStepFromShape(); return null here
+  // so that any direct calls don't produce an action.  GroupShape content is processed via enrichStepWithChildren().
+  if (shape.shapeType === 'GroupShape') {
     return null;
   }
 
@@ -392,6 +404,133 @@ function buildStepFromShape(
     config: { shapeType: shape.shapeType, originalExpression: shape.codeExpression ?? null },
     runAfter: prevStepId ? [prevStepId] : [],
   };
+}
+
+// ─── Recursive shape processing ────────────────────────────────────────────────
+
+/**
+ * Enriches a container step with branch/loop/scope content from its children.
+ * Called after buildStepFromShape() for any shape that can have children.
+ *
+ * - DecisionShape (2 branches): produces If with trueBranch / falseBranch
+ * - DecisionShape (3+ branches): upgrades actionType to 'Switch', produces cases[]
+ * - LoopShape: populates trueBranch with loop body steps
+ * - ScopeShape: trueBranch = main body; falseBranch = Catch handler steps (runAfter FAILED)
+ * - ParallelActionsShape: produces cases[] — one per parallel branch
+ */
+function enrichStepWithChildren(
+  step: IntegrationStep,
+  shape: OdxShape,
+  app: BizTalkApplication
+): void {
+  if (!shape.children || shape.children.length === 0) return;
+
+  if (shape.shapeType === 'DecisionShape') {
+    const branchGroups = shape.children.filter(c => c.shapeType === 'GroupShape');
+    if (branchGroups.length >= 3) {
+      // 3+ branches → Switch action
+      step.actionType = 'Switch';
+      const nonDefault = branchGroups.slice(0, -1);
+      const defaultBranch = branchGroups[branchGroups.length - 1]!;
+      step.branches = {
+        cases: nonDefault.map(branch => ({
+          value: branch.conditionExpression ?? TODO_CLAUDE,
+          steps: processShapes(branch.children ?? [], app, null),
+        })),
+        defaultSteps: processShapes(defaultBranch.children ?? [], app, null),
+      };
+    } else if (branchGroups.length === 2) {
+      // 2 branches → If
+      step.branches = {
+        condition: shape.conditionExpression ?? TODO_CLAUDE,
+        trueBranch:  processShapes(branchGroups[0]?.children ?? [], app, null),
+        falseBranch: processShapes(branchGroups[1]?.children ?? [], app, null),
+      };
+    } else if (branchGroups.length === 1) {
+      // Single branch (no else)
+      step.branches = {
+        condition:  shape.conditionExpression ?? TODO_CLAUDE,
+        trueBranch: processShapes(branchGroups[0]?.children ?? [], app, null),
+      };
+    }
+    return;
+  }
+
+  if (shape.shapeType === 'LoopShape') {
+    // Loop body: all non-GroupShape children
+    const bodyShapes = shape.children.filter(c => c.shapeType !== 'GroupShape');
+    step.branches = {
+      trueBranch: processShapes(bodyShapes, app, null),
+    };
+    return;
+  }
+
+  if (shape.shapeType === 'ScopeShape') {
+    // Main body: non-GroupShape children; error handlers: GroupShape (Catch) children
+    const catchGroups  = shape.children.filter(c => c.shapeType === 'GroupShape');
+    const mainBody     = shape.children.filter(c => c.shapeType !== 'GroupShape');
+    const trueBranch   = processShapes(mainBody, app, null);
+    const falseBranch  = catchGroups.flatMap(g => processShapes(g.children ?? [], app, null));
+    step.branches = {
+      ...(trueBranch.length > 0  ? { trueBranch }  : {}),
+      ...(falseBranch.length > 0 ? { falseBranch } : {}),
+    };
+    return;
+  }
+
+  if (shape.shapeType === 'ParallelActionsShape') {
+    const parallelBranches = shape.children.filter(c => c.shapeType === 'GroupShape');
+    step.branches = {
+      cases: parallelBranches.map((branch, i) => ({
+        value: `parallel_branch_${i + 1}`,
+        steps: processShapes(branch.children ?? [], app, null),
+      })),
+    };
+    return;
+  }
+}
+
+/**
+ * Recursively processes an array of OdxShapes into IntegrationSteps.
+ *
+ * - Handles GroupShape at this level: processes its children as flat steps
+ *   (GroupShape at the TOP level = orphaned branch — treat as a linear sequence)
+ * - For container shapes (Decision/Loop/Scope/Parallel): calls enrichStepWithChildren()
+ *   so branch content is attached to the parent step's branches field.
+ * - prevId threads the runAfter chain through the linear sequence.
+ */
+function processShapes(
+  shapes: OdxShape[],
+  app: BizTalkApplication,
+  prevId: string | null
+): IntegrationStep[] {
+  const result: IntegrationStep[] = [];
+  let currentPrevId = prevId;
+
+  for (const shape of shapes) {
+    // GroupShape at this level: treat children as inline steps (Catch/DecisionBranch at top)
+    if (shape.shapeType === 'GroupShape') {
+      if (shape.children && shape.children.length > 0) {
+        const childSteps = processShapes(shape.children, app, currentPrevId);
+        result.push(...childSteps);
+        if (childSteps.length > 0) {
+          currentPrevId = childSteps[childSteps.length - 1]!.id;
+        }
+      }
+      continue;
+    }
+
+    const step = buildStepFromShape(shape, currentPrevId, app);
+    if (step === null) continue;
+
+    // Attach branch/body content for container shapes
+    enrichStepWithChildren(step, shape, app);
+
+    result.push(step);
+    currentPrevId = step.id;
+  }
+
+  return result;
 }
 
 // ─── Build systems from binding files ──────────────────────────────────────────
@@ -475,17 +614,36 @@ export function constructIntent(
   const systems = buildSystems(app);
   const errorHandlingResult = detectErrorStrategy(app);
 
-  // Build steps from all orchestrations (flattened)
+  // Build steps from all orchestrations (recursive — branches and loop bodies included)
   const steps: IntegrationStep[] = [];
   let prevId: string | null = null;
 
   for (const orch of app.orchestrations) {
-    // Process top-level shapes sequentially (not recursive — branches handled separately)
-    for (const shape of orch.shapes) {
-      const step = buildStepFromShape(shape, prevId, app);
-      if (step) {
-        steps.push(step);
-        prevId = step.id;
+    const orchSteps = processShapes(orch.shapes, app, prevId);
+    steps.push(...orchSteps);
+    if (orchSteps.length > 0) {
+      prevId = orchSteps[orchSteps.length - 1]!.id;
+    }
+  }
+
+  // Add comment steps for custom pipeline components so they appear in gap analysis
+  for (const pipeline of app.pipelines) {
+    if (pipeline.hasCustomComponents) {
+      const customComps = pipeline.components.filter(c => c.isCustom);
+      for (const comp of customComps) {
+        const safeId = `${pipeline.name}_${comp.componentType}`.replace(/[^a-zA-Z0-9]/g, '_');
+        const compStep: IntegrationStep = {
+          id: `step_pipeline_${safeId}`,
+          type: 'set-variable',
+          description: `CUSTOM_PIPELINE: ${comp.fullTypeName} — requires Azure Function`,
+          actionType: 'Compose',
+          config: {
+            note: `TODO_CLAUDE: custom pipeline component requires manual migration: ${comp.fullTypeName}`,
+          },
+          runAfter: prevId ? [prevId] : [],
+        };
+        steps.push(compStep);
+        prevId = compStep.id;
       }
     }
   }

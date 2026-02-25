@@ -16,8 +16,8 @@
  * with placeholder strings. Only structural metadata is retained.
  */
 
-import { readFile } from 'node:fs/promises';
 import { XMLParser } from 'fast-xml-parser';
+import { readBizTalkFile } from './read-biztalk-file.js';
 import type {
   ParsedBindingFile,
   ReceiveLocation,
@@ -48,7 +48,7 @@ function scrubCredentialValue(key: string, value: string): string {
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 export async function analyzeBindings(filePath: string): Promise<ParsedBindingFile> {
-  const xml = await readFile(filePath, 'utf-8');
+  const xml = await readBizTalkFile(filePath);
   return analyzeBindingsXml(xml, filePath);
 }
 
@@ -277,8 +277,9 @@ function extractAdapterType(port: Record<string, unknown>): string {
   const direct = port['@_TransportType'] ?? port['@_AdapterName'];
   if (direct) return String(direct);
 
-  // Try nested TransportType element
-  const tt = port['TransportType'] as Record<string, unknown> | string | undefined;
+  // Try nested TransportType or ReceiveLocationTransportType elements
+  const ttRaw = port['TransportType'] ?? port['ReceiveLocationTransportType'];
+  const tt = ttRaw as Record<string, unknown> | string | undefined;
   if (typeof tt === 'string') return tt;
   if (tt && typeof tt === 'object') {
     return String((tt as Record<string, unknown>)['@_Name'] ?? (tt as Record<string, unknown>)['#text'] ?? '');
