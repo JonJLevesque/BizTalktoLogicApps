@@ -350,6 +350,11 @@ function buildStepFromShape(
 
   // Expression / MessageAssignment
   if (shape.shapeType === 'ExpressionShape' || shape.shapeType === 'MessageAssignmentShape') {
+    // Skip CAT Framework instrumentation shapes — these are debug/trace calls
+    // (Microsoft.BizTalk.CAT.BestPractices.Framework.Instrumentation) with no business logic.
+    if (shape.codeExpression?.includes('Microsoft.BizTalk.CAT.BestPractices')) {
+      return null;
+    }
     return {
       id: `step_${shape.name ?? shape.shapeId}_expr`,
       type: 'set-variable',
@@ -391,6 +396,24 @@ function buildStepFromShape(
       description: 'Parallel actions',
       actionType: 'parallel-group',
       config: {},
+      runAfter: prevStepId ? [prevStepId] : [],
+    };
+  }
+
+  // ListenShape — no direct Logic Apps equivalent.
+  // BizTalk Listen waits for the first of multiple branches to fire (first-event-wins).
+  // Pattern: separate workflows per event type, all call a shared child workflow.
+  if (shape.shapeType === 'ListenShape') {
+    return {
+      id: `step_${shape.name ?? shape.shapeId}_listen`,
+      type: 'set-variable',
+      description: 'ListenShape: no direct Logic Apps equivalent — redesign as concurrent workflows or Event Grid',
+      actionType: 'Compose',
+      config: {
+        migrationNote: 'REDESIGN REQUIRED: ListenShape has no Logic Apps equivalent. ' +
+          'Create separate trigger workflows per event type; route all to a shared child workflow.',
+        originalShape: 'ListenShape',
+      },
       runAfter: prevStepId ? [prevStepId] : [],
     };
   }

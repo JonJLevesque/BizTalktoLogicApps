@@ -37,8 +37,8 @@ interface LicenseServerResponse {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** License server base URL — replace with actual endpoint before distribution */
-const LICENSE_SERVER_URL = process.env['BTLA_LICENSE_SERVER'] ?? 'https://license.biztalk-migrate.io';
+/** License server base URL */
+const LICENSE_SERVER_URL = process.env['BTLA_LICENSE_SERVER'] ?? 'https://api.biztalkmigrate.com';
 
 /** How often to refresh the cached license (days) */
 const REFRESH_INTERVAL_DAYS = 7;

@@ -71,8 +71,10 @@ function extractOdxXml(raw: string): string {
   const start = raw.indexOf('#if __DESIGNER_DATA');
   const end   = raw.indexOf('#endif', start);
   if (start !== -1 && end !== -1) {
-    // Grab everything between the two markers, trimmed
-    return raw.slice(start + '#if __DESIGNER_DATA'.length, end).trim();
+    const block = raw.slice(start + '#if __DESIGNER_DATA'.length, end).trim();
+    // Strip any remaining C preprocessor directives (#error, #pragma, etc.)
+    // that appear between the #if marker and the actual XML content.
+    return block.split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim();
   }
   return raw;
 }

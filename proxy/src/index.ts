@@ -19,7 +19,7 @@
 
 import { Hono }                              from 'hono';
 import { cors }                              from 'hono/cors';
-import type { AppEnv, AnthropicSystemBlock } from './types.js';
+import type { AppEnv, AnthropicSystemBlock, LicenseRecord } from './types.js';
 import { authMiddleware }                    from './auth.js';
 import { rateLimitMiddleware }               from './rate-limit.js';
 import { callAnthropic, AnthropicError }     from './anthropic.js';
@@ -157,6 +157,25 @@ app.post('/v1/review',
       console.error('[btla-proxy] /v1/review error:', err);
       return c.json({ error: 'Internal server error' }, 500);
     }
+  },
+);
+
+// ── License validate (CLI startup check) ──────────────────────────────────────
+
+app.post('/v1/validate',
+  authMiddleware,
+  async (c) => {
+    const license = c.get('license');
+    // Re-read the full record to get expiresAt (LicenseInfo doesn't carry it)
+    const raw = await c.env.LICENSE_KEYS.get(`license:${license.key}`);
+    const record = JSON.parse(raw!) as LicenseRecord;
+    return c.json({
+      valid:     true,
+      tier:      license.tier,
+      expiresAt: record.expiresAt,
+      email:     license.email,
+      token:     '',  // no JWT needed — validation is done by the proxy on each call
+    });
   },
 );
 

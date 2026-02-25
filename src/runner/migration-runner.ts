@@ -14,15 +14,14 @@
  * Privacy: raw XML never leaves the machine — only structural metadata goes to Claude.
  */
 
-import { readFileSync } from 'fs';
 import type { BizTalkApplication } from '../types/biztalk.js';
 import type { WorkflowJson } from '../types/logicapps.js';
 import type { IntegrationIntent, IntegrationPattern } from '../shared/integration-intent.js';
 import type { MigrationRunOptions, MigrationRunResult, MigrationStep } from './types.js';
 
 import { listArtifacts, readArtifact }  from '../mcp-server/tools/file-tools.js';
-import { analyzeOrchestrationXml }      from '../stage1-understand/orchestration-analyzer.js';
-import { analyzeMapXml }                from '../stage1-understand/map-analyzer.js';
+import { analyzeOrchestration, analyzeOrchestrationXml } from '../stage1-understand/orchestration-analyzer.js';
+import { analyzeMap, analyzeMapXml }    from '../stage1-understand/map-analyzer.js';
 import { analyzePipelineXml }           from '../stage1-understand/pipeline-analyzer.js';
 import { analyzeBindingsXml }           from '../stage1-understand/binding-analyzer.js';
 import { scoreApplication }             from '../stage1-understand/complexity-scorer.js';
@@ -313,8 +312,9 @@ async function parseArtifacts(
   for (const f of inventory.orchestrations) {
     try {
       onStep(`Parsing orchestration: ${f.split('/').pop()}`);
-      const artifact = await readArtifact(f);
-      orchestrations.push(analyzeOrchestrationXml(artifact.content));
+      // Use analyzeOrchestration (not analyzeOrchestrationXml) — it calls readBizTalkFile
+      // which handles UTF-16 LE encoding and strips the #if __DESIGNER_DATA preprocessor block.
+      orchestrations.push(await analyzeOrchestration(f));
     } catch (err) {
       errors.push(`Failed to parse orchestration ${f}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -323,8 +323,8 @@ async function parseArtifacts(
   for (const f of inventory.maps) {
     try {
       onStep(`Parsing map: ${f.split('/').pop()}`);
-      const artifact = await readArtifact(f);
-      maps.push(analyzeMapXml(artifact.content));
+      // Use analyzeMap (not analyzeMapXml) — it calls readBizTalkFile for UTF-16 LE support.
+      maps.push(await analyzeMap(f));
     } catch (err) {
       errors.push(`Failed to parse map ${f}: ${err instanceof Error ? err.message : String(err)}`);
     }
