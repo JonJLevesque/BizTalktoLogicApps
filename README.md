@@ -170,11 +170,11 @@ The tool prints progress as it works:
 [PARSE   ] Found 4 artifacts — 2 orchestrations, 1 map, 1 binding
 [REASON  ] Enriching migration intent...
 [SCAFFOLD] Generating Logic Apps package...
-[VALIDATE] Quality: 83/100  Grade B
+[VALIDATE] Quality: 100/100  Grade A
 ✔ Migration complete — output written to ./logic-apps-output
 ```
 
-The whole thing usually takes 30–60 seconds.
+The whole thing typically takes **1–2 minutes**.
 
 ---
 
@@ -184,15 +184,28 @@ Open your output folder. You'll find:
 
 ```
 logic-apps-output/
-├── OrderSystem/
-│   └── workflow.json          ← Your BizTalk orchestration, converted to Logic Apps
-├── connections.json           ← The Azure service connections your workflow needs
-├── host.json                  ← Logic Apps runtime settings
-├── local.settings.json        ← Template for your connection strings (fill these in)
-├── infra/
-│   └── main.bicep             ← Azure deployment template — deploys everything to Azure
-└── migration-report.md        ← Open this first — explains what migrated and what didn't
+├── OrderSystem.code-workspace     ← Open this in VS Code to get the full project view
+├── OrderProcessingOrch/
+│   └── workflow.json              ← Orchestration converted to Logic Apps (one folder per orchestration)
+├── OrderFulfillmentOrch/
+│   └── workflow.json              ← Second orchestration, if your app has multiple
+├── Artifacts/
+│   ├── Maps/                      ← Converted XSLT/LML maps
+│   └── Schemas/                   ← Original XSD schemas, copied for reference
+├── connections.json               ← Azure service connections your workflows need
+├── host.json                      ← Logic Apps runtime settings
+├── local.settings.json            ← Template for your connection strings (fill these in)
+├── arm-template.json              ← Azure ARM deployment template
+├── arm-parameters.json            ← ARM parameters file
+├── tests/
+│   ├── OrderProcessingOrch.tests.json   ← Workflow test specifications
+│   └── OrderProcessingOrchTests.cs      ← MSTest scaffold (optional)
+├── .vscode/
+│   └── settings.json              ← VS Code settings for Logic Apps extension
+└── migration-report.md            ← Open this first — explains what migrated and what didn't
 ```
+
+> **If your BizTalk application has multiple orchestrations**, each one gets its own folder and `workflow.json`. They share `connections.json`, `host.json`, and the `Artifacts/` folder.
 
 **Start by opening `migration-report.md`.** It's a plain text file that tells you:
 
@@ -214,9 +227,7 @@ The tool scores the generated workflow 0–100 and gives it a letter grade:
 | **D** | 40–59 | Issues to address. Read the report carefully. |
 | **F** | < 40 | Structural problems. Check the error section in the report. |
 
-**Aim for Grade B or higher before deploying to production.**
-
-If you get a C or lower, the migration report will tell you exactly what to fix.
+Most applications score **Grade A** automatically. If you get lower, the migration report's **Actionable Fix List** tells you exactly what to change and how.
 
 ---
 
@@ -228,7 +239,8 @@ The npm global install didn't add itself to your PATH. Try:
 
 ```bash
 # Mac / Linux
-echo 'export PATH="$PATH:$(npm bin -g)"' >> ~/.zshrc && source ~/.zshrc
+export PATH="$PATH:$(npm config get prefix)/bin"
+# To make it permanent, add that line to your ~/.zshrc or ~/.bashrc
 
 # Windows — close and reopen PowerShell as Administrator, then:
 npm install -g biztalk-migrate
@@ -263,29 +275,29 @@ You should see your `.odx`, `.btm`, etc. files listed.
 
 **"TODO_CLAUDE appears in workflow.json"**
 
-The AI couldn't automatically translate a complex expression (usually a C#-style condition). You'll need to fill it in manually. The migration report will tell you exactly where it is and what kind of expression it needs.
+This is rare — it means the AI couldn't automatically translate a specific expression (usually a complex inline C# condition). You'll need to fill it in manually. The migration report's **Actionable Fix List** will tell you exactly where it is and what kind of expression is needed.
 
 ---
 
 **"msxsl:script not supported"**
 
-One of your BizTalk maps uses C# scripting inside the XSLT — Azure Logic Apps doesn't support that. You'll need to rewrite those parts as Azure Functions. The migration report flags exactly which maps are affected.
+One of your BizTalk maps uses C# scripting inside the XSLT — Azure Logic Apps doesn't support that. The tool generates a **Local Code Function stub** (`.cs` file) as a starting point. The migration report flags exactly which maps are affected and what the stub does.
 
 ---
 
 **Loop conditions look backwards**
 
-This is correct and expected. BizTalk runs a loop *while* a condition is true. Logic Apps runs a loop *until* a condition is true. The tool automatically inverts the condition — review loop logic before deploying.
+This is correct and expected. BizTalk runs a loop *while* a condition is true. Logic Apps runs a loop *until* a condition is true. The tool automatically inverts the condition — review loop logic before deploying to confirm the inversion is correct for your use case.
 
 ---
 
 ## What BizTalk Features Migrate Automatically
 
 **No manual work needed:**
-FILE, FTP, SFTP, HTTP, SOAP, Service Bus, SQL, SMTP, Event Hubs, Azure Blob, IBM MQ, SAP, EDI/X12/EDIFACT/AS2 adapters, Receive shapes, Send shapes, Transform/XSLT maps, Decide → If/Switch, Delay, Terminate, Call Orchestration, Sequential Convoy, Parallel Actions
+FILE, FTP, SFTP, HTTP, SOAP, Service Bus, SQL, SMTP, Event Hubs, Azure Blob, IBM MQ, SAP, EDI/X12/EDIFACT/AS2 adapters, Receive shapes, Send shapes, Transform/XSLT maps, Decide → If/Switch, While loops (condition auto-inverted), Delay, Terminate, Call Orchestration, Sequential Convoy, Parallel Actions, Local Code Functions (C# expression stubs generated)
 
 **Needs review (migrates but check the report):**
-While loops (condition is auto-inverted), Scope/error handling, Parallel actions, Listen shapes, Suspend with retry
+Scope/error handling, Listen shapes, Correlated receives, Suspend with retry
 
 **Requires redesign (tool flags and explains in the report):**
 WCF-NetNamedPipe, MSDTC atomic transactions, WCF-NetTcp, MessageBox publish-subscribe, Compensation patterns
@@ -364,7 +376,7 @@ biztalk-migrate run \
 
 Open `migration-report.md`. You'll have the complexity score, gap count, and estimated effort before you've billed a single hour — enough to write a SOW.
 
-**Quality target for customer handoff**: Grade B or higher (≥75/100).
+**Quality target for customer handoff**: Grade A (≥90/100). Most applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
 
 ---
 
