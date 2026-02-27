@@ -249,7 +249,8 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
 
               // Clear errors that were fixed
               for (const change of reviewResult.changesApplied) {
-                warnings.push(`[${wf.name}] Fixed: ${change}`);
+                const cleanChange = change.replace(/^Fixed:\s*/i, '');
+                warnings.push(`[${wf.name}] Fixed: ${cleanChange}`);
               }
               // Remove fixed errors from the list
               const fixedRuleIds = new Set(reValidated.issues.map(i => i.rule));

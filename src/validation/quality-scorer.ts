@@ -170,7 +170,8 @@ export function scoreWorkflowQuality(workflowJson: unknown, intentJson?: unknown
   if (intentJson !== undefined && isRecord(intentJson) && isRecord(actions)) {
     const steps = intentJson['steps'];
     if (Array.isArray(steps) && steps.length > 0) {
-      const actionCount = Object.keys(actions).length;
+      // Count recursively so Scope-wrapped workflows aren't penalised for having 1 top-level action
+      const actionCount = collectAllActions(actions).length;
       const stepCount = steps.length;
       const coverage = Math.min(actionCount / stepCount, 1);
       const intentPoints = Math.round(coverage * 15);
@@ -308,6 +309,12 @@ export function scoreWorkflowQuality(workflowJson: unknown, intentJson?: unknown
       recommendations.push('Translate C# expressions to WDL @{...} syntax for all SetVariable values');
     }
   }
+
+  // Cap each dimension at its declared maximum (prevents overcounting from bonus checks)
+  completenessScore  = Math.min(completenessScore,  completenessMax);
+  bestPracticesScore = Math.min(bestPracticesScore,  bestPracticesMax);
+  structuralScore    = Math.min(structuralScore,     structuralMax);
+  namingScore        = Math.min(namingScore,         namingMax);
 
   // ─── Assemble Report ────────────────────────────────────────────────
   const dimensions: QualityDimension[] = [

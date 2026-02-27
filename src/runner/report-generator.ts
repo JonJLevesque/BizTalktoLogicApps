@@ -339,8 +339,19 @@ export function generateMigrationReport(input: ReportInput): string {
   for (const error of errors) {
     allFixItems.push(errorToFix(error));
   }
+  const REC_ACTIONS: Record<string, string> = {
+    'Add a Scope with runAfter FAILED': 'Wrap main actions in Scope_Main; add Terminate_On_Error with runAfter: { Scope_Main: ["FAILED", "TIMEDOUT"] }',
+    'Ensure all intent steps': 'Review dropped steps — some BizTalk shapes may lack a direct Logic Apps equivalent; add Compose placeholders',
+    'Add retryPolicy to all HTTP': 'Add retryPolicy: { type: "fixed", count: 3, interval: "PT30S" } to each Http action inputs',
+    'Change all runAfter status values': 'Find and replace "Succeeded"/"Failed" with "SUCCEEDED"/"FAILED" in workflow.json',
+    'Use KVS_ prefix': 'Rename sensitive @appsetting keys to start with KVS_ (e.g. KVS_Storage_Blob_ConnectionString)',
+    'Consider using Stateful': 'Set "kind": "Stateful" at the workflow root — required for BizTalk migrations',
+    'Remove circular runAfter': 'Check the runAfter graph for cycles; remove the back-edge causing the loop',
+  };
   for (const rec of qualityReport.recommendations) {
-    allFixItems.push({ issue: `Quality: ${rec}`, action: rec, impact: 'Score improvement' });
+    const actionKey = Object.keys(REC_ACTIONS).find(k => rec.startsWith(k));
+    const action = actionKey ? REC_ACTIONS[actionKey]! : rec;
+    allFixItems.push({ issue: `Quality: ${rec}`, action, impact: 'Score improvement' });
   }
 
   if (allFixItems.length > 0) {

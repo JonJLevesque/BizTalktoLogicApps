@@ -58,6 +58,8 @@ import type {
 
 const WDL_SCHEMA = 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#' as const;
 
+const DEFAULT_HTTP_RETRY: RetryPolicy = { type: 'fixed', count: 3, interval: 'PT30S' };
+
 // ─── Connector → ServiceProvider ID mapping ───────────────────────────────────
 
 const SERVICE_PROVIDER_IDS: Record<string, string> = {
@@ -114,6 +116,7 @@ export function generateWorkflow(
     contentVersion: '1.0.0.0',
     triggers,
     actions,
+    outputs: {},
   };
 
   return { definition, kind };
@@ -328,8 +331,29 @@ function uniqueActionName(description: string, usedNames: Set<string>): string {
 
 // ─── Trigger Generation ───────────────────────────────────────────────────────
 
+const TRIGGER_DISPLAY_NAMES: Record<string, string> = {
+  recurrence:  'Recurrence_Schedule',
+  request:     'When_a_HTTP_request_is_received',
+  azureblob:   'When_a_blob_is_added_or_modified',
+  azureBlob:   'When_a_blob_is_added_or_modified',
+  blob:        'When_a_blob_is_added_or_modified',
+  serviceBus:  'When_a_message_is_received_in_a_queue',
+  servicebus:  'When_a_message_is_received_in_a_queue',
+  sql:         'When_an_item_is_created',
+  sqlServer:   'When_an_item_is_created',
+  sftp:        'When_a_file_is_added_or_modified',
+  ftp:         'When_a_file_is_added_or_modified',
+  eventHubs:   'When_events_are_available_in_Event_Hub',
+  eventhub:    'When_events_are_available_in_Event_Hub',
+};
+
 function buildTrigger(trigger: IntegrationTrigger): Record<string, WdlTrigger> {
-  const name = 'trigger';
+  const connector = trigger.connector ?? '';
+  const name = TRIGGER_DISPLAY_NAMES[connector]
+    ?? (trigger.type === 'schedule' ? 'Recurrence_Schedule'
+      : trigger.type === 'webhook' ? 'When_a_HTTP_request_is_received'
+      : trigger.type === 'manual'  ? 'When_a_HTTP_request_is_received'
+      : 'manual_trigger');
 
   switch (trigger.type) {
     case 'schedule':
@@ -515,13 +539,15 @@ function buildConditionAction(
   const cfg = step.config as Record<string, unknown>;
   const b   = step.branches;
 
-  const expression = cfg['condition']
-    ? { equals: [(cfg['expression'] as string) ?? '@true', cfg['condition']] as [string, unknown] }
-    : { equals: ['@{string(triggerBody())}', '@{string(triggerBody())}'] as [string, unknown] }; // placeholder
+  // Prefer branches.condition (XLANG/s string from ODX), then cfg.expression
+  const conditionStr = (b?.condition as string | undefined) ?? (cfg['expression'] as string | undefined);
+  const expression = conditionStr
+    ? parseXlangCondition(conditionStr)
+    : { equals: ['@true', true] as [string, unknown] }; // honest placeholder
 
   return {
     type:       'If',
-    expression,
+    expression: expression as IfAction['expression'],
     actions:    b?.trueBranch  ? buildActions(b.trueBranch,  nameMap) : {},
     ...(b?.falseBranch ? { else: { actions: buildActions(b.falseBranch, nameMap) } } : {}),
     runAfter,
@@ -559,6 +585,7 @@ function buildSendAction(step: IntegrationStep, runAfter: RunAfterMap): WdlActio
       body:    cfg['body'] ?? `@{body('${step.description}')}`,
       headers: (cfg['headers'] as Record<string, string>) ?? { 'Content-Type': 'application/xml' },
     },
+    retryPolicy: DEFAULT_HTTP_RETRY,
     runAfter,
   } satisfies HttpAction;
 }
@@ -572,6 +599,7 @@ function buildEnrichAction(step: IntegrationStep, runAfter: RunAfterMap): HttpAc
       uri:     (cfg['uri'] as string) ?? '@parameters(\'EnrichmentApiUrl\')',
       queries: (cfg['queries'] as Record<string, string>) ?? {},
     },
+    retryPolicy: DEFAULT_HTTP_RETRY,
     runAfter,
   };
 }
@@ -744,6 +772,64 @@ function splitTopLevel(expr: string, op: string): string[] | null {
   return parts.length > 1 ? parts : null;
 }
 
+/**
+ * Converts a simple XLANG/s binary condition into a WDL predicate object.
+ * Used for If-action expressions (which must be JSON objects, not strings).
+ *
+ *   a == b   → { equals:         ['@{a}', 'b'] }
+ *   a != b   → { not: { equals:  ['@{a}', 'b'] } }
+ *   a > b    → { greater:        ['@{a}', b]   }
+ *   a && b   → { and: [ ... ] }
+ *   a || b   → { or:  [ ... ] }
+ *
+ * Returns { equals: ['@true', true] } when the expression cannot be parsed.
+ */
+function parseXlangCondition(expr: string): Record<string, unknown> {
+  const trimmed = expr.trim();
+
+  // Compound: &&
+  if (trimmed.includes('&&')) {
+    const parts = splitTopLevel(trimmed, '&&');
+    if (parts) {
+      return { and: parts.map(p => parseXlangCondition(p.trim())) };
+    }
+  }
+
+  // Compound: ||
+  if (trimmed.includes('||')) {
+    const parts = splitTopLevel(trimmed, '||');
+    if (parts) {
+      return { or: parts.map(p => parseXlangCondition(p.trim())) };
+    }
+  }
+
+  // Simple binary — check longer ops first to avoid partial match
+  const OPS: [string, string][] = [
+    ['>=', 'greaterOrEquals'], ['<=', 'lessOrEquals'],
+    ['==', 'equals'],         ['!=', 'not_equals'],
+    ['>',  'greater'],        ['<',  'less'],
+  ];
+
+  for (const [op, wdlFn] of OPS) {
+    const idx = trimmed.indexOf(op);
+    if (idx < 0) continue;
+    const lhs = trimmed.slice(0, idx).trim();
+    const rhs = trimmed.slice(idx + op.length).trim();
+    if (!lhs || !rhs) continue;
+
+    const wdlLhs = `@{${lhs}}`;
+    const wdlRhs = isNumeric(rhs) ? Number(rhs) : rhs.replace(/^["']|["']$/g, '');
+
+    if (wdlFn === 'not_equals') {
+      return { not: { equals: [wdlLhs, wdlRhs] } };
+    }
+    return { [wdlFn]: [wdlLhs, wdlRhs] };
+  }
+
+  // Unparseable — use an honest placeholder rather than a tautology
+  return { equals: ['@true', true] };
+}
+
 function buildAggregateAction(
   step: IntegrationStep,
   nameMap: Map<string, string>,
@@ -789,13 +875,17 @@ function buildDelayAction(step: IntegrationStep, runAfter: RunAfterMap): DelayAc
 
 function buildInvokeChildAction(step: IntegrationStep, runAfter: RunAfterMap): WorkflowAction {
   const cfg = step.config as Record<string, unknown>;
+  const rawName = (cfg['workflowName'] as string) ?? step.description.replace(/\s/g, '');
+  // Strip assembly-qualified names like "Namespace.Class, Assembly, Version=1.0.0.0, ..."
+  // → keep only the final class-name segment
+  const id = rawName.includes(',')
+    ? (rawName.split(',')[0]?.split('.').pop() ?? rawName)
+    : (rawName.split('.').pop() ?? rawName);
   return {
     type: 'Workflow',
     inputs: {
       host: {
-        workflow: {
-          id: (cfg['workflowName'] as string) ?? step.description.replace(/\s/g, ''),
-        },
+        workflow: { id },
       },
       body: cfg['body'],
     },
@@ -963,19 +1053,18 @@ function wrapInErrorScope(
 
   const catchActions: Record<string, WdlAction> = {};
 
-  if (errorHandling.strategy === 'terminate') {
-    catchActions['Terminate_On_Error'] = {
-      type:   'Terminate',
-      inputs: {
-        runStatus: 'Failed',
-        runError:  {
-          code:    'WorkflowError',
-          message: "@{result('Scope_Main')[0]['error']['message']}",
-        },
+  // Always add Terminate_On_Error — every strategy needs a catch handler
+  catchActions['Terminate_On_Error'] = {
+    type:   'Terminate',
+    inputs: {
+      runStatus: 'Failed',
+      runError:  {
+        code:    'WorkflowError',
+        message: "@{result('Scope_Main')[0]['error']['message']}",
       },
-      runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT'] },
-    } satisfies TerminateAction;
-  }
+    },
+    runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT'] },
+  } satisfies TerminateAction;
 
   if (errorHandling.deadLetterTarget) {
     catchActions['Send_To_Dead_Letter_Queue'] = {

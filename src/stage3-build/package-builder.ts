@@ -94,7 +94,13 @@ export function buildPackage(
 
   // ── 1. Generate workflows (one per orchestration) ─────────────────────────
   const workflows: LogicAppsProject['workflows'] = [];
+  const seenOrchNames = new Set<string>();
   for (const orch of app.orchestrations) {
+    if (seenOrchNames.has(orch.name)) {
+      warnings.push(`Skipped duplicate orchestration "${orch.name}" (likely a backup copy — remove the duplicate .odx file)`);
+      continue;
+    }
+    seenOrchNames.add(orch.name);
     const orchIntent = buildOrchestrationIntent(intent, orch.name);
     const wf = generateWorkflow(orchIntent, {
       workflowName: orch.name,
