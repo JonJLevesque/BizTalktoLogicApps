@@ -522,6 +522,25 @@ function enrichStepWithChildren(
  *   so branch content is attached to the parent step's branches field.
  * - prevId threads the runAfter chain through the linear sequence.
  */
+/**
+ * Tags all steps (including nested branch steps) with the source orchestration name.
+ * This enables per-orchestration step filtering in the build stage.
+ */
+function tagStepsWithOrchestration(steps: IntegrationStep[], orchName: string): void {
+  for (const step of steps) {
+    step.sourceOrchestration = orchName;
+    // Recurse into branch children
+    if (step.branches) {
+      if (step.branches.trueBranch) tagStepsWithOrchestration(step.branches.trueBranch, orchName);
+      if (step.branches.falseBranch) tagStepsWithOrchestration(step.branches.falseBranch, orchName);
+      if (step.branches.cases) {
+        for (const c of step.branches.cases) tagStepsWithOrchestration(c.steps, orchName);
+      }
+      if (step.branches.defaultSteps) tagStepsWithOrchestration(step.branches.defaultSteps, orchName);
+    }
+  }
+}
+
 function processShapes(
   shapes: OdxShape[],
   app: BizTalkApplication,
@@ -637,19 +656,22 @@ export function constructIntent(
   const systems = buildSystems(app);
   const errorHandlingResult = detectErrorStrategy(app);
 
-  // Build steps from all orchestrations (recursive — branches and loop bodies included)
+  // Build steps from all orchestrations (recursive — branches and loop bodies included).
+  // Each orchestration gets an independent step chain (prevId resets per orchestration)
+  // and each step is tagged with sourceOrchestration for per-workflow partitioning.
   const steps: IntegrationStep[] = [];
-  let prevId: string | null = null;
 
   for (const orch of app.orchestrations) {
-    const orchSteps = processShapes(orch.shapes, app, prevId);
+    // Reset prevId per orchestration — steps in different orchestrations are independent
+    const orchPrevId: string | null = null;
+    const orchSteps = processShapes(orch.shapes, app, orchPrevId);
+    // Tag each step (and recursively its branch children) with the orchestration name
+    tagStepsWithOrchestration(orchSteps, orch.name);
     steps.push(...orchSteps);
-    if (orchSteps.length > 0) {
-      prevId = orchSteps[orchSteps.length - 1]!.id;
-    }
   }
 
-  // Add comment steps for custom pipeline components so they appear in gap analysis
+  // Add comment steps for custom pipeline components so they appear in gap analysis.
+  // These are not tied to a specific orchestration, so they have no runAfter.
   for (const pipeline of app.pipelines) {
     if (pipeline.hasCustomComponents) {
       const customComps = pipeline.components.filter(c => c.isCustom);
@@ -658,15 +680,14 @@ export function constructIntent(
         const compStep: IntegrationStep = {
           id: `step_pipeline_${safeId}`,
           type: 'set-variable',
-          description: `CUSTOM_PIPELINE: ${comp.fullTypeName} — requires Azure Function`,
+          description: `CUSTOM_PIPELINE: ${comp.fullTypeName} — use Local Code Function`,
           actionType: 'Compose',
           config: {
-            note: `TODO_CLAUDE: custom pipeline component requires manual migration: ${comp.fullTypeName}`,
+            note: `TODO_CLAUDE: custom pipeline component requires migration to Local Code Function: ${comp.fullTypeName}`,
           },
-          runAfter: prevId ? [prevId] : [],
+          runAfter: [],
         };
         steps.push(compStep);
-        prevId = compStep.id;
       }
     }
   }

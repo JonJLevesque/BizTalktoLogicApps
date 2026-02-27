@@ -420,8 +420,8 @@ function buildActions(
   return actions;
 }
 
-function buildRunAfter(stepIds: string[], nameMap: Map<string, string>): RunAfterMap {
-  if (stepIds.length === 0) return {};
+function buildRunAfter(stepIds: string[] | undefined | null, nameMap: Map<string, string>): RunAfterMap {
+  if (!Array.isArray(stepIds) || stepIds.length === 0) return {};
   const ra: RunAfterMap = {};
   for (const id of stepIds) {
     const name = nameMap.get(id);
@@ -731,6 +731,10 @@ function buildInvokeFunctionAction(step: IntegrationStep, runAfter: RunAfterMap)
 function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): WdlAction {
   const cfg = step.config as Record<string, unknown>;
   const varName = (cfg['variableName'] as string) ?? 'variable';
+  // config.expression holds the raw XLANG/s or partial WDL expression from the intent constructor.
+  // Use it as the value when config.value was not explicitly set by AI enrichment.
+  const expression = cfg['expression'] as string | undefined;
+  const resolvedValue = cfg['value'] ?? expression ?? '';
 
   if (cfg['initialize']) {
     return {
@@ -739,7 +743,7 @@ function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): W
         variables: [{
           name:  varName,
           type:  (cfg['variableType'] as InitializeVariableAction['inputs']['variables'][0]['type']) ?? 'string',
-          value: cfg['value'],
+          value: resolvedValue,
         }],
       },
       runAfter,
@@ -750,7 +754,7 @@ function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): W
     type: 'SetVariable',
     inputs: {
       name:  varName,
-      value: cfg['value'] ?? '',
+      value: resolvedValue,
     },
     runAfter,
   } satisfies SetVariableAction;

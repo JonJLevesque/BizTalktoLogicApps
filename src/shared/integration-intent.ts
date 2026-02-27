@@ -62,6 +62,8 @@ export interface IntegrationStep {
   };
   /** For error-handler steps: what error scenario this handles */
   handlesErrorFrom?: string;
+  /** Source orchestration name — used to partition steps per workflow in multi-orch apps */
+  sourceOrchestration?: string;
 }
 
 // ─── Trigger ──────────────────────────────────────────────────────────────────

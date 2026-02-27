@@ -61,6 +61,8 @@ export interface BuildResult {
   localSettings:   Record<string, unknown>;
   testSpecs:       Record<string, string>;  // filename → content (JSON or .cs)
   warnings:        string[];
+  /** Absolute paths to source XSD schema files that should be copied to output Schemas/ */
+  schemaFiles:     string[];
   /** Summary of what was generated */
   summary:         BuildSummary;
 }
@@ -133,7 +135,23 @@ export function buildPackage(
   }
 
   // ── 3. Generate connections ───────────────────────────────────────────────
-  const { connections, appSettings } = generateConnectionsFromApp(app);
+  // Merge connections from two sources:
+  //   (a) Adapter types discovered in BizTalk binding files
+  //   (b) Connector references in the enriched IntegrationIntent steps
+  // This ensures adapters not fully resolved by the binding analyzer are still captured.
+  const appConn    = generateConnectionsFromApp(app);
+  const intentConn = generateConnectionsFromIntent(intent);
+  const connections = {
+    serviceProviderConnections: {
+      ...appConn.connections.serviceProviderConnections,
+      ...intentConn.connections.serviceProviderConnections,
+    },
+    managedApiConnections: {
+      ...appConn.connections.managedApiConnections,
+      ...intentConn.connections.managedApiConnections,
+    },
+  };
+  const appSettings = { ...appConn.appSettings, ...intentConn.appSettings };
 
   // ── 4. Generate host.json ─────────────────────────────────────────────────
   const host: HostJson = buildHostJson(app);
@@ -193,7 +211,7 @@ export function buildPackage(
     warnings:          warnings.length,
   };
 
-  return { project, armTemplate, armParameters, localSettings, testSpecs, warnings, summary };
+  return { project, armTemplate, armParameters, localSettings, testSpecs, warnings, schemaFiles: [], summary };
 }
 
 /**
@@ -257,7 +275,7 @@ export function buildPackageFromIntent(
     warnings:          0,
   };
 
-  return { project, armTemplate, armParameters, localSettings, testSpecs, warnings, summary };
+  return { project, armTemplate, armParameters, localSettings, testSpecs, warnings, schemaFiles: [], summary };
 }
 
 // ─── Host.json Builder ────────────────────────────────────────────────────────
@@ -332,17 +350,30 @@ function buildArmParameters(
 
 /**
  * Builds an orchestration-specific intent from the application-level intent.
- * Each orchestration gets its own workflow.json, so we need per-orch intents.
+ * Filters steps to only those tagged with this orchestration's name.
+ * Removes cross-orchestration runAfter references that would be dangling.
  */
 function buildOrchestrationIntent(
   appIntent: IntegrationIntent,
   orchName: string
 ): IntegrationIntent {
-  // For now, return the app-level intent with the orchestration name noted.
-  // In Stage G2 (Greenfield Design) or via more detailed orchestration analysis,
-  // this can be refined to produce orchestration-specific step sets.
+  // Filter to steps belonging to this orchestration (tagged by intent-constructor)
+  const orchSteps = appIntent.steps.filter(
+    s => !s.sourceOrchestration || s.sourceOrchestration === orchName
+  );
+
+  // Build a set of valid step IDs within this orchestration
+  const validIds = new Set(orchSteps.map(s => s.id));
+
+  // Remove runAfter references to steps from other orchestrations
+  const fixedSteps = orchSteps.map(s => ({
+    ...s,
+    runAfter: s.runAfter.filter(id => validIds.has(id)),
+  }));
+
   return {
     ...appIntent,
+    steps: fixedSteps,
     metadata: {
       ...appIntent.metadata,
       sourceOrchestrationName: orchName,

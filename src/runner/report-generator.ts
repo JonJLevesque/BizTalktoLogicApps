@@ -330,6 +330,33 @@ export function generateMigrationReport(input: ReportInput): string {
     lines.push('');
   }
 
+  // ── Actionable Fix List ────────────────────────────────────────────────────────
+  // Map errors and quality recommendations to specific, numbered fixes.
+  // Helps consultants burn down issues one by one.
+
+  const allFixItems: Array<{ issue: string; action: string; impact: string }> = [];
+
+  for (const error of errors) {
+    allFixItems.push(errorToFix(error));
+  }
+  for (const rec of qualityReport.recommendations) {
+    allFixItems.push({ issue: `Quality: ${rec}`, action: rec, impact: 'Score improvement' });
+  }
+
+  if (allFixItems.length > 0) {
+    lines.push('## Actionable Fix List');
+    lines.push('');
+    lines.push('Address each item below to improve migration quality and close deployment gaps.');
+    lines.push('');
+    lines.push('| # | Issue | Recommended Fix | Impact |');
+    lines.push('|---|-------|-----------------|--------|');
+    for (let i = 0; i < allFixItems.length; i++) {
+      const item = allFixItems[i]!;
+      lines.push(`| ${i + 1} | ${item.issue} | ${item.action} | ${item.impact} |`);
+    }
+    lines.push('');
+  }
+
   // ── Deployment Instructions ───────────────────────────────────────────────────
 
   lines.push('## Deployment Instructions');
@@ -431,4 +458,22 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push('*Support: Me@Jonlevesque.com*');
 
   return lines.join('\n');
+}
+
+// ─── Error-to-Fix Mapper ──────────────────────────────────────────────────────
+
+function errorToFix(error: string): { issue: string; action: string; impact: string } {
+  if (error.includes('TODO_CLAUDE'))
+    return { issue: error, action: 'Run AI enrichment or manually translate the XLANG/s expression to WDL', impact: '+5-15 pts' };
+  if (error.includes('connections') || error.includes('connection'))
+    return { issue: error, action: 'Add missing connector entry to connections.json with correct parameterValues', impact: 'Deployment fix' };
+  if (error.includes('runAfter'))
+    return { issue: error, action: 'Change runAfter status values to ALL CAPS: SUCCEEDED, FAILED, TIMEDOUT, SKIPPED', impact: '+10 pts' };
+  if (error.includes('empty value') || error.includes('SetVariable'))
+    return { issue: error, action: 'Translate C# expression to WDL @{...} syntax and set as the value', impact: '+3-9 pts' };
+  if (error.includes('Intent validation'))
+    return { issue: error, action: 'Fix the IntegrationIntent structure — check for missing required fields', impact: 'Build fix' };
+  if (error.includes('parse') || error.includes('Parse'))
+    return { issue: error, action: 'Review source artifact for encoding or syntax issues', impact: 'Parse fix' };
+  return { issue: error, action: 'Manual review required — check the specific workflow section', impact: 'Variable' };
 }

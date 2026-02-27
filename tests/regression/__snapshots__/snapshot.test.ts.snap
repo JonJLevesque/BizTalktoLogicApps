@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeBindingsXml output is stable 1`] = `
+exports[`Snapshot — 02-simple-file-receive — Stage 1 > analyzeBindingsXml output is stable 1`] = `
 {
   "receiveLocationCount": 1,
   "receiveLocations": [
@@ -22,7 +22,7 @@ exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeBindingsXml outp
 }
 `;
 
-exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeOrchestrationXml output is stable 1`] = `
+exports[`Snapshot — 02-simple-file-receive — Stage 1 > analyzeOrchestrationXml output is stable 1`] = `
 {
   "activatingReceiveCount": 0,
   "correlationSetCount": 0,
@@ -53,14 +53,14 @@ exports[`Snapshot — 02-simple-file-receive — Stage 1 analyzeOrchestrationXml
 }
 `;
 
-exports[`Snapshot — 02-simple-file-receive — Stage 2 analyzeGaps output is stable for simple file receive 1`] = `
+exports[`Snapshot — 02-simple-file-receive — Stage 2 > analyzeGaps output is stable for simple file receive 1`] = `
 {
   "gapCount": 0,
   "gapSummary": [],
 }
 `;
 
-exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeBindingsXml output is stable 1`] = `
+exports[`Snapshot — 03-content-based-routing — Stage 1 > analyzeBindingsXml output is stable 1`] = `
 {
   "receiveLocationCount": 1,
   "receiveLocations": [
@@ -88,7 +88,7 @@ exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeBindingsXml ou
 }
 `;
 
-exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeOrchestrationXml output is stable 1`] = `
+exports[`Snapshot — 03-content-based-routing — Stage 1 > analyzeOrchestrationXml output is stable 1`] = `
 {
   "activatingReceiveCount": 0,
   "correlationSetCount": 0,
@@ -123,7 +123,7 @@ exports[`Snapshot — 03-content-based-routing — Stage 1 analyzeOrchestrationX
 }
 `;
 
-exports[`Snapshot — 03-content-based-routing — Stage 2 analyzeGaps output is stable for content-based routing 1`] = `
+exports[`Snapshot — 03-content-based-routing — Stage 2 > analyzeGaps output is stable for content-based routing 1`] = `
 {
   "gapCount": 0,
   "gapSummary": [],

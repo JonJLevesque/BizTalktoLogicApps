@@ -21,8 +21,8 @@
  *     migration-report.md
  */
 
-import { mkdirSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { mkdirSync, writeFileSync, existsSync, copyFileSync } from 'fs';
+import { join, basename } from 'path';
 import type { BuildResult } from '../stage3-build/package-builder.js';
 
 export interface WriteOptions {
@@ -80,6 +80,34 @@ export function writeOutput(options: WriteOptions): void {
       writeFileSync(join(testsDir, name), String(content), 'utf-8');
     }
   }
+
+  // ── XSD Schemas ─────────────────────────────────────────────────────────────
+  if (buildResult.schemaFiles && buildResult.schemaFiles.length > 0) {
+    const schemasDir = join(outputDir, 'Schemas');
+    ensureDir(schemasDir);
+    for (const schemaPath of buildResult.schemaFiles) {
+      try {
+        copyFileSync(schemaPath, join(schemasDir, basename(schemaPath)));
+      } catch {
+        // Non-fatal: schema file may have moved since artifact scan
+      }
+    }
+  }
+
+  // ── VS Code workspace file ───────────────────────────────────────────────────
+  const appName = buildResult.project.appName;
+  const workspace = {
+    folders: [{ path: '.' }],
+    settings: {
+      'azureLogicAppsStandard.showAutoTriggerKey': true,
+    },
+    extensions: {
+      recommendations: [
+        'ms-azuretools.vscode-azurelogicapps',
+      ],
+    },
+  };
+  writeJson(join(outputDir, `${appName}.code-workspace`), workspace);
 
   // ── Migration report ────────────────────────────────────────────────────────
   writeFileSync(join(outputDir, 'migration-report.md'), migrationReport, 'utf-8');

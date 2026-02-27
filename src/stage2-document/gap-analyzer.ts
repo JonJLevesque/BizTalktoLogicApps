@@ -18,6 +18,7 @@
 
 import type {
   BizTalkApplication,
+  OdxShape,
   ParsedOrchestration,
   ParsedMap,
   ParsedPipeline,
@@ -137,6 +138,23 @@ const GAP_DEFS = {
     baseEffortDays: 5,
   },
 
+  customCSharpCode: {
+    capability: 'Custom C# Helper Assemblies',
+    severity: 'high' as RiskSeverity,
+    description:
+      'ExpressionShape or MessageAssignmentShape blocks call helper assembly methods ' +
+      '(e.g., HelperClass.DoWork(msg)) that do not have direct WDL equivalents. The C# code ' +
+      'cannot run inside a Logic Apps workflow without a host.',
+    mitigation:
+      'Use Logic Apps Local Code Functions (preferred): add a .NET class to the lib/custom folder ' +
+      'of your Logic Apps project and invoke it via the Execute Code Function action. This runs ' +
+      'in-process with the Logic Apps runtime — no separate deployment, no HTTP latency. ' +
+      'Only use Azure Functions for code that is very large, needs its own scaling, ' +
+      'or must be shared across multiple applications. ' +
+      'For each ExpressionShape marked TODO in the workflow, create a corresponding local function stub.',
+    baseEffortDays: 3,
+  },
+
   scriptingFunctoid: {
     capability: 'Scripting Functoids (msxsl:script)',
     severity: 'medium' as RiskSeverity,
@@ -145,10 +163,11 @@ const GAP_DEFS = {
       'Transform XML action uses .NET XSLT without the msxsl extension — scripts will cause ' +
       'transformation failures at runtime.',
     mitigation:
-      'Rewrite as standard XSLT templates, or extract the logic into an Azure Function and ' +
-      'call it via HTTP action before the Transform XML action. For simple string operations, ' +
-      'replace with built-in XSLT string/math functions. Each scripting functoid requires ' +
-      'individual analysis.',
+      'Option A (preferred): Rewrite as standard XSLT templates using built-in XSLT string/math ' +
+      'functions. Option B: Extract the C# logic into a Logic Apps Local Code Function ' +
+      '(runs in-process, no separate service) and call it before the Transform XML action. ' +
+      'Option C (last resort): Azure Function only if the logic requires external dependencies. ' +
+      'Each scripting functoid requires individual analysis.',
     baseEffortDays: 2,
   },
 
@@ -426,6 +445,31 @@ export function analyzeGaps(app: BizTalkApplication): MigrationGap[] {
 
 interface GapHit { def: GapDefinition; effortDelta: number }
 
+/** Returns true if the C# expression looks like a helper assembly method call. */
+function isComplexCSharp(expr: string): boolean {
+  return (
+    /\w+\.\w+\(/.test(expr) ||       // method calls like Helper.Process(msg)
+    expr.includes('namespace ') ||    // namespace declarations
+    expr.includes('using ') ||        // using statements
+    expr.split('\n').length > 3        // multi-line code blocks
+  );
+}
+
+/** Recursively collects all ExpressionShape/MessageAssignmentShape code expressions. */
+function collectExpressions(shapes: OdxShape[]): string[] {
+  const exprs: string[] = [];
+  for (const shape of shapes) {
+    if (
+      (shape.shapeType === 'ExpressionShape' || shape.shapeType === 'MessageAssignmentShape') &&
+      shape.codeExpression
+    ) {
+      exprs.push(shape.codeExpression);
+    }
+    if (shape.children) exprs.push(...collectExpressions(shape.children));
+  }
+  return exprs;
+}
+
 function orchestrationGaps(orch: ParsedOrchestration): GapHit[] {
   const hits: GapHit[] = [];
   if (orch.hasAtomicTransactions)     hits.push({ def: GAP_DEFS.atomicTransaction,     effortDelta: 2 });
@@ -433,6 +477,13 @@ function orchestrationGaps(orch: ParsedOrchestration): GapHit[] {
   if (orch.hasCompensation)            hits.push({ def: GAP_DEFS.compensation,           effortDelta: 2 });
   if (orch.hasBRECalls)                hits.push({ def: GAP_DEFS.brePolicy,              effortDelta: 1 });
   if (orch.hasSuspend)                 hits.push({ def: GAP_DEFS.suspend,                effortDelta: 1 });
+
+  // Detect ExpressionShapes with complex C# code (helper assembly calls)
+  const complexExprs = collectExpressions(orch.shapes).filter(isComplexCSharp);
+  if (complexExprs.length > 0) {
+    hits.push({ def: GAP_DEFS.customCSharpCode, effortDelta: Math.min(complexExprs.length, 5) });
+  }
+
   return hits;
 }
 

@@ -118,6 +118,14 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
       warnings.push(enrichmentResult.notes);
     }
     enrichedIntent = enrichmentResult.enrichedIntent;
+    // Sanitize: ensure every step has runAfter as string[] (AI may omit or null it)
+    enrichedIntent = {
+      ...enrichedIntent,
+      steps: enrichedIntent.steps.map(s => ({
+        ...s,
+        runAfter: Array.isArray(s.runAfter) ? s.runAfter : [],
+      })),
+    };
   } else {
     progress('reason', 'Enrichment skipped (skipEnrichment=true)');
     timings['reason'] = 0;
@@ -147,6 +155,9 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
     })
   );
   warnings.push(...buildResult.warnings);
+
+  // Thread discovered XSD schema files into the build result for output writer
+  buildResult.schemaFiles = inventory.schemas ?? [];
 
   // ── STEP 4: VALIDATE ───────────────────────────────────────────────────────
 

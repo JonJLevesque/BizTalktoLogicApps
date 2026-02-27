@@ -266,9 +266,12 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
 const ADAPTER_TO_CONNECTOR: Record<string, string> = {
   // File / storage
   FILE:                    'blob',
-  // Messaging
+  // Messaging — including SB-Messaging variant used by binding analyzer
   MSMQ:                    'serviceBus',
   'WCF-NetMsmq':           'serviceBus',
+  'SB-Messaging':          'serviceBus',   // BizTalk binding adapterType
+  'SBMessaging':           'serviceBus',   // alternate casing
+  'Service Bus':           'serviceBus',
   MQSeries:                'ibmMq',
   'WebSphere MQ':          'ibmMq',
   'IBM MQ':                'ibmMq',
@@ -279,12 +282,15 @@ const ADAPTER_TO_CONNECTOR: Record<string, string> = {
   // HTTP / WCF
   HTTP:                    'http',
   HTTPS:                   'http',
+  SOAP:                    'http',         // SOAP receive/send uses HTTP connector
   'WCF-BasicHttp':         'http',
   'WCF-WSHttp':            'http',
   'WCF-WebHttp':           'http',
+  'WCF-Custom':            'http',         // parsed as custom; often wraps HTTP or SQL
   // Databases
   SQL:                     'sql',
   'SQL Server':            'sql',
+  'WCF-SQL':               'sql',          // WCF-SQL adapter = SQL ServiceProvider
   Oracle:                  'oracleDb',
   OracleEBusiness:         'oracleDb',
   DB2:                     'db2',
@@ -297,6 +303,7 @@ const ADAPTER_TO_CONNECTOR: Record<string, string> = {
   SAP:                     'sap',
   // Azure native
   EventHubs:               'eventHubs',
+  'Event Hubs':            'eventHubs',
   'Azure Event Hubs':      'eventHubs',
   // EDI / B2B (Integration Account required)
   AS2:                     'as2',

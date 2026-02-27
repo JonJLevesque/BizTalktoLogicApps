@@ -276,6 +276,39 @@ export function scoreWorkflowQuality(workflowJson: unknown, intentJson?: unknown
     }
   }
 
+  // ─── Fidelity Penalties (applied to Completeness) ───────────────────
+  // Penalize workflows with unresolved TODO markers or placeholder logic,
+  // ensuring the quality score reflects actual translation completeness.
+  if (isRecord(actions)) {
+    const workflowStr = JSON.stringify(workflowJson);
+
+    // Penalty: Unresolved TODO_CLAUDE markers (-5 each, max -15)
+    const todoMatches = workflowStr.match(/TODO_CLAUDE/g);
+    const todoCount = todoMatches ? todoMatches.length : 0;
+    if (todoCount > 0) {
+      const penalty = Math.min(todoCount * 5, 15);
+      completenessScore = Math.max(0, completenessScore - penalty);
+      completenessIssues.push(`${todoCount} unresolved TODO_CLAUDE marker(s) — AI enrichment incomplete`);
+      recommendations.push('Resolve all TODO_CLAUDE markers with valid WDL expressions');
+    }
+
+    // Penalty: Empty SetVariable values (-3 each, max -9)
+    const allActionsForPenalty = collectAllActions(actions);
+    const emptySetVars = allActionsForPenalty.filter(([, a]) => {
+      if (a['type'] !== 'SetVariable') return false;
+      const inputs = a['inputs'];
+      if (!isRecord(inputs)) return false;
+      const val = inputs['value'];
+      return val === '' || val === undefined || val === null;
+    });
+    if (emptySetVars.length > 0) {
+      const penalty = Math.min(emptySetVars.length * 3, 9);
+      completenessScore = Math.max(0, completenessScore - penalty);
+      completenessIssues.push(`${emptySetVars.length} SetVariable action(s) with empty values`);
+      recommendations.push('Translate C# expressions to WDL @{...} syntax for all SetVariable values');
+    }
+  }
+
   // ─── Assemble Report ────────────────────────────────────────────────
   const dimensions: QualityDimension[] = [
     {
