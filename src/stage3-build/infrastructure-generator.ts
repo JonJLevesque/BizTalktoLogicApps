@@ -56,6 +56,8 @@ export interface ArmParameter {
   type:          'string' | 'int' | 'bool' | 'object' | 'array' | 'secureString';
   defaultValue?: unknown;
   allowedValues?: unknown[];
+  maxLength?:    number;
+  minLength?:    number;
   metadata?:     { description: string };
 }
 
@@ -130,8 +132,9 @@ export function generateLocalSettings(
 function buildParameters(arch: ArchitectureRecommendation): Record<string, ArmParameter> {
   const params: Record<string, ArmParameter> = {
     appName: {
-      type:     'string',
-      metadata: { description: 'Base name for all resources. Used as prefix for resource names.' },
+      type:      'string',
+      maxLength: 43,
+      metadata:  { description: 'Base name for all resources. Logic Apps Standard app names are capped at 43 characters. The first 32 characters must be unique per storage account (Host ID). Used as prefix for resource names.' },
     },
     location: {
       type:         'string',

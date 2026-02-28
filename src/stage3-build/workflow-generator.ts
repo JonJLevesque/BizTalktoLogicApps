@@ -321,12 +321,16 @@ function uniqueActionName(description: string, usedNames: Set<string>): string {
     .slice(0, 4)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
-  let base = words.join('_') || 'Action';
+  // Logic Apps action names max 80 chars — truncate before uniqueness check
+  let base = (words.join('_') || 'Action').slice(0, 80);
   if (!usedNames.has(base)) return base;
 
   let counter = 2;
-  while (usedNames.has(`${base}_${counter}`)) counter++;
-  return `${base}_${counter}`;
+  // Leave room for suffix (_N) when truncating
+  const maxBase = 77; // 80 - len('_99')
+  const trimmedBase = base.slice(0, maxBase);
+  while (usedNames.has(`${trimmedBase}_${counter}`)) counter++;
+  return `${trimmedBase}_${counter}`;
 }
 
 // ─── Trigger Generation ───────────────────────────────────────────────────────
@@ -1063,7 +1067,7 @@ function wrapInErrorScope(
         message: "@{result('Scope_Main')[0]['error']['message']}",
       },
     },
-    runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT'] },
+    runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT', 'SKIPPED'] },
   } satisfies TerminateAction;
 
   if (errorHandling.deadLetterTarget) {

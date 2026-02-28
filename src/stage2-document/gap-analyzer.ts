@@ -157,18 +157,22 @@ const GAP_DEFS = {
 
   scriptingFunctoid: {
     capability: 'Scripting Functoids (msxsl:script)',
-    severity: 'medium' as RiskSeverity,
+    severity: 'high' as RiskSeverity,
     description:
       'Scripting functoids compile to msxsl:script C# blocks embedded in XSLT. The Logic Apps ' +
       'Transform XML action uses .NET XSLT without the msxsl extension — scripts will cause ' +
-      'transformation failures at runtime.',
+      'transformation failures at runtime. Additionally, the Integration Account XSLT mapper ' +
+      'only supports .NET 2.0 C# syntax: no LINQ, no lambda expressions, no var keyword. ' +
+      'Any modern C# in scripting functoids (LINQ queries, var declarations, lambdas) will ' +
+      'fail to compile even if msxsl were supported.',
     mitigation:
       'Option A (preferred): Rewrite as standard XSLT templates using built-in XSLT string/math ' +
-      'functions. Option B: Extract the C# logic into a Logic Apps Local Code Function ' +
-      '(runs in-process, no separate service) and call it before the Transform XML action. ' +
-      'Option C (last resort): Azure Function only if the logic requires external dependencies. ' +
-      'Each scripting functoid requires individual analysis.',
-    baseEffortDays: 2,
+      'functions (normalize-space, substring, translate). Option B: Extract the C# logic into a ' +
+      'Logic Apps Local Code Function (runs in-process, no separate service) and call it before ' +
+      'the Transform XML action — use .NET 6+ syntax freely. Option C (last resort): Azure ' +
+      'Function only if the logic requires external dependencies or shared-across-workflows reuse. ' +
+      'Each scripting functoid requires individual analysis; budget 0.5–1 day per unique script.',
+    baseEffortDays: 3,
   },
 
   databaseFunctoid: {
@@ -205,18 +209,23 @@ const GAP_DEFS = {
 
   flatFilePipelineOutput: {
     capability: 'Flat File Pipeline Component Output Difference',
-    severity: 'low' as RiskSeverity,
+    severity: 'medium' as RiskSeverity,
     description:
       'The Logic Apps built-in Flat File Decode action produces a different XML structure than ' +
       'the BizTalk FlatFileDisassembler pipeline component. BizTalk generates XML using the ' +
       'flat file schema\'s element names; Logic Apps produces a generic schema-agnostic structure. ' +
-      'Downstream maps and validation expecting BizTalk\'s output XML will fail.',
+      'Downstream maps and validation expecting BizTalk\'s output XML will fail. ' +
+      'Additionally, Logic Apps supports only a single Body schema — BizTalk flat files with ' +
+      'separate Header, Body, and Trailer schemas require consolidation into one unified schema ' +
+      'before migration.',
     mitigation:
-      'After switching to the Logic Apps Flat File Decode action, run the migration test suite ' +
-      'against golden-master outputs. Update any downstream XSLT maps or XSD schemas that reference ' +
-      'element names specific to BizTalk\'s flat file XML format. The VS Code Data Mapper extension ' +
-      'can help visually remap between the old and new structures.',
-    baseEffortDays: 1,
+      'For output structure differences: After switching to the Logic Apps Flat File Decode action, ' +
+      'run the migration test suite against golden-master outputs. Update any downstream XSLT maps ' +
+      'or XSD schemas that reference element names specific to BizTalk\'s flat file XML format. ' +
+      'The VS Code Data Mapper extension can help visually remap between the old and new structures. ' +
+      'For Header/Body/Trailer schemas: Consolidate into a single Body schema, representing ' +
+      'header and trailer as record types within the unified schema.',
+    baseEffortDays: 2,
   },
 
   bamTracking: {
