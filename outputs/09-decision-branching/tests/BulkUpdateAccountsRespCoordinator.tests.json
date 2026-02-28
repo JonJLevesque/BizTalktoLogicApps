@@ -1,0 +1,59 @@
+{
+  "workflowName": "BulkUpdateAccountsRespCoordinator",
+  "testCases": [
+    {
+      "name": "BulkUpdateAccountsRespCoordinator_HappyPath",
+      "description": "Happy path: Unknown — no activating receive shape found triggers workflow and all steps succeed.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:56:08.292Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should be accepted (202) on valid trigger"
+        }
+      ]
+    },
+    {
+      "name": "BulkUpdateAccountsRespCoordinator_ErrorPath",
+      "description": "Error path: first send step fails, error handler activates.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:56:08.292Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@result('Scope_Main')?[0]?['status']",
+          "expectedValue": "Failed",
+          "message": "Main scope should show Failed status when a step errors"
+        }
+      ]
+    },
+    {
+      "name": "BulkUpdateAccountsRespCoordinator_RetryPolicy",
+      "description": "Retry policy test: send step fails 3 times then succeeds.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:56:08.292Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should eventually succeed after 3 retry attempt(s)"
+        }
+      ]
+    }
+  ]
+}

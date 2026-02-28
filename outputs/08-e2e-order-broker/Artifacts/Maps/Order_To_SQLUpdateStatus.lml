@@ -1,0 +1,29 @@
+# Logic Apps Data Mapper — LML
+# Generated from BizTalk map: Order_To_SQLUpdateStatus
+# Source schema:      Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderSchema
+# Destination schema: Microsoft.Samples.BizTalk.SouthridgeVideo.MessagingSchemas.SQLUpdateStatusSchema
+# Generated: 2026-02-28T21:55:37.067Z
+#
+# Review all mappings before deployment.
+# Functoid-derived mappings are NOT included — add them manually.
+
+$schema: https://aka.ms/logicapps-data-mapper-schema/lml
+version: 1.0
+
+sourceSchema:
+  name: OrderSchema
+  namespace: "Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas"
+
+targetSchema:
+  name: SQLUpdateStatusSchema
+  namespace: "Microsoft.Samples.BizTalk.SouthridgeVideo.MessagingSchemas"
+
+mappings:
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='CustNum']
+    target: *[local-name()='<Schema>']/*[local-name()='UpdateStatus']/*[local-name()='UpdateStatus']/@*[local-name()='custID']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='OrderNum']
+    target: *[local-name()='<Schema>']/*[local-name()='UpdateStatus']/*[local-name()='UpdateStatus']/@*[local-name()='orderID']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='Status']
+    target: *[local-name()='<Schema>']/*[local-name()='UpdateStatus']/*[local-name()='UpdateStatus']/@*[local-name()='status']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='OrderSeqNum']
+    target: *[local-name()='<Schema>']/*[local-name()='UpdateStatus']/*[local-name()='UpdateStatus']/@*[local-name()='seqNum']

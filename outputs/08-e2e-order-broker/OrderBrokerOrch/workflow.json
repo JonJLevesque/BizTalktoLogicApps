@@ -1,0 +1,209 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Listenshape_No_Direct_Logic": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": ""
+            },
+            "runAfter": {}
+          },
+          "Expression_Systemdiagnosticsdebugwriteline_Nbrokern_Xd": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": "System.Diagnostics.Debug.WriteLine( \"\\n<BROKER>\\n\" );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Req ID   : \" + CSROrderMsg.Header.ReqId );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Req Type : \" + CSROrderMsg.Header.RequestType );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Customer : \" + CSROrderMsg.RequestHeader.CRN );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Order    : \" + CSROrderMsg.RequestHeader.ORN );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Sequence : \" + System.Convert.ToString( CSROrderMsg.RequestHeader.ORNSeq ) );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"\\n</BROKER>\\n\" ) ;&#xD;&#xA;&#xD;&#xA;"
+            },
+            "runAfter": {
+              "Listenshape_No_Direct_Logic": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Expression_Csrportmicrosoftxlangsbasetypesaddress_Csrordermsghe": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": "CSRPort(Microsoft.XLANGs.BaseTypes.Address) = CSROrderMsg.Header.SourceSystem;"
+            },
+            "runAfter": {
+              "Expression_Systemdiagnosticsdebugwriteline_Nbrokern_Xd": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Error_Handling_Scope_Longrunning": {
+            "type": "Scope",
+            "actions": {
+              "Error_Handling_Scope_None": {
+                "type": "Scope",
+                "actions": {},
+                "runAfter": {}
+              },
+              "Error_Handling_Scope_Longrunning_2": {
+                "type": "Scope",
+                "actions": {
+                  "Error_Handling_Scope_Atomic": {
+                    "type": "Scope",
+                    "actions": {
+                      "Expression_Continuationxdxaxdxamicrosoftsamplesbiztalk": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "variable",
+                          "value": "// Continuation&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateContinuation(&#xD;&#xA;                ActivityID,                         // Activity ID&#xD;&#xA;                CSROrderMsg.Header.ReqId);          // Request ID&#xD;&#xA;"
+                        },
+                        "runAfter": {}
+                      },
+                      "Expression_Relationshipxdxaxdxamicrosoftsamplesbiztalk": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "variable",
+                          "value": "// Relationship&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.CustomerOrderRequest.ActivateRelationship(&#xD;&#xA;               ActivityID,                         // Current Activity ID&#xD;&#xA;               CSROrderMsg.Header.ReqId);          // Request ID&#xD;&#xA;"
+                        },
+                        "runAfter": {
+                          "Expression_Continuationxdxaxdxamicrosoftsamplesbiztalk": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Send_Message_Insert_To": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@parameters('TargetEndpointUrl')",
+                          "body": "@{body('Send message (Insert to History)')}",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {
+                          "Expression_Relationshipxdxaxdxamicrosoftsamplesbiztalk": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Send_Message_To_Servicing": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@parameters('TargetEndpointUrl')",
+                          "body": "@{body('Send message (To Servicing System)')}",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {
+                          "Send_Message_Insert_To": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Send_Message_Post_Response": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@parameters('TargetEndpointUrl')",
+                          "body": "@{body('Send message (Post Response)')}",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {
+                          "Send_Message_To_Servicing": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Send_Message_To_Order": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@parameters('TargetEndpointUrl')",
+                          "body": "@{body('Send message (To Order Mgr)')}",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {
+                          "Send_Message_Post_Response": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Error_Handling_Scope_None": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Expression_Csrportmicrosoftxlangsbasetypesaddress_Csrordermsghe": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

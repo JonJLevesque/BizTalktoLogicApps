@@ -124,6 +124,31 @@ function extractReceiveLocations(root: Record<string, unknown>): ReceiveLocation
   return result;
 }
 
+// ─── WCF-SQL Address Translation ─────────────────────────────────────────────
+
+/**
+ * FIX-08: BizTalk WCF-SQL adapter uses stored procedure addresses in the format
+ * `[schema].[StoredProcName]` (e.g., `[dbo].[usp_ProcessOrder]`).
+ * Logic Apps SQL connector requires the format `TypedProcedure/schema/name`.
+ *
+ * This function translates the BizTalk format to the Logic Apps format and stores
+ * the result in `adapterProperties['operationId']` for downstream use.
+ * Returns the translated operationId string, or an empty string if not a SP address.
+ */
+function translateWcfSqlAddress(address: string): string {
+  // Match [schema].[name] or schema.name patterns
+  const bracketMatch = address.match(/^\[([^\]]+)\]\.\[([^\]]+)\]$/);
+  if (bracketMatch) {
+    return `TypedProcedure/${bracketMatch[1]}/${bracketMatch[2]}`;
+  }
+  // Also handle schema.name without brackets
+  const dotMatch = address.match(/^([^[.\s]+)\.([^[.\s]+)$/);
+  if (dotMatch) {
+    return `TypedProcedure/${dotMatch[1]}/${dotMatch[2]}`;
+  }
+  return '';
+}
+
 // ─── Send Port Extraction ─────────────────────────────────────────────────────
 
 function extractSendPorts(root: Record<string, unknown>): SendPort[] {
@@ -140,6 +165,14 @@ function extractSendPorts(root: Record<string, unknown>): SendPort[] {
     const address = String(sp['@_Address'] ?? sp['Address'] ?? primary?.['Address'] ?? '');
     const pipelineName = extractPipelineName(sp, 'Send');
     const transportTypeData = extractTransportTypeData(sp);
+
+    // FIX-08: Translate WCF-SQL stored procedure addresses to Logic Apps operationId format
+    if (adapterType === 'WCF-SQL' && address) {
+      const operationId = translateWcfSqlAddress(address);
+      if (operationId) {
+        transportTypeData['operationId'] = operationId;
+      }
+    }
     const filterExpression = extractFilterExpression(sp);
     const isDynamic = String(sp['@_IsDynamic'] ?? sp['@_Dynamic'] ?? 'false') === 'true';
     const isTwoWay = String(sp['@_IsTwoWay'] ?? sp['@_TwoWay'] ?? 'false') === 'true';
@@ -160,6 +193,18 @@ function extractSendPorts(root: Record<string, unknown>): SendPort[] {
 }
 
 // ─── TransportTypeData Parsing ────────────────────────────────────────────────
+
+/**
+ * FIX-09: SQL Server 2016+ connections may include additional attributes in binding files
+ * (e.g., `ApplicationIntent`, `MultiSubnetFailover`) that are not relevant to migration.
+ * These are added to a known-ignored set so they don't surface as spurious migration notes.
+ */
+const SQL_KNOWN_IGNORED_PROPERTIES = new Set([
+  'ApplicationIntent',     // SQL Server 2016+ read-scale attribute (ReadWrite/ReadOnly)
+  'MultiSubnetFailover',   // SQL Server 2012+ AlwaysOn high-availability attribute
+  'ConnectRetryCount',     // SQL Server 2012+ connection resilience
+  'ConnectRetryInterval',  // SQL Server 2012+ connection resilience
+]);
 
 /**
  * TransportTypeData is a CDATA-encoded XML fragment of adapter-specific properties.
@@ -207,6 +252,8 @@ function extractTransportTypeData(port: Record<string, unknown>): Record<string,
 
     for (const [key, value] of Object.entries(customProps)) {
       if (key.startsWith('@_') || key === '#text') continue;
+      // FIX-09: Skip SQL 2016+ attributes that have no migration relevance
+      if (SQL_KNOWN_IGNORED_PROPERTIES.has(key)) continue;
       // Value may be a string or an object with vt attribute (variant type) and text content
       let strValue: string;
       if (typeof value === 'string') {
@@ -220,9 +267,11 @@ function extractTransportTypeData(port: Record<string, unknown>): Record<string,
       }
       result[key] = scrubCredentialValue(key, strValue);
     }
-  } catch {
-    // If inner XML parsing fails, store the raw value (truncated)
+  } catch (err) {
+    // If inner XML parsing fails, store a diagnostic note (truncated raw XML)
+    // so callers can surface the issue rather than silently losing adapter properties.
     result['_rawTransportTypeData'] = rawXml.substring(0, 200);
+    result['_parseWarning'] = err instanceof Error ? err.message : 'TransportTypeData parse failed';
   }
 
   return result;

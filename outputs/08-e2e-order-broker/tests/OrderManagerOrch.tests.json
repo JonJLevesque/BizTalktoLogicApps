@@ -1,0 +1,79 @@
+{
+  "workflowName": "OrderManagerOrch",
+  "testCases": [
+    {
+      "name": "OrderManagerOrch_HappyPath",
+      "description": "Happy path: Unknown — no activating receive shape found triggers workflow and all steps succeed.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:55:37.067Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should be accepted (202) on valid trigger"
+        }
+      ]
+    },
+    {
+      "name": "OrderManagerOrch_ErrorPath",
+      "description": "Error path: first send step fails, error handler activates.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:55:37.067Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@result('Scope_Main')?[0]?['status']",
+          "expectedValue": "Failed",
+          "message": "Main scope should show Failed status when a step errors"
+        }
+      ]
+    },
+    {
+      "name": "OrderManagerOrch_Route_TrueBranch_Route_By_Condition_Systemstringisnulloremptyerror",
+      "description": "Routing test: condition evaluates to true, true branch executes.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:55:37.068Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>",
+        "routeCondition": "true"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@result('Expression_Xdxa_Bam_Update')?[0]?['status']",
+          "expectedValue": "Succeeded",
+          "message": "True branch should execute when condition is true"
+        }
+      ]
+    },
+    {
+      "name": "OrderManagerOrch_Route_FalseBranch_Route_By_Condition_Systemstringisnulloremptyerror",
+      "description": "Routing test: condition evaluates to false, else branch executes.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:55:37.068Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>",
+        "routeCondition": "false"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@result('Expression_Xdxa_Bam_Stop')?[0]?['status']",
+          "expectedValue": "Succeeded",
+          "message": "False branch should execute when condition is false"
+        }
+      ]
+    }
+  ]
+}

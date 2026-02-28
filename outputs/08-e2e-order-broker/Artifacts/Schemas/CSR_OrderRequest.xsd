@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:ns0="http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderPropertySchema" xmlns:b="http://schemas.microsoft.com/BizTalk/2003" xmlns="http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest" targetNamespace="http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:annotation>
+    <xs:appinfo>
+      <b:imports xmlns:b="http://schemas.microsoft.com/BizTalk/2003">
+        <b:namespace prefix="ns0" uri="http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderPropertySchema" location="Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderPropertySchema" />
+      </b:imports>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="CSR_OrderRequest">
+    <xs:annotation>
+      <xs:appinfo>
+        <b:properties>
+          <b:property name="ns0:CustID" xpath="/*[local-name()='CSR_OrderRequest' and namespace-uri()='http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest']/*[local-name()='RequestHeader' and namespace-uri()='']/*[local-name()='CRN' and namespace-uri()='']" />
+          <b:property name="ns0:OrderID" xpath="/*[local-name()='CSR_OrderRequest' and namespace-uri()='http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest']/*[local-name()='RequestHeader' and namespace-uri()='']/*[local-name()='ORN' and namespace-uri()='']" />
+          <b:property name="ns0:Status" xpath="/*[local-name()='CSR_OrderRequest' and namespace-uri()='http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest']/*[local-name()='RequestHeader' and namespace-uri()='']/*[local-name()='OrdStatus' and namespace-uri()='']" />
+          <b:property distinguished="true" xpath="/*[local-name()='CSR_OrderRequest' and namespace-uri()='http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest']/*[local-name()='Header' and namespace-uri()='']/*[local-name()='SourceSystem' and namespace-uri()='']" />
+        </b:properties>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Header">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ReqId" type="xs:string" />
+              <xs:element name="Timestamp" type="xs:dateTime" />
+              <xs:element name="RequestType" type="xs:string" />
+              <xs:element name="SourceSystem" type="xs:string" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="RequestHeader">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="CRN" type="xs:string" />
+              <xs:element name="ORN" type="xs:string" />
+              <xs:element name="ORNSeq" type="xs:int" />
+              <xs:element name="OrdDate" type="xs:date" />
+              <xs:element name="OrdTypeCode" type="xs:string" />
+              <xs:element name="OrdStatus" type="xs:string" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element minOccurs="0" name="RequestInfo" nillable="true">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="CS_RepId" nillable="true" type="xs:string" />
+              <xs:element name="CS_Office" nillable="true" type="xs:string" />
+              <xs:element name="CS_Notes" nillable="true" type="xs:string" />
+              <xs:element name="Address1" nillable="true" type="xs:string" />
+              <xs:element name="Address2" nillable="true" type="xs:string" />
+              <xs:element name="City" nillable="true" type="xs:string" />
+              <xs:element name="State" nillable="true" type="xs:string" />
+              <xs:element name="Zip" nillable="true" type="xs:string" />
+              <xs:element name="ContactName" nillable="true" type="xs:string" />
+              <xs:element name="ContactPhone" nillable="true" type="xs:string" />
+              <xs:element name="WorkOrderType" nillable="true" type="xs:string" />
+              <xs:element name="StartDate" type="xs:date" />
+              <xs:element name="CompletionDate" type="xs:date" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

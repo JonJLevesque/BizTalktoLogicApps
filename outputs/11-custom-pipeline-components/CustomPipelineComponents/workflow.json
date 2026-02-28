@@ -1,0 +1,70 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Custom_Pipeline_Inforflowbiztalkpipelinecomponentsanyfilebackup_Use": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": ""
+            },
+            "runAfter": {}
+          },
+          "Custom_Pipeline_Inforflowcmcbiztalkbulkupdateaccountspipelinecomponentsffbulkupd": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": ""
+            },
+            "runAfter": {}
+          },
+          "Custom_Pipeline_Inforflowcmcbiztalkbulkupdateaccountspipelinecomponentsffbulk_2": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "variable",
+              "value": ""
+            },
+            "runAfter": {
+              "Custom_Pipeline_Inforflowcmcbiztalkbulkupdateaccountspipelinecomponentsffbulkupd": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

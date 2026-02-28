@@ -1,0 +1,29 @@
+# Logic Apps Data Mapper — LML
+# Generated from BizTalk map: Order_To_OrderStatus
+# Source schema:      Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderSchema
+# Destination schema: Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderStatusSchema
+# Generated: 2026-02-28T21:55:37.066Z
+#
+# Review all mappings before deployment.
+# Functoid-derived mappings are NOT included — add them manually.
+
+$schema: https://aka.ms/logicapps-data-mapper-schema/lml
+version: 1.0
+
+sourceSchema:
+  name: OrderSchema
+  namespace: "Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas"
+
+targetSchema:
+  name: OrderStatusSchema
+  namespace: "Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas"
+
+mappings:
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='OrderNum']
+    target: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='OrderID']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='CustNum']
+    target: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='CustomerID']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='Status']
+    target: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='Status']
+  - source: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='Header']/*[local-name()='Error']
+    target: *[local-name()='<Schema>']/*[local-name()='Order']/*[local-name()='Reason']

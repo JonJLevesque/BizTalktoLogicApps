@@ -1,0 +1,12 @@
+{
+  "serviceProviderConnections": {
+    "http": {
+      "parameterValues": {},
+      "serviceProvider": {
+        "id": "/serviceProviders/http"
+      },
+      "displayName": "HTTP"
+    }
+  },
+  "managedApiConnections": {}
+}

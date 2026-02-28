@@ -1,0 +1,39 @@
+{
+  "workflowName": "CustomPipelineComponents",
+  "testCases": [
+    {
+      "name": "CustomPipelineComponents_HappyPath",
+      "description": "Happy path: Unknown — no activating receive shape found triggers workflow and all steps succeed.",
+      "trigger": {
+        "messageType": "flat-file",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:57:47.436Z"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should be accepted (202) on valid trigger"
+        }
+      ]
+    },
+    {
+      "name": "CustomPipelineComponents_ErrorPath",
+      "description": "Error path: first send step fails, error handler activates.",
+      "trigger": {
+        "messageType": "flat-file",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:57:47.436Z"
+      },
+      "mocks": [],
+      "assertions": [
+        {
+          "expression": "@result('Scope_Main')?[0]?['status']",
+          "expectedValue": "Failed",
+          "message": "Main scope should show Failed status when a step errors"
+        }
+      ]
+    }
+  ]
+}

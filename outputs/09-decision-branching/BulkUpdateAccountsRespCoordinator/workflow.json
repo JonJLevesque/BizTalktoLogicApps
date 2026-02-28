@@ -1,0 +1,119 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Error_Handling_Scope_None": {
+            "type": "Scope",
+            "actions": {
+              "Route_By_Condition_Batchnotificationmsginfo": {
+                "type": "Switch",
+                "expression": "@{concat(body('Parse_BatchNotificationMsg')?['Info'], '|', body('Parse_BatchNotificationMsg')?['Source'], '|', body('Parse_BatchNotificationMsg')?['Type'])}",
+                "cases": {
+                  "case_Update_Data_Change": {
+                    "case": "Update|Data|Change",
+                    "actions": {
+                      "Send_Message_Snd_Reqbatchresultsfromdbmsg_2": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@appsetting('Common_API_BulkUpdateAccounts_EndpointUri')",
+                          "body": "@body('Parse_BatchNotificationMsg')",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {}
+                      }
+                    }
+                  },
+                  "case_ListenerStarted_SqlBinding_Startup": {
+                    "case": "ListenerStarted|SqlBinding|Startup",
+                    "actions": {
+                      "Expression_Vantyxcmcbiztalksupportlibraryappcasepublishingpublisherror_Unexpecte": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "variable",
+                          "value": "@{json(concat('{\"orchestration\":\"BulkUpdateAccountRespCoordinator.odx\",\"message\":\"Listener SQL foi reiniciado. Será feito um pedido de finalização de Batch, para no caso de algum ficheiro ter sido processado enquanto o Listener esteve offline.\",\"integrationSystem\":\"None\",\"process\":\"BulkUpdateAccounts\",\"errorType\":\"Other\"}'))}"
+                        },
+                        "runAfter": {}
+                      },
+                      "Send_Message_Snd_Reqbatchresultsfromdbmsg_2": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@appsetting('Common_API_BulkUpdateAccounts_EndpointUri')",
+                          "body": "@body('Parse_BatchNotificationMsg')",
+                          "headers": {
+                            "Content-Type": "application/xml"
+                          }
+                        },
+                        "retryPolicy": {
+                          "type": "fixed",
+                          "count": 3,
+                          "interval": "PT30S"
+                        },
+                        "runAfter": {
+                          "Expression_Vantyxcmcbiztalksupportlibraryappcasepublishingpublisherror_Unexpecte": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "default": {
+                  "actions": {}
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {},
+        "retryPolicy": {
+          "type": "fixed",
+          "count": 3,
+          "interval": "PT30S"
+        }
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

@@ -1,0 +1,341 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Error_Handling_Scope_Longrunning": {
+            "type": "Scope",
+            "actions": {
+              "Expression_Systemdiagnosticsdebugwriteline_Nordermanagern": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "System.Diagnostics.Debug.WriteLine( \"\\n<ORDERMANAGER>\\n\" );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Req ID   : \" + NewOrderMgrMsg.RoutingPart.RequestID );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Customer : \" + NewOrderMgrMsg.RoutingPart.CustomerID );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Order    : \" + NewOrderMgrMsg.RoutingPart.OrderID );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"   Sequence : \" + System.Convert.ToString( NewOrderMgrMsg.RoutingPart.SeqNum ) );&#xD;&#xA;System.Diagnostics.Debug.WriteLine( \"\\n</ORDERMANAGER>\\n\" ) ;&#xD;&#xA;"
+                },
+                "runAfter": {}
+              },
+              "Expression_Xdxa_Bam_Start": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "&#xD;&#xA;// [BAM] Start collecting BAM data [OrderManager]&#xD;&#xA;&#xD;&#xA;ActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.StartCollecting( NewOrderMgrMsg.RoutingPart.RequestID );&#xD;&#xA;                &#xD;&#xA;"
+                },
+                "runAfter": {
+                  "Expression_Systemdiagnosticsdebugwriteline_Nordermanagern": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Expression_Xdxa_Bam_Update": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "&#xD;&#xA;// [BAM] Update activity [OrderManager] with [StageStarted]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.OrderStarted(&#xD;&#xA;    ActivityID,                             // Activity ID&#xD;&#xA;    NewOrderMgrMsg.RoutingPart.CustomerID,  // Customer ID&#xD;&#xA;    NewOrderMgrMsg.RoutingPart.OrderID,     // Order ID&#xD;&#xA;    NewOrderMgrMsg.RoutingPart.SeqNum);     // Order Sequence #&#xD;&#xA;"
+                },
+                "runAfter": {
+                  "Expression_Xdxa_Bam_Start": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Route_By_Condition_Newordermgrmsgroutingpartrequesttype": {
+                "type": "If",
+                "expression": {
+                  "equals": [
+                    "@{NewOrderMgrMsg.RoutingPart.RequestType}",
+                    "TERMINATE"
+                  ]
+                },
+                "actions": {
+                  "Expression_Xdxa_Bam_Update_2": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "variable",
+                      "value": "&#xD;&#xA;// [BAM] Update activity [OrderManager] with [TerminateReceived]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.TerminateReceived(ActivityID);&#xD;&#xA;"
+                    },
+                    "runAfter": {}
+                  },
+                  "Expression_Stage_Numstages_1xdxaorderstatus": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "variable",
+                      "value": "stage = numStages + 1;&#xD;&#xA;orderStatus = \"TERMINATED\";&#xD;&#xA;error = \"Order terminated by user\";&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostWarning( error );"
+                    },
+                    "runAfter": {
+                      "Expression_Xdxa_Bam_Update_2": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Expression_Xdxa_Bam_Create": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "variable",
+                        "value": "&#xD;&#xA;// [BAM] create relationship with [ServiceOrderRequest]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.ActivateRelationship(ActivityID, NewOrderMgrMsg.RoutingPart.RequestID);&#xD;&#xA;"
+                      },
+                      "runAfter": {}
+                    },
+                    "Error_Handling_Scope_None": {
+                      "type": "Scope",
+                      "actions": {
+                        "Expression_Configdata_Microsoftsamplesbiztalksouthridgevideoutili": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "variable",
+                            "value": "configData = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.SsoConfigHelper.Singleton;&#xD;&#xA;"
+                          },
+                          "runAfter": {}
+                        },
+                        "Expression_Numstages_Configdatatotalstagesxdxastage_1xd": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "variable",
+                            "value": "numStages = configData.TotalStages;&#xD;&#xA;stage = 1;&#xD;&#xA;stop = numStages + 1;&#xD;&#xA;orderStatus = \"STARTED\";&#xD;&#xA;"
+                          },
+                          "runAfter": {
+                            "Expression_Configdata_Microsoftsamplesbiztalksouthridgevideoutili": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Expression_Xdxa_Bam_Create": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "Loop_Stage_Numstages": {
+                      "type": "Until",
+                      "expression": "@{json('{\"greater\":[\"@{stage}\",\"numStages\"]}')}",
+                      "limit": {
+                        "count": 60,
+                        "timeout": "PT1H"
+                      },
+                      "actions": {
+                        "Error_Handling_Scope_None_2": {
+                          "type": "Scope",
+                          "actions": {
+                            "Send_Message_Start_Stage": {
+                              "type": "Http",
+                              "inputs": {
+                                "method": "POST",
+                                "uri": "@parameters('TargetEndpointUrl')",
+                                "body": "@{body('Send message (Start Stage)')}",
+                                "headers": {
+                                  "Content-Type": "application/xml"
+                                }
+                              },
+                              "retryPolicy": {
+                                "type": "fixed",
+                                "count": 3,
+                                "interval": "PT30S"
+                              },
+                              "runAfter": {}
+                            },
+                            "Receive_Message_On_Correlated": {
+                              "type": "Compose",
+                              "inputs": {
+                                "stepType": "receive",
+                                "description": "Receive message on correlated port (Stage Started)",
+                                "config": {},
+                                "note": "TODO: implement this action"
+                              },
+                              "runAfter": {
+                                "Send_Message_Start_Stage": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "Expression_Currentstage_Stage": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "variable",
+                            "value": "currentStage = stage;"
+                          },
+                          "runAfter": {
+                            "Error_Handling_Scope_None_2": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Loop_Currentstage_Stage": {
+                          "type": "Until",
+                          "expression": "@{json('{\"not\":{\"equals\":[\"@{currentStage}\",\"stage\"]}}')}",
+                          "limit": {
+                            "count": 60,
+                            "timeout": "PT1H"
+                          },
+                          "actions": {
+                            "Listenshape_No_Direct_Logic": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "variable",
+                                "value": ""
+                              },
+                              "runAfter": {}
+                            }
+                          },
+                          "runAfter": {
+                            "Expression_Currentstage_Stage": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Error_Handling_Scope_None": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Expression_Xdxa_Bam_Update": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Error_Handling_Scope_None_4": {
+            "type": "Scope",
+            "actions": {
+              "Expression_Csrcompletionportmicrosoftxlangsbasetypesaddress_Newo": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "CSRCompletionPort(Microsoft.XLANGs.BaseTypes.Address) = NewOrderMgrMsg.RoutingPart.SourceSystem;"
+                },
+                "runAfter": {}
+              },
+              "Send_Message_Send_Csr": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "@parameters('TargetEndpointUrl')",
+                  "body": "@{body('Send message (Send CSR Completion)')}",
+                  "headers": {
+                    "Content-Type": "application/xml"
+                  }
+                },
+                "retryPolicy": {
+                  "type": "fixed",
+                  "count": 3,
+                  "interval": "PT30S"
+                },
+                "runAfter": {
+                  "Expression_Csrcompletionportmicrosoftxlangsbasetypesaddress_Newo": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Error_Handling_Scope_Longrunning": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Route_By_Condition_Systemstringisnulloremptyerror": {
+            "type": "If",
+            "expression": {
+              "equals": [
+                "@true",
+                true
+              ]
+            },
+            "actions": {
+              "Expression_Xdxa_Bam_Update_3": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "&#xD;&#xA;// [BAM] Update Activity [Order Manager] with [Error]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.ErrorOccurred( ActivityID, error );&#xD;&#xA;"
+                },
+                "runAfter": {}
+              },
+              "Expression_Xdxa_Bam_Stop_2": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "variable",
+                  "value": "&#xD;&#xA;// [BAM] Stop collecting BAM data [OrderManager]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.EndCollecting(ActivityID);&#xD;&#xA;                &#xD;&#xA;"
+                },
+                "runAfter": {
+                  "Expression_Xdxa_Bam_Update_3": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Terminateshape_Terminate_Or_Error": {
+                "type": "Scope",
+                "actions": {},
+                "runAfter": {
+                  "Expression_Xdxa_Bam_Stop_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Expression_Xdxa_Bam_Stop_2": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "variable",
+                    "value": "&#xD;&#xA;// [BAM] Stop collecting BAM data [OrderManager]&#xD;&#xA;&#xD;&#xA;Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.EndCollecting(ActivityID);&#xD;&#xA;                &#xD;&#xA;"
+                  },
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "Error_Handling_Scope_None_4": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

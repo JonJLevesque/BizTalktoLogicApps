@@ -1,0 +1,57 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_item_is_created": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "connectionString": "@appsetting('KVS_DB_Sql_ConnectionString')",
+            "serverName": "win-2ns819amq1h",
+            "databaseName": "BulkUpdateAccountsTestDB",
+            "recurrence": {
+              "frequency": "Minute",
+              "interval": 1
+            }
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "sql",
+            "operationId": "getRows",
+            "serviceProviderId": "/serviceProviders/sql"
+          }
+        },
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 5
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {},
+        "runAfter": {}
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

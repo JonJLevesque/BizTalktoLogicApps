@@ -146,6 +146,14 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     settingsKeys:      [s('KVS', 'DB', 'CosmosDb', 'ConnectionString')],
     parameterValues:   { connectionString: `@AppSetting('${s('KVS', 'DB', 'CosmosDb', 'ConnectionString')}')` },
   },
+  // FIX-05: SAP systemNumber MUST be stored and passed as a string, NOT an integer.
+  // ARM template parameters for systemNumber must use "type": "string" — integer type
+  // strips leading zeros (e.g., "00" becomes 0), causing silent SAP connection failure.
+  //
+  // FIX-06: Do NOT generate an sncPse ARM parameter unless SNC is explicitly configured.
+  // If generated, supply an empty string defaultValue ("") to prevent deployment failure.
+  // Other optional SAP params (messageServerHost, messageServerService, logonGroup)
+  // must also either have a defaultValue of "" or be omitted entirely when not configured.
   sap: {
     type:              'built-in',
     serviceProviderId: '/serviceProviders/SAP',
@@ -158,6 +166,8 @@ const CONNECTOR_REGISTRY: Record<string, ConnectorDef> = {
     parameterValues:   {
       applicationServerHost: `@AppSetting('${s('Common', 'API', 'Sap', 'ApplicationServerHost')}')`,
       client:                `@AppSetting('${s('Common', 'API', 'Sap', 'Client')}')`,
+      // systemNumber is an App Setting key that resolves to a STRING value.
+      // Never coerce to integer — SAP system numbers can have leading zeros (e.g., "00", "09").
       systemNumber:          `@AppSetting('${s('Common', 'API', 'Sap', 'SystemNumber')}')`,
       logonType:             'ApplicationServer',
     },
@@ -441,6 +451,32 @@ function collectConnectorsFromIntent(intent: IntegrationIntent): Set<string> {
   }
 
   return names;
+}
+
+// ─── Service Bus Entity Name Helper ──────────────────────────────────────────
+
+/**
+ * FIX-12: Azure silently lowercases Service Bus queue and topic names.
+ * BizTalk port names may contain uppercase letters, causing a drift between
+ * the generated name and the deployed Azure name.
+ *
+ * Rules:
+ *  - Lowercase the full name
+ *  - Max 260 chars for queues/topics; max 50 chars for subscriptions
+ *  - Replace characters not valid in SB entity names with hyphens
+ */
+export function sanitizeServiceBusEntityName(
+  name: string,
+  entityType: 'queue' | 'topic' | 'subscription' = 'queue'
+): string {
+  const maxLen = entityType === 'subscription' ? 50 : 260;
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_.~/]/g, '-')   // only valid SB entity name chars
+    .replace(/-{2,}/g, '-')              // collapse consecutive hyphens
+    .replace(/^-+|-+$/g, '')            // trim leading/trailing hyphens
+    .slice(0, maxLen)
+    || 'messages';
 }
 
 function collectConnectorsFromApp(app: BizTalkApplication): Set<string> {

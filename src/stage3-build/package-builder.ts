@@ -31,6 +31,9 @@ import type {
   LogicAppsProject,
   WorkflowJson,
   HostJson,
+  ResponseAction,
+  RunAfterMap,
+  WdlAction,
 } from '../types/logicapps.js';
 import type { IntegrationIntent } from '../shared/integration-intent.js';
 import type { BizTalkApplication } from '../types/biztalk.js';
@@ -102,12 +105,14 @@ export function buildPackage(
     }
     seenOrchNames.add(orch.name);
     const orchIntent = buildOrchestrationIntent(intent, orch.name);
+    // FIX-10: Sanitize workflow names — must start with letter, no consecutive separators
+    const workflowName = sanitizeWorkflowName(orch.name);
     const wf = generateWorkflow(orchIntent, {
-      workflowName: orch.name,
+      workflowName,
       kind:         'Stateful',
       wrapInScope:  options.wrapInScope ?? true,
     });
-    workflows.push({ name: orch.name, workflow: wf });
+    workflows.push({ name: workflowName, workflow: wf });
   }
 
   // If no orchestrations, generate a single workflow from the intent
@@ -118,6 +123,17 @@ export function buildPackage(
       wrapInScope:  options.wrapInScope ?? true,
     });
     workflows.push({ name: appName, workflow: wf });
+  }
+
+  // ── 1b. FIX-02: Ensure child workflows have a Response action ─────────────
+  // A workflow invoked via the Workflow action (invoke-child pattern) MUST contain
+  // a Response action — otherwise the parent fails at runtime:
+  // "To wait on nested workflow '{name}', it must contain a response action."
+  const childWorkflowNames = collectChildWorkflowNames(intent);
+  for (const wf of workflows) {
+    if (childWorkflowNames.has(wf.name) || childWorkflowNames.has(sanitizeWorkflowName(wf.name))) {
+      ensureResponseAction(wf.workflow, warnings);
+    }
   }
 
   // ── 2. Convert maps ───────────────────────────────────────────────────────
@@ -486,6 +502,104 @@ function sanitizeAppName(name: string): string {
     .substring(0, 40);
 }
 
+/**
+ * FIX-10: Logic Apps Standard workflow name rules:
+ *  - Must start with a letter (prefix "W" if starts with digit or non-letter)
+ *  - Must end with a letter or number (trim trailing separators)
+ *  - Cannot have consecutive "--" or "__"
+ *  - Max 255 characters
+ *
+ * Applied to orchestration-derived workflow names.
+ */
+export function sanitizeWorkflowName(name: string): string {
+  let result = name
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')   // only letters, digits, underscores, hyphens
+    .replace(/-{2,}/g, '-')              // collapse consecutive hyphens
+    .replace(/_{2,}/g, '_')             // collapse consecutive underscores
+    .replace(/^[-_]+/, '')              // trim leading separators
+    .replace(/[-_]+$/, '');             // trim trailing separators
+
+  // Must start with a letter
+  if (result && !/^[a-zA-Z]/.test(result)) {
+    result = 'W' + result;
+  }
+
+  return (result || 'Workflow').substring(0, 255);
+}
+
 function capitalizeFirst(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// ─── FIX-02: Child Workflow Response Action ───────────────────────────────────
+
+/**
+ * Collects the names of all workflows that are invoked as child workflows
+ * (i.e., targets of invoke-child / Workflow action steps in any intent step tree).
+ */
+function collectChildWorkflowNames(intent: IntegrationIntent): Set<string> {
+  const names = new Set<string>();
+  for (const step of collectAllSteps(intent.steps)) {
+    if (step.type === 'invoke-child') {
+      const cfg = step.config as Record<string, unknown>;
+      const name = cfg['workflowName'] as string | undefined;
+      if (name) names.add(name);
+    }
+  }
+  return names;
+}
+
+/** Recursively collects all steps from the intent step tree (including branch steps). */
+function collectAllSteps(steps: IntegrationIntent['steps']): IntegrationIntent['steps'] {
+  const result: IntegrationIntent['steps'] = [];
+  for (const step of steps) {
+    result.push(step);
+    if (step.branches) {
+      if (step.branches.trueBranch)   result.push(...collectAllSteps(step.branches.trueBranch));
+      if (step.branches.falseBranch)  result.push(...collectAllSteps(step.branches.falseBranch));
+      if (step.branches.cases) {
+        for (const c of step.branches.cases) result.push(...collectAllSteps(c.steps));
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Ensures a workflow.json contains a Response action at root level.
+ * Required for all child workflows invoked via the Workflow action.
+ * If missing, appends a Response_200 action after the last root-level action.
+ */
+function ensureResponseAction(wf: WorkflowJson, warnings: string[]): void {
+  const rootActions = wf.definition.actions as Record<string, WdlAction>;
+
+  // Check if a Response action already exists
+  const hasResponse = Object.values(rootActions).some(a => a.type === 'Response');
+  if (hasResponse) return;
+
+  // If wrapped in Scope_Main, check inside the Scope too
+  const scopeMain = rootActions['Scope_Main'] as ({ type: string; actions?: Record<string, WdlAction> } | undefined);
+  if (scopeMain?.type === 'Scope' && scopeMain.actions) {
+    const hasScopeResponse = Object.values(scopeMain.actions).some(a => a.type === 'Response');
+    if (hasScopeResponse) return;
+  }
+
+  // Find the last root-level action to set as predecessor for the Response
+  const rootActionNames = Object.keys(rootActions);
+  const lastActionName  = rootActionNames[rootActionNames.length - 1];
+  const runAfter: RunAfterMap = lastActionName ? { [lastActionName]: ['SUCCEEDED'] } : {};
+
+  // Append Response_200 action
+  const responseAction: ResponseAction = {
+    type:     'Response',
+    kind:     'Http',
+    inputs:   { statusCode: 200, body: '@outputs()' },
+    runAfter,
+  };
+  rootActions['Response_200'] = responseAction;
+
+  warnings.push(
+    'Response_200 action added to child workflow — required for Workflow action invocation. ' +
+    'Update the response body if the parent expects specific output.'
+  );
 }

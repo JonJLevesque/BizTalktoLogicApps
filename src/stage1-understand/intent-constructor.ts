@@ -29,6 +29,7 @@ import type {
   ShapeType,
 } from '../types/biztalk.js';
 import { flattenShapes } from './orchestration-analyzer.js';
+import { sanitizeServiceBusEntityName } from '../stage3-build/connection-generator.js';
 
 export const TODO_CLAUDE = 'TODO_CLAUDE';
 
@@ -160,9 +161,11 @@ function buildTrigger(app: BizTalkApplication): IntegrationTrigger {
         const intervalMin = Math.max(1, Math.round(pollingMs / 60000));
         config['recurrence'] = { frequency: 'Minute', interval: intervalMin };
       } else if (adapterType === 'SB-Messaging' || adapterType === 'WCF-NetMsmq' || adapterType === 'MSMQ') {
-        // Service Bus — extract queue/topic name from address
+        // Service Bus — extract queue/topic name from address.
+        // FIX-12: Azure silently lowercases SB entity names — sanitize here to prevent name drift.
         const address = receiveLocation.address;
-        const queueName = address.split('/').pop() ?? 'messages';
+        const rawQueueName = address.split('/').pop() ?? 'messages';
+        const queueName = sanitizeServiceBusEntityName(rawQueueName, 'queue');
         config['entityName'] = queueName;
         config['receiveMode'] = 'peekLock';
       } else if (adapterType === 'SQL') {
@@ -238,7 +241,11 @@ function buildStepFromShape(
             config['uri'] = sp.address || TODO_CLAUDE;
           } else if (adapterType === 'SB-Messaging' || adapterType === 'MSMQ') {
             actionType = 'ServiceProvider';
-            config['entityName'] = sp.address.split('/').pop() ?? TODO_CLAUDE;
+            // FIX-12: Lowercase SB entity names — Azure silently lowercases them.
+            const rawEntityName = sp.address.split('/').pop() ?? TODO_CLAUDE;
+            config['entityName'] = rawEntityName !== TODO_CLAUDE
+              ? sanitizeServiceBusEntityName(rawEntityName, 'queue')
+              : rawEntityName;
           }
         }
         break;

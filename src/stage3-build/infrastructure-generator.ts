@@ -116,8 +116,12 @@ export function generateLocalSettings(
     IsEncrypted: false,
     Values: {
       AzureWebJobsStorage:        'UseDevelopmentStorage=true',
-      FUNCTIONS_WORKER_RUNTIME:   'dotnet',
+      // FIX-07/11: Logic Apps Standard targets .NET 8 isolated worker model, not in-process.
+      // 'dotnet-isolated' is required for Local Code Functions and Data Mapper support.
+      // AzureWebJobsFeatureFlags enables Data Mapper local testing (prevents "undefined. undefined" error).
+      FUNCTIONS_WORKER_RUNTIME:   'dotnet-isolated',
       FUNCTIONS_EXTENSION_VERSION: '~4',
+      AzureWebJobsFeatureFlags:   'EnableMultiLanguageWorker',
       APP_KIND:                   'workflowapp',
       WEBSITE_NODE_DEFAULT_VERSION: '~18',
       ...Object.fromEntries(
@@ -323,7 +327,9 @@ function buildAppServicePlan(): ArmResource {
 function buildLogicApp(arch: ArchitectureRecommendation): ArmResource {
   const appSettings: Record<string, string> = {
     APP_KIND:                        'workflowapp',
-    FUNCTIONS_WORKER_RUNTIME:        'dotnet',
+    // FIX-07: dotnet-isolated is required for Logic Apps Standard with Local Code Functions.
+    FUNCTIONS_WORKER_RUNTIME:        'dotnet-isolated',
+    AzureWebJobsFeatureFlags:        'EnableMultiLanguageWorker',
     WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), '2023-01-01').keys[0].value)]",
     WEBSITE_CONTENTSHARE:            "[toLower(variables('logicAppName'))]",
     AzureWebJobsStorage:             "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), '2023-01-01').keys[0].value)]",

@@ -1,0 +1,92 @@
+{
+  "workflowName": "Orchestration_1",
+  "testCases": [
+    {
+      "name": "Orchestration_1_HappyPath",
+      "description": "Happy path: Unknown — no activating receive shape found triggers workflow and all steps succeed.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:57:22.589Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [
+        {
+          "actionName": "Send_Message_Send_Out",
+          "statusCode": 200,
+          "outputs": {
+            "body": {
+              "status": "success"
+            },
+            "statusCode": 200
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should be accepted (202) on valid trigger"
+        }
+      ]
+    },
+    {
+      "name": "Orchestration_1_ErrorPath",
+      "description": "Error path: first send step fails, error handler activates.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:57:22.590Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [
+        {
+          "actionName": "Send_Message_Send_Out",
+          "statusCode": 500,
+          "outputs": {
+            "statusCode": 500,
+            "body": {
+              "error": "Internal Server Error"
+            }
+          },
+          "failAction": true
+        }
+      ],
+      "assertions": [
+        {
+          "expression": "@result('Scope_Main')?[0]?['status']",
+          "expectedValue": "Failed",
+          "message": "Main scope should show Failed status when a step errors"
+        }
+      ]
+    },
+    {
+      "name": "Orchestration_1_RetryPolicy",
+      "description": "Retry policy test: send step fails 3 times then succeeds.",
+      "trigger": {
+        "messageType": "xml",
+        "source": "Unknown — no activating receive shape found",
+        "timestamp": "2026-02-28T21:57:22.590Z",
+        "body": "<Root><TODO>sample XML matching source schema</TODO></Root>"
+      },
+      "mocks": [
+        {
+          "actionName": "Send_Message_Send_Out",
+          "outputs": {
+            "statusCode": 503,
+            "body": "Service Unavailable"
+          },
+          "failAction": true,
+          "statusCode": 503
+        }
+      ],
+      "assertions": [
+        {
+          "expression": "@outputs('trigger')?['statusCode']",
+          "expectedValue": 202,
+          "message": "Workflow should eventually succeed after 3 retry attempt(s)"
+        }
+      ]
+    }
+  ]
+}

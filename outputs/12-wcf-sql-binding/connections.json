@@ -1,0 +1,21 @@
+{
+  "serviceProviderConnections": {
+    "http": {
+      "parameterValues": {},
+      "serviceProvider": {
+        "id": "/serviceProviders/http"
+      },
+      "displayName": "HTTP"
+    },
+    "sql": {
+      "parameterValues": {
+        "connectionString": "@AppSetting('KVS_DB_Sql_ConnectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/sql"
+      },
+      "displayName": "SQL Server"
+    }
+  },
+  "managedApiConnections": {}
+}

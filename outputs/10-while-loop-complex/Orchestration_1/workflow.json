@@ -1,0 +1,1189 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Error_Handling_Scope_None": {
+            "type": "Scope",
+            "actions": {
+              "Loop_Ntotalcards_Index": {
+                "type": "Until",
+                "expression": "@{json('{\"lessOrEquals\":[\"@{nTotalCards}\",\"index\"]}')}",
+                "limit": {
+                  "count": 60,
+                  "timeout": "PT1H"
+                },
+                "actions": {
+                  "Route_By_Condition_Checksumxdxa": {
+                    "type": "If",
+                    "expression": {
+                      "equals": [
+                        "@true",
+                        true
+                      ]
+                    },
+                    "actions": {
+                      "Expression_Mchsourceloyalty_Mchszuniversoautomergebiztalksupport": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "variable",
+                          "value": "mchSourceLoyalty = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryCRMMCH(fileRow.SourceNr, CorrelationId, fileName);&#xD;&#xA;mchDestinationLoyalty = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryCRMMCH(fileRow.DestinationNr, CorrelationId, fileName);&#xD;&#xA;&#xD;&#xA;szSourceLoyalty = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryCRMSZ(fileRow.SourceNr, CorrelationId, fileName);&#xD;&#xA;szDestinationLoyalty = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryCRMSZ(fileRow.DestinationNr, CorrelationId, fileName);&#xD;&#xA;//------------------------------------------------------------------------------------------&#xD;&#xA;mchSourceLoyaltyPortal = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryPortalMCH(fileRow.SourceNr, CorrelationId, fileName);&#xD;&#xA;mchDestinationLoyaltyPortal = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryPortalMCH(fileRow.DestinationNr, CorrelationId, fileName);&#xD;&#xA;&#xD;&#xA;szSourceLoyaltyPortal = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryPortalSZ(fileRow.SourceNr, CorrelationId, fileName);&#xD;&#xA;szDestinationLoyaltyPortal = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.checkIfPrimaryPortalSZ(fileRow.DestinationNr, CorrelationId, fileName);&#xD;&#xA;"
+                        },
+                        "runAfter": {}
+                      },
+                      "Route_By_Condition_Systemstringisnulloremptymchsourceloyalty": {
+                        "type": "If",
+                        "expression": {
+                          "or": [
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            },
+                            {
+                              "equals": [
+                                "@true",
+                                true
+                              ]
+                            }
+                          ]
+                        },
+                        "actions": {
+                          "Expression_Mergerequest_New_Mchszuniversoautomergebiztalksupport": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "variable",
+                              "value": "// init MergeRequest object for MCH  &#xD;&#xA;mergeRequest = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountRequest();&#xD;&#xA;mergeRequest.DestinationCardNumber = fileRow.DestinationNr;&#xD;&#xA;mergeRequest.SourceCardNumber = fileRow.SourceNr;&#xD;&#xA;mergeRequest.Ensign = MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.MCH;&#xD;&#xA;&#xD;&#xA;autoMergeReponseMch = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMerge();&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                            },
+                            "runAfter": {}
+                          },
+                          "Route_By_Condition_Filerowdestinationnr": {
+                            "type": "If",
+                            "expression": {
+                              "and": [
+                                {
+                                  "equals": [
+                                    "@true",
+                                    true
+                                  ]
+                                },
+                                {
+                                  "equals": [
+                                    "@true",
+                                    true
+                                  ]
+                                },
+                                {
+                                  "not": {
+                                    "equals": [
+                                      "@{&#xD;&#xA;fileRow.SourceNr}",
+                                      "fileRow.DestinationNr"
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "actions": {
+                              "Expression_Accountdst_New_Mchszuniversoautomergebiztalksupportac": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "variable",
+                                  "value": "accountSrc = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AccountInfo();&#xD;&#xA;accountDst = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AccountInfo();&#xD;&#xA;accountSrc = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.GetInfosUniversoAccountNumber(fileRow.SourceNr,&#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.MCH,CorrelationId);&#xD;&#xA;&#xD;&#xA;accountDst = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.GetInfosUniversoAccountNumber(fileRow.DestinationNr, &#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.MCH,CorrelationId);"
+                                },
+                                "runAfter": {}
+                              },
+                              "Route_By_Condition_Accountdstgetaccountinfostatus": {
+                                "type": "If",
+                                "expression": {
+                                  "or": [
+                                    {
+                                      "equals": [
+                                        "@{accountDst.GetAccountInfoStatus}",
+                                        "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed&#xD;&#xA;"
+                                      ]
+                                    },
+                                    {
+                                      "equals": [
+                                        "@{&#xD;&#xA;accountSrc.GetAccountInfoStatus}",
+                                        "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "actions": {
+                                  "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "variable",
+                                      "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseMch.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.VLL.Message = System.String.Format(\"VLL Retrieve returned with errors: Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeReponseMch.VLL;&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.CRM.Message = System.String.Format(\"VLL Retrieve returned with errors: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseMch.CRM;&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.Portal.Message = System.String.Format(\"VLL Retrieve returned with errors: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal = autoMergeReponseMch.Portal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH = autoMergeReponseMch;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;if (accountDst.Error != null){&#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(accountDst.Error, fileName);&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;if(accountSrc.Error != null){&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(accountSrc.Error, fileName);&#xD;&#xA;}"
+                                    },
+                                    "runAfter": {}
+                                  },
+                                  "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "variable",
+                                      "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr,  fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                    },
+                                    "runAfter": {
+                                      "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                        "SUCCEEDED"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "actions": {
+                                    "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportmer_2": {
+                                      "type": "If",
+                                      "expression": {
+                                        "equals": [
+                                          "@{System.String.Compare(accountDst.CardNumber, accountSrc.CardNumber)}",
+                                          0
+                                        ]
+                                      },
+                                      "actions": {
+                                        "Expression_Automergeresponseszvll_New_Mchszuniversoautomergebiztal": {
+                                          "type": "SetVariable",
+                                          "inputs": {
+                                            "name": "variable",
+                                            "value": "autoMergeResponseMchVll = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeResponseMchVll.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;autoMergeResponseMchVll.Message = \"VLL Merge já foi efectuado on MCH\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseMch.VLL = autoMergeResponseMchVll;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.VLL= autoMergeResponseMchVll;&#xD;&#xA;&#xD;&#xA;// mark operation as Succeed&#xD;&#xA;MCHMergeSucceedOnVLL = true;&#xD;&#xA;"
+                                          },
+                                          "runAfter": {}
+                                        }
+                                      },
+                                      "else": {
+                                        "actions": {
+                                          "Expression_Mchszuniversoautomergebiztalksupportmergeaccountsupport": {
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                              "name": "variable",
+                                              "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.ActivateTemporaryCard(fileRow.SourceNr,CorrelationId,fileName);"
+                                            },
+                                            "runAfter": {}
+                                          },
+                                          "Error_Handling_Scope_None_2": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "Error_Handling_Scope_None_7": {
+                                                "type": "Scope",
+                                                "actions": {
+                                                  "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportmer_2": {
+                                                    "type": "If",
+                                                    "expression": {
+                                                      "equals": [
+                                                        "@true",
+                                                        true
+                                                      ]
+                                                    },
+                                                    "actions": {
+                                                      "Expression_Automergereponseszvllresult_Mchszuniversoautomergebiz": {
+                                                        "type": "SetVariable",
+                                                        "inputs": {
+                                                          "name": "variable",
+                                                          "value": "autoMergeReponseMch.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;autoMergeReponseMch.VLL.Message = \"Merge Succeeded\";&#xD;&#xA;&#xD;&#xA;mergeResponse.MergeResultStatus = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.VLL = autoMergeReponseMch.VLL;&#xD;&#xA;&#xD;&#xA;// mark operation as Succeed&#xD;&#xA;MCHMergeSucceedOnVLL = true;"
+                                                        },
+                                                        "runAfter": {}
+                                                      }
+                                                    },
+                                                    "else": {
+                                                      "actions": {
+                                                        "Expression_Perform_The_Merge": {
+                                                          "type": "SetVariable",
+                                                          "inputs": {
+                                                            "name": "variable",
+                                                            "value": "// perform the merge VLL &#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountVLL(mergeRequest,CorrelationId);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                          },
+                                                          "runAfter": {}
+                                                        },
+                                                        "Route_By_Condition_Mergeresponsemergeresultstatus_4": {
+                                                          "type": "If",
+                                                          "expression": {
+                                                            "equals": [
+                                                              "@{mergeResponse.MergeResultStatus}",
+                                                              "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed"
+                                                            ]
+                                                          },
+                                                          "actions": {
+                                                            "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                              "type": "SetVariable",
+                                                              "inputs": {
+                                                                "name": "variable",
+                                                                "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseMchVll = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchVll.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchVll.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;autoMergeReponseMch.VLL = autoMergeReponseMchVll;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.VLL = autoMergeReponseMchVll;&#xD;&#xA;&#xD;&#xA;// mark operation as not Succeed&#xD;&#xA;MCHMergeSucceedOnVLL = false;"
+                                                              },
+                                                              "runAfter": {}
+                                                            },
+                                                            "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                              "type": "SetVariable",
+                                                              "inputs": {
+                                                                "name": "variable",
+                                                                "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;hasErrorFile = true;&#xD;&#xA;}"
+                                                              },
+                                                              "runAfter": {
+                                                                "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                  "SUCCEEDED"
+                                                                ]
+                                                              }
+                                                            }
+                                                          },
+                                                          "else": {
+                                                            "actions": {
+                                                              "Expression_Automergereponsemchvll_New_Mchszuniversoautomergebiztal": {
+                                                                "type": "SetVariable",
+                                                                "inputs": {
+                                                                  "name": "variable",
+                                                                  "value": "autoMergeReponseMchVll = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchVll.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchVll.Message = \"VLL Merge já foi feito succeed on MCH\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseMch.VLL = autoMergeReponseMchVll;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.VLL = autoMergeReponseMchVll;&#xD;&#xA;&#xD;&#xA;// mark operation as Succeed&#xD;&#xA;MCHMergeSucceedOnVLL = true;"
+                                                                },
+                                                                "runAfter": {}
+                                                              }
+                                                            }
+                                                          },
+                                                          "runAfter": {
+                                                            "Expression_Perform_The_Merge": [
+                                                              "SUCCEEDED"
+                                                            ]
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "runAfter": {}
+                                                  }
+                                                },
+                                                "runAfter": {}
+                                              },
+                                              "Route_By_Condition_Mchmergesucceedonvll": {
+                                                "type": "If",
+                                                "expression": {
+                                                  "equals": [
+                                                    "@{MCHMergeSucceedOnVLL}",
+                                                    "true"
+                                                  ]
+                                                },
+                                                "actions": {
+                                                  "Expression_Alter_Mergerequest_Object_2": {
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                      "name": "variable",
+                                                      "value": "// alter MergeRequest object for MCH  &#xD;&#xA;mergeRequest.DestinationCardNumber = accountDst.CardNumber;&#xD;&#xA;mergeRequest.SourceCardNumber = accountSrc.CardNumber;&#xD;&#xA;mergeRequest.Ensign = MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.MCH;&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                    },
+                                                    "runAfter": {}
+                                                  },
+                                                  "Error_Handling_Scope_None_8": {
+                                                    "type": "Scope",
+                                                    "actions": {
+                                                      "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportszcrmc": {
+                                                        "type": "If",
+                                                        "expression": {
+                                                          "equals": [
+                                                            "@true",
+                                                            true
+                                                          ]
+                                                        },
+                                                        "actions": {
+                                                          "Expression_Automergereponsemchcrm_New_Mchszuniversoautomergebiztal_2": {
+                                                            "type": "SetVariable",
+                                                            "inputs": {
+                                                              "name": "variable",
+                                                              "value": "autoMergeReponseMchCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchCrm.Result = \"Sucesso\";&#xD;&#xA;autoMergeReponseMchCrm.Message = \"CRM Merge succeed on MCH\";&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.CRM = autoMergeReponseMchCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.CRM = autoMergeReponseMchCrm;&#xD;&#xA;"
+                                                            },
+                                                            "runAfter": {}
+                                                          }
+                                                        },
+                                                        "else": {
+                                                          "actions": {
+                                                            "Expression_Perform_The_Merge_2": {
+                                                              "type": "SetVariable",
+                                                              "inputs": {
+                                                                "name": "variable",
+                                                                "value": "// perform the merge on CRM&#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountCRM(mergeRequest, CorrelationId,fileName);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                              },
+                                                              "runAfter": {}
+                                                            },
+                                                            "Route_By_Condition_Mergeresponsemergeresultstatus_4": {
+                                                              "type": "If",
+                                                              "expression": {
+                                                                "equals": [
+                                                                  "@{mergeResponse.MergeResultStatus}",
+                                                                  "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed"
+                                                                ]
+                                                              },
+                                                              "actions": {
+                                                                "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseMchCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchCrm.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchCrm.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.CRM = autoMergeReponseMchCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.CRM = autoMergeReponseMchCrm;"
+                                                                  },
+                                                                  "runAfter": {}
+                                                                },
+                                                                "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;        hasErrorFile = true;&#xD;&#xA;}"
+                                                                  },
+                                                                  "runAfter": {
+                                                                    "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                      "SUCCEEDED"
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              },
+                                                              "else": {
+                                                                "actions": {
+                                                                  "Expression_Automergereponsemchcrm_New_Mchszuniversoautomergebiztal_2": {
+                                                                    "type": "SetVariable",
+                                                                    "inputs": {
+                                                                      "name": "variable",
+                                                                      "value": "autoMergeReponseMchCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchCrm.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchCrm.Message = \"CRM Merge succeed on MCH\";&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.CRM = autoMergeReponseMchCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.CRM = autoMergeReponseMchCrm;"
+                                                                    },
+                                                                    "runAfter": {}
+                                                                  }
+                                                                }
+                                                              },
+                                                              "runAfter": {
+                                                                "Expression_Perform_The_Merge_2": [
+                                                                  "SUCCEEDED"
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "runAfter": {}
+                                                      }
+                                                    },
+                                                    "runAfter": {
+                                                      "Expression_Alter_Mergerequest_Object_2": [
+                                                        "SUCCEEDED"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "Error_Handling_Scope_None_9": {
+                                                    "type": "Scope",
+                                                    "actions": {
+                                                      "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportszport": {
+                                                        "type": "If",
+                                                        "expression": {
+                                                          "equals": [
+                                                            "@true",
+                                                            true
+                                                          ]
+                                                        },
+                                                        "actions": {
+                                                          "Expression_Automergereponsemchportal_New_Mchszuniversoautomergebiz_2": {
+                                                            "type": "SetVariable",
+                                                            "inputs": {
+                                                              "name": "variable",
+                                                              "value": "autoMergeReponseMchPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchPortal.Result = \"Sucesso\";&#xD;&#xA;autoMergeReponseMchPortal.Message = \"Portal Merge succeed on MCH\";&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.Portal = autoMergeReponseMchPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.Portal = autoMergeReponseMchPortal;"
+                                                            },
+                                                            "runAfter": {}
+                                                          }
+                                                        },
+                                                        "else": {
+                                                          "actions": {
+                                                            "Expression_Perform_The_Merge_3": {
+                                                              "type": "SetVariable",
+                                                              "inputs": {
+                                                                "name": "variable",
+                                                                "value": "// perform the merge on Portal&#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountPortal(mergeRequest, CorrelationId,fileName);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                              },
+                                                              "runAfter": {}
+                                                            },
+                                                            "Route_By_Condition_Mergeresponsemergeresultstatus_4": {
+                                                              "type": "If",
+                                                              "expression": {
+                                                                "equals": [
+                                                                  "@{mergeResponse.MergeResultStatus}",
+                                                                  "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed"
+                                                                ]
+                                                              },
+                                                              "actions": {
+                                                                "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseMchPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchPortal.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchPortal.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.Portal = autoMergeReponseMchPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.Portal = autoMergeReponseMchPortal;"
+                                                                  },
+                                                                  "runAfter": {}
+                                                                },
+                                                                "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                                  },
+                                                                  "runAfter": {
+                                                                    "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                      "SUCCEEDED"
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              },
+                                                              "else": {
+                                                                "actions": {
+                                                                  "Expression_Automergereponsemchportal_New_Mchszuniversoautomergebiz_2": {
+                                                                    "type": "SetVariable",
+                                                                    "inputs": {
+                                                                      "name": "variable",
+                                                                      "value": "autoMergeReponseMchPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMchPortal.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseMchPortal.Message = \"Portal Merge succeed on MCH\";&#xD;&#xA;&#xD;&#xA;//autoMergeReponseMch.Portal = autoMergeReponseMchPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH.Portal = autoMergeReponseMchPortal;"
+                                                                    },
+                                                                    "runAfter": {}
+                                                                  }
+                                                                }
+                                                              },
+                                                              "runAfter": {
+                                                                "Expression_Perform_The_Merge_3": [
+                                                                  "SUCCEEDED"
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "runAfter": {}
+                                                      }
+                                                    },
+                                                    "runAfter": {
+                                                      "Error_Handling_Scope_None_8": [
+                                                        "SUCCEEDED"
+                                                      ]
+                                                    }
+                                                  }
+                                                },
+                                                "else": {
+                                                  "actions": {
+                                                    "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                      "type": "SetVariable",
+                                                      "inputs": {
+                                                        "name": "variable",
+                                                        "value": "&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.CRM.Message = System.String.Format(\"Two accounts on CRM will be merged only if the merge is succeed on VLL.\");&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.Portal.Message = System.String.Format(\"Two accounts on Portal will be merged only if the merge is succeed on VLL.\");&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH = autoMergeReponseMch;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;mchError = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;mchError.Insignia = \"MCH\";&#xD;&#xA;mchError.Sistema = \"VLL\";&#xD;&#xA;mchError.Message = \"\";&#xD;&#xA;mchError.ExceptionType = \"\";&#xD;&#xA;mchError.FaultException = System.String.Format(\"As the merge operation failed on VLL, the accounts will not be merged on CRM and Portal.\");&#xD;&#xA;mchError.WebService = \"\";&#xD;&#xA;mchError.WebMethod = \"\";&#xD;&#xA;mchError.Response = \"\";&#xD;&#xA;mchError.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mchError, fileName);"
+                                                      },
+                                                      "runAfter": {}
+                                                    },
+                                                    "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                      "type": "SetVariable",
+                                                      "inputs": {
+                                                        "name": "variable",
+                                                        "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.DestinationNr, fileRow.SourceNif, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                      },
+                                                      "runAfter": {
+                                                        "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                          "SUCCEEDED"
+                                                        ]
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "runAfter": {
+                                                  "Error_Handling_Scope_None_7": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              },
+                                              "Expression_Xdxauniversoautomergeresponseautomergemch_Universoa": {
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                  "name": "variable",
+                                                  "value": "&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH = universoAutoMergeResponse.AutoMergeMCH;"
+                                                },
+                                                "runAfter": {
+                                                  "Route_By_Condition_Mchmergesucceedonvll": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Expression_Mchszuniversoautomergebiztalksupportmergeaccountsupport": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Error_Handling_Scope_None_6": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "Route_By_Condition_Filerowdestinationnr": {
+                                                "type": "If",
+                                                "expression": {
+                                                  "not": {
+                                                    "equals": [
+                                                      "@{fileRow.DestinationNr}",
+                                                      "fileRow.SourceNr"
+                                                    ]
+                                                  }
+                                                },
+                                                "actions": {
+                                                  "Expression_Accountdst_New_Mchszuniversoautomergebiztalksupportac": {
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                      "name": "variable",
+                                                      "value": "accountDst = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AccountInfo();&#xD;&#xA;accountSrc = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AccountInfo();&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;accountSrc = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.GetInfosUniversoAccountNumber(fileRow.SourceNr,&#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.SZ,CorrelationId);&#xD;&#xA;&#xD;&#xA;accountDst = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.GetInfosUniversoAccountNumber(fileRow.DestinationNr, &#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.SZ,CorrelationId);"
+                                                    },
+                                                    "runAfter": {}
+                                                  },
+                                                  "Expression_Mergerequest_New_Mchszuniversoautomergebiztalksupport": {
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                      "name": "variable",
+                                                      "value": "mergeRequest = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountRequest();&#xD;&#xA;mergeRequest.DestinationCardNumber = fileRow.DestinationNr;&#xD;&#xA;mergeRequest.SourceCardNumber = fileRow.SourceNr;&#xD;&#xA;mergeRequest.Ensign = MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.SZ;&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMerge();&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();"
+                                                    },
+                                                    "runAfter": {
+                                                      "Expression_Accountdst_New_Mchszuniversoautomergebiztalksupportac": [
+                                                        "SUCCEEDED"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportmer_2": {
+                                                    "type": "If",
+                                                    "expression": {
+                                                      "equals": [
+                                                        "@{System.String.Compare(accountDst.CardNumber, accountSrc.CardNumber)}",
+                                                        0
+                                                      ]
+                                                    },
+                                                    "actions": {
+                                                      "Expression_Automergeresponseszvll_New_Mchszuniversoautomergebiztal": {
+                                                        "type": "SetVariable",
+                                                        "inputs": {
+                                                          "name": "variable",
+                                                          "value": "autoMergeResponseSzVLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeResponseSzVLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;autoMergeResponseSzVLL.Message = \"VLL Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeResponseSzVLL;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.VLL = autoMergeResponseSzVLL;&#xD;&#xA;&#xD;&#xA;// mark operation as Succeed&#xD;&#xA;SZMergeSucceedOnVLL = true;"
+                                                        },
+                                                        "runAfter": {}
+                                                      }
+                                                    },
+                                                    "else": {
+                                                      "actions": {
+                                                        "Error_Handling_Scope_None_7": {
+                                                          "type": "Scope",
+                                                          "actions": {
+                                                            "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportmer_2": {
+                                                              "type": "If",
+                                                              "expression": {
+                                                                "equals": [
+                                                                  "@true",
+                                                                  true
+                                                                ]
+                                                              },
+                                                              "actions": {
+                                                                "Expression_Automergereponseszvllresult_Mchszuniversoautomergebiz": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "autoMergeReponseSz.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;mergeResponse.MergeResultStatus = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;"
+                                                                  },
+                                                                  "runAfter": {}
+                                                                }
+                                                              },
+                                                              "else": {
+                                                                "actions": {
+                                                                  "Expression_Perform_The_Merge_4": {
+                                                                    "type": "SetVariable",
+                                                                    "inputs": {
+                                                                      "name": "variable",
+                                                                      "value": "// perform the merge VLL &#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountVLL(mergeRequest,CorrelationId);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                                    },
+                                                                    "runAfter": {}
+                                                                  },
+                                                                  "Route_By_Condition_Mergeresponsemergeresultstatus_4": {
+                                                                    "type": "If",
+                                                                    "expression": {
+                                                                      "equals": [
+                                                                        "@{mergeResponse.MergeResultStatus}",
+                                                                        "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed"
+                                                                      ]
+                                                                    },
+                                                                    "actions": {
+                                                                      "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSzVll = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzVll.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzVll.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeReponseSzVll;&#xD;&#xA;&#xD;&#xA;SZMergeSucceedOnVLL = false;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.VLL = autoMergeResponseSzVLL;"
+                                                                        },
+                                                                        "runAfter": {}
+                                                                      },
+                                                                      "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                                        },
+                                                                        "runAfter": {
+                                                                          "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                            "SUCCEEDED"
+                                                                          ]
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    "else": {
+                                                                      "actions": {
+                                                                        "Expression_Automergereponseszvll_New_Mchszuniversoautomergebiztalk": {
+                                                                          "type": "SetVariable",
+                                                                          "inputs": {
+                                                                            "name": "variable",
+                                                                            "value": "autoMergeReponseSzVll = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzVll.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzVll.Message = \"VLL Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeReponseSzVll;&#xD;&#xA;&#xD;&#xA;SZMergeSucceedOnVLL = true;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.VLL = autoMergeReponseSzVll;"
+                                                                          },
+                                                                          "runAfter": {}
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    "runAfter": {
+                                                                      "Expression_Perform_The_Merge_4": [
+                                                                        "SUCCEEDED"
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                }
+                                                              },
+                                                              "runAfter": {}
+                                                            }
+                                                          },
+                                                          "runAfter": {}
+                                                        }
+                                                      }
+                                                    },
+                                                    "runAfter": {
+                                                      "Expression_Mergerequest_New_Mchszuniversoautomergebiztalksupport": [
+                                                        "SUCCEEDED"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "Route_By_Condition_Szmergesucceedonvll": {
+                                                    "type": "If",
+                                                    "expression": {
+                                                      "equals": [
+                                                        "@{SZMergeSucceedOnVLL}",
+                                                        "true"
+                                                      ]
+                                                    },
+                                                    "actions": {
+                                                      "Expression_Alter_Mergerequest_Object_2": {
+                                                        "type": "SetVariable",
+                                                        "inputs": {
+                                                          "name": "variable",
+                                                          "value": "//alter MergeRequest object for SZ&#xD;&#xA;mergeRequest.DestinationCardNumber = accountDst.CardNumber;&#xD;&#xA;mergeRequest.SourceCardNumber = accountSrc.CardNumber;&#xD;&#xA;mergeRequest.Ensign = MCH.SZ.UniversoAutoMerge.Biztalk.Support.SystemEnsign.SZ;&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMerge();"
+                                                        },
+                                                        "runAfter": {}
+                                                      },
+                                                      "Error_Handling_Scope_None_8": {
+                                                        "type": "Scope",
+                                                        "actions": {
+                                                          "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportszcrmc": {
+                                                            "type": "If",
+                                                            "expression": {
+                                                              "equals": [
+                                                                "@true",
+                                                                true
+                                                              ]
+                                                            },
+                                                            "actions": {
+                                                              "Expression_Automergereponseszportal_New_Mchszuniversoautomergebizt_2": {
+                                                                "type": "SetVariable",
+                                                                "inputs": {
+                                                                  "name": "variable",
+                                                                  "value": "autoMergeReponseSzCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzCrm.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;autoMergeReponseSzCrm.Message = \"CRM Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseSzCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.CRM = autoMergeReponseSzCrm;"
+                                                                },
+                                                                "runAfter": {}
+                                                              }
+                                                            },
+                                                            "else": {
+                                                              "actions": {
+                                                                "Expression_Xdxa_Perform_The": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "&#xD;&#xA;// perform the merge on CRM&#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountCRM(mergeRequest,CorrelationId,fileName);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                                  },
+                                                                  "runAfter": {}
+                                                                },
+                                                                "Route_By_Condition_Mergeresponsemergeresultstatus_6": {
+                                                                  "type": "If",
+                                                                  "expression": {
+                                                                    "equals": [
+                                                                      "@{mergeResponse.MergeResultStatus}",
+                                                                      "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success"
+                                                                    ]
+                                                                  },
+                                                                  "actions": {
+                                                                    "Expression_Automergereponseszportal_New_Mchszuniversoautomergebizt_2": {
+                                                                      "type": "SetVariable",
+                                                                      "inputs": {
+                                                                        "name": "variable",
+                                                                        "value": "autoMergeReponseSzCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzCrm.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzCrm.Message = \"CRM Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseSzCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.CRM = autoMergeReponseSzCrm;"
+                                                                      },
+                                                                      "runAfter": {}
+                                                                    }
+                                                                  },
+                                                                  "else": {
+                                                                    "actions": {
+                                                                      "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSzCrm = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzCrm.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzCrm.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseSzCrm;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.CRM = autoMergeReponseSzCrm;"
+                                                                        },
+                                                                        "runAfter": {}
+                                                                      },
+                                                                      "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                                        },
+                                                                        "runAfter": {
+                                                                          "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                            "SUCCEEDED"
+                                                                          ]
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "runAfter": {
+                                                                    "Expression_Xdxa_Perform_The": [
+                                                                      "SUCCEEDED"
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "runAfter": {}
+                                                          }
+                                                        },
+                                                        "runAfter": {
+                                                          "Expression_Alter_Mergerequest_Object_2": [
+                                                            "SUCCEEDED"
+                                                          ]
+                                                        }
+                                                      },
+                                                      "Error_Handling_Scope_None_9": {
+                                                        "type": "Scope",
+                                                        "actions": {
+                                                          "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportszport": {
+                                                            "type": "If",
+                                                            "expression": {
+                                                              "equals": [
+                                                                "@true",
+                                                                true
+                                                              ]
+                                                            },
+                                                            "actions": {
+                                                              "Expression_Automergereponseszportal_New_Mchszuniversoautomergebizt_2": {
+                                                                "type": "SetVariable",
+                                                                "inputs": {
+                                                                  "name": "variable",
+                                                                  "value": "autoMergeReponseSzPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzPortal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success.ToString();&#xD;&#xA;autoMergeReponseSzPortal.Message = \"Portal Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.Portal = autoMergeReponseSzPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.Portal = autoMergeReponseSzPortal;"
+                                                                },
+                                                                "runAfter": {}
+                                                              }
+                                                            },
+                                                            "else": {
+                                                              "actions": {
+                                                                "Expression_Xdxa_Perform_The_2": {
+                                                                  "type": "SetVariable",
+                                                                  "inputs": {
+                                                                    "name": "variable",
+                                                                    "value": "&#xD;&#xA;// perform the merge on Portal&#xD;&#xA;mergeResponse = MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.MergeAccountPortal(mergeRequest,CorrelationId,fileName);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;"
+                                                                  },
+                                                                  "runAfter": {}
+                                                                },
+                                                                "Route_By_Condition_Mergeresponsemergeresultstatus_6": {
+                                                                  "type": "If",
+                                                                  "expression": {
+                                                                    "equals": [
+                                                                      "@{mergeResponse.MergeResultStatus}",
+                                                                      "MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Success"
+                                                                    ]
+                                                                  },
+                                                                  "actions": {
+                                                                    "Expression_Automergereponseszportal_New_Mchszuniversoautomergebizt_2": {
+                                                                      "type": "SetVariable",
+                                                                      "inputs": {
+                                                                        "name": "variable",
+                                                                        "value": "autoMergeReponseSzPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzPortal.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzPortal.Message = \"Portal Merge succeed on SZ\";&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseSzPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.Portal = autoMergeReponseSzPortal;"
+                                                                      },
+                                                                      "runAfter": {}
+                                                                    }
+                                                                  },
+                                                                  "else": {
+                                                                    "actions": {
+                                                                      "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(mergeResponse.Error, fileName);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSzPortal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSzPortal.Result = mergeResponse.MergeResultStatus.ToString();&#xD;&#xA;autoMergeReponseSzPortal.Message = System.String.Format(\"Failure on WebService {0} - WebMethod {1}\", mergeResponse.Error.WebService, mergeResponse.Error.WebMethod);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseSzPortal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ.Portal = autoMergeReponseSzPortal;"
+                                                                        },
+                                                                        "runAfter": {}
+                                                                      },
+                                                                      "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                                        "type": "SetVariable",
+                                                                        "inputs": {
+                                                                          "name": "variable",
+                                                                          "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                                        },
+                                                                        "runAfter": {
+                                                                          "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                                            "SUCCEEDED"
+                                                                          ]
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  "runAfter": {
+                                                                    "Expression_Xdxa_Perform_The_2": [
+                                                                      "SUCCEEDED"
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "runAfter": {}
+                                                          }
+                                                        },
+                                                        "runAfter": {
+                                                          "Error_Handling_Scope_None_8": [
+                                                            "SUCCEEDED"
+                                                          ]
+                                                        }
+                                                      }
+                                                    },
+                                                    "else": {
+                                                      "actions": {
+                                                        "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                          "type": "SetVariable",
+                                                          "inputs": {
+                                                            "name": "variable",
+                                                            "value": "&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.CRM.Message = System.String.Format(\"Two accounts on CRM will be merged only if the merge is succeed on VLL.\");&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.Portal.Message = System.String.Format(\"Two accounts on Portal will be merged only if the merge is succeed on VLL.\");&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;szError = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;szError.Insignia = \"MCH\";&#xD;&#xA;szError.Sistema = \"VLL\";&#xD;&#xA;szError.Message = \"\";&#xD;&#xA;szError.ExceptionType = \"\";&#xD;&#xA;szError.FaultException = System.String.Format(\"As the merge operation failed on VLL, the accounts will not be merged on CRM and Portal.\");&#xD;&#xA;szError.WebService = \"\";&#xD;&#xA;szError.WebMethod = \"\";&#xD;&#xA;szError.Response = \"\";&#xD;&#xA;szError.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(szError, fileName);"
+                                                          },
+                                                          "runAfter": {}
+                                                        },
+                                                        "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                          "type": "SetVariable",
+                                                          "inputs": {
+                                                            "name": "variable",
+                                                            "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                          },
+                                                          "runAfter": {
+                                                            "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                                              "SUCCEEDED"
+                                                            ]
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "runAfter": {
+                                                      "Route_By_Condition_Mchszuniversoautomergebiztalksupportmergeaccountsupportmer_2": [
+                                                        "SUCCEEDED"
+                                                      ]
+                                                    }
+                                                  }
+                                                },
+                                                "else": {
+                                                  "actions": {
+                                                    "Route_By_Condition_Filerowdestinationnr_2": {
+                                                      "type": "If",
+                                                      "expression": {
+                                                        "equals": [
+                                                          "@{fileRow.DestinationNr}",
+                                                          "fileRow.SourceNr"
+                                                        ]
+                                                      },
+                                                      "actions": {
+                                                        "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                          "type": "SetVariable",
+                                                          "inputs": {
+                                                            "name": "variable",
+                                                            "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.VLL.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.CRM.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.Portal.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;szError = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;szError.Insignia = \"SZ\";&#xD;&#xA;szError.Sistema = \"ALL\";&#xD;&#xA;szError.Message = \"\";&#xD;&#xA;szError.ExceptionType = \"\";&#xD;&#xA;szError.FaultException = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;szError.WebService = \"\";&#xD;&#xA;szError.WebMethod = \"\";&#xD;&#xA;szError.Response = \"\";&#xD;&#xA;szError.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(szError, fileName);"
+                                                          },
+                                                          "runAfter": {}
+                                                        }
+                                                      },
+                                                      "else": {
+                                                        "actions": {
+                                                          "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                                            "type": "SetVariable",
+                                                            "inputs": {
+                                                              "name": "variable",
+                                                              "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.VLL.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.CRM.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseSz.Portal.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;szError = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;szError.Insignia = \"SZ\";&#xD;&#xA;szError.Sistema = \"ALL\";&#xD;&#xA;szError.Message = \"\";&#xD;&#xA;szError.ExceptionType = \"\";&#xD;&#xA;szError.FaultException = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;szError.WebService = \"\";&#xD;&#xA;szError.WebMethod = \"\";&#xD;&#xA;szError.Response = \"\";&#xD;&#xA;szError.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(szError, fileName);"
+                                                            },
+                                                            "runAfter": {}
+                                                          }
+                                                        }
+                                                      },
+                                                      "runAfter": {}
+                                                    },
+                                                    "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                                      "type": "SetVariable",
+                                                      "inputs": {
+                                                        "name": "variable",
+                                                        "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                                      },
+                                                      "runAfter": {
+                                                        "Route_By_Condition_Filerowdestinationnr_2": [
+                                                          "SUCCEEDED"
+                                                        ]
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "runAfter": {}
+                                              },
+                                              "Expression_Universoautomergeresponseautomergesz_Automergereponsesz": {
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                  "name": "variable",
+                                                  "value": "universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseSz;"
+                                                },
+                                                "runAfter": {
+                                                  "Route_By_Condition_Filerowdestinationnr": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Error_Handling_Scope_None_2": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "runAfter": {}
+                                    }
+                                  }
+                                },
+                                "runAfter": {
+                                  "Expression_Accountdst_New_Mchszuniversoautomergebiztalksupportac": [
+                                    "SUCCEEDED"
+                                  ]
+                                }
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Route_By_Condition_Filerowsourcenr": {
+                                  "type": "If",
+                                  "expression": {
+                                    "equals": [
+                                      "@{fileRow.SourceNr}",
+                                      "fileRow.DestinationNr"
+                                    ]
+                                  },
+                                  "actions": {
+                                    "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "variable",
+                                        "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseMch.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.VLL.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeReponseMch.VLL;&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.CRM.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseMch.CRM;&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.Portal.Message = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal = autoMergeReponseMch.Portal;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH = autoMergeReponseMch;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseMch;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;Error = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;Error.Insignia = \"MCH\";&#xD;&#xA;Error.Sistema = \"ALL\";&#xD;&#xA;Error.Message = \"\";&#xD;&#xA;Error.ExceptionType = \"\";&#xD;&#xA;Error.FaultException = System.String.Format(\"It is not possible to merge an account with itself > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;Error.WebService = \"\";&#xD;&#xA;Error.WebMethod = \"\";&#xD;&#xA;Error.Response = \"\";&#xD;&#xA;Error.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(Error, fileName);"
+                                      },
+                                      "runAfter": {}
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                          "name": "variable",
+                                          "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseMch.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.VLL.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.VLL = autoMergeReponseMch.VLL;&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.CRM.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.CRM = autoMergeReponseMch.CRM;&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;autoMergeReponseMch.Portal.Message = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseSz.Portal = autoMergeReponseMch.Portal;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;Error = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;Error.Insignia = \"MCH\";&#xD;&#xA;Error.Sistema =\"ALL\";&#xD;&#xA;Error.Message = \"\";&#xD;&#xA;Error.ExceptionType = \"\";&#xD;&#xA;Error.FaultException = System.String.Format(\"At least one of the card numbers undefined > Source Card {0} - Destination Card {0}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;Error.WebService = \"\";&#xD;&#xA;Error.WebMethod = \"\";&#xD;&#xA;Error.Response = \"\";&#xD;&#xA;Error.CorrelationId= CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(Error, fileName);"
+                                        },
+                                        "runAfter": {}
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {}
+                                },
+                                "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "variable",
+                                    "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr,  fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                                  },
+                                  "runAfter": {
+                                    "Route_By_Condition_Filerowsourcenr": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "runAfter": {
+                              "Expression_Mergerequest_New_Mchszuniversoautomergebiztalksupport": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "variable",
+                                "value": "&#xD;&#xA;// VLL&#xD;&#xA;autoMergeReponseMch.VLL = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.VLL.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;&#xD;&#xA;// CRM&#xD;&#xA;autoMergeReponseMch.CRM = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.CRM.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;&#xD;&#xA;// Portal&#xD;&#xA;autoMergeReponseMch.Portal = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.AutoMergeReponse();&#xD;&#xA;autoMergeReponseMch.Portal.Result = MCH.SZ.UniversoAutoMerge.Biztalk.Support.OperationStatus.Failed.ToString();&#xD;&#xA;&#xD;&#xA;if (System.String.IsNullOrEmpty( mchDestinationLoyalty ) || System.String.IsNullOrEmpty(mchDestinationLoyaltyPortal))&#xD;&#xA;{        &#xD;&#xA;    autoMergeReponseMch.VLL.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.CRM.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.Portal.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;}&#xD;&#xA;else if(System.String.IsNullOrEmpty(mchSourceLoyalty) || System.String.IsNullOrEmpty(mchSourceLoyaltyPortal))&#xD;&#xA;{&#xD;&#xA;    autoMergeReponseMch.VLL.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.CRM.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.Portal.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;}&#xD;&#xA;universoAutoMergeResponse.AutoMergeMCH = autoMergeReponseMch;&#xD;&#xA;&#xD;&#xA;if (System.String.IsNullOrEmpty( szDestinationLoyalty ) || System.String.IsNullOrEmpty(szDestinationLoyaltyPortal))&#xD;&#xA;{        &#xD;&#xA;    autoMergeReponseMch.VLL.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.CRM.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.Portal.Message = System.String.Format(\"DestinationCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;}&#xD;&#xA;else if(System.String.IsNullOrEmpty(szSourceLoyalty) || System.String.IsNullOrEmpty(szSourceLoyaltyPortal))&#xD;&#xA;{&#xD;&#xA;    autoMergeReponseMch.VLL.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\", fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.CRM.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;    autoMergeReponseMch.Portal.Message = System.String.Format(\"SourceCard Does not exist in CRM or Portal: Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;&#xD;&#xA;autoMergeReponseSz = autoMergeReponseMch;&#xD;&#xA;&#xD;&#xA;universoAutoMergeResponse.AutoMergeSZ = autoMergeReponseMch;&#xD;&#xA;&#xD;&#xA;// write error to database&#xD;&#xA;Error = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;Error.Insignia = \"MCH\";&#xD;&#xA;Error.Sistema = \"ALL\";&#xD;&#xA;Error.Message = \"\";&#xD;&#xA;Error.ExceptionType = \"InexistentCard\";&#xD;&#xA;Error.FaultException = System.String.Format(\"At least one of the card numbers does not exist in CRM or Portal > Source Card {0} - Destination Card {1}\",  fileRow.SourceNr, fileRow.DestinationNr);&#xD;&#xA;Error.WebService = \"AutoMerge\";&#xD;&#xA;Error.WebMethod = \"AutoMerge_Orchestration\";&#xD;&#xA;Error.Response = \"\";&#xD;&#xA;Error.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(Error, fileName);"
+                              },
+                              "runAfter": {}
+                            },
+                            "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "variable",
+                                "value": "if(nTotalCards ==  index - 1)&#xD;&#xA;{&#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;    fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;    CorrelationId, true, fileName);&#xD;&#xA;}&#xD;&#xA;else{&#xD;&#xA;    MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;    fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;    CorrelationId, false, fileName);&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;hasErrorFile = true;"
+                              },
+                              "runAfter": {
+                                "Expression_Xdxa_Vllxdxaautomergereponsemchvll_New_4": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "Expression_Mchsourceloyalty_Mchszuniversoautomergebiztalksupport": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Expression_Error_New_Mchszuniversoautomergebiztalksupporterror_8": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "variable",
+                            "value": "Error = new MCH.SZ.UniversoAutoMerge.Biztalk.Support.Error();&#xD;&#xA;Error.Insignia = \"ALL\";&#xD;&#xA;Error.Sistema = \"ALL\";&#xD;&#xA;Error.Message = \"Error processing entries. Refer to Logs for details.\";&#xD;&#xA;Error.ExceptionType = \"\";&#xD;&#xA;Error.FaultException = \"CheckSum returned FALSE. Error in parsing cardNumbers\";&#xD;&#xA;Error.WebService = \"\";&#xD;&#xA;Error.WebMethod = \"\";&#xD;&#xA;Error.Response = \"\";&#xD;&#xA;Error.CorrelationId = CorrelationId;&#xD;&#xA;&#xD;&#xA;MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteErrorLog(Error, fileName);&#xD;&#xA;"
+                          },
+                          "runAfter": {}
+                        },
+                        "Expression_Ifhaserrorfilexdxa_Ifntotalcards_Index_20": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "variable",
+                            "value": "if(!hasErrorFile){&#xD;&#xA;    if(nTotalCards ==  index - 1)&#xD;&#xA;    {&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr,  fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, true, fileName);&#xD;&#xA;    }&#xD;&#xA;    else{&#xD;&#xA;        MCH.SZ.UniversoAutoMerge.Biztalk.Support.MergeAccountSupport.WriteToFile(&#xD;&#xA;        fileRow.SourceNr, fileRow.SourceNif, fileRow.DestinationNr, fileRow.DestinationNif,&#xD;&#xA;        CorrelationId, false, fileName);&#xD;&#xA;    }&#xD;&#xA;    hasErrorFile = true;&#xD;&#xA;}"
+                          },
+                          "runAfter": {
+                            "Expression_Error_New_Mchszuniversoautomergebiztalksupporterror_8": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Expression_Alluniversoautomergeresponseresponsesadduniversoautomerge": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "variable",
+                      "value": "allUniversoAutoMergeResponse.Responses.Add(universoAutoMergeResponse);"
+                    },
+                    "runAfter": {
+                      "Route_By_Condition_Checksumxdxa": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {}
+          },
+          "Send_Message_Send_Out": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "@parameters('TargetEndpointUrl')",
+              "body": "@{body('Send message (Send_Out)')}",
+              "headers": {
+                "Content-Type": "application/xml"
+              }
+            },
+            "retryPolicy": {
+              "type": "fixed",
+              "count": 3,
+              "interval": "PT30S"
+            },
+            "runAfter": {
+              "Error_Handling_Scope_None": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {},
+        "retryPolicy": {
+          "type": "fixed",
+          "count": 3,
+          "interval": "PT30S"
+        }
+      },
+      "Terminate_On_Error": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "WorkflowError",
+            "message": "@{result('Scope_Main')[0]['error']['message']}"
+          }
+        },
+        "runAfter": {
+          "Scope_Main": [
+            "FAILED",
+            "TIMEDOUT",
+            "SKIPPED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}

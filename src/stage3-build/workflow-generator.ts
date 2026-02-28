@@ -106,6 +106,14 @@ export function generateWorkflow(
   const triggers = buildTrigger(intent.trigger);
   let   actions  = buildActions(intent.steps, nameMap);
 
+  // FIX-04: BizTalk FTP/SFTP adapters auto-delete processed files; Logic Apps does NOT.
+  // Append an explicit deleteFile action as the last success-path action so files
+  // are not left accumulating on the FTP/SFTP server after processing.
+  const triggerConnector = intent.trigger.connector?.toLowerCase() ?? '';
+  if (triggerConnector === 'ftp' || triggerConnector === 'sftp') {
+    actions = appendFtpDeleteAction(actions, triggerConnector);
+  }
+
   // Optionally wrap everything in a top-level error-handling Scope
   if (options.wrapInScope) {
     actions = wrapInErrorScope(actions, intent.errorHandling);
@@ -312,7 +320,10 @@ function populateNameMap(
 }
 
 function uniqueActionName(description: string, usedNames: Set<string>): string {
-  // Produce PascalCase from the description (up to 4 words)
+  // Produce PascalCase from the description (up to 4 words).
+  // Forbidden characters (per Logic Apps designer): < > % & \ ? / and single quotes.
+  // The regex below strips all non-alphanumeric chars (except space, underscore, hyphen),
+  // which implicitly removes all forbidden chars.
   const words = description
     .replace(/[^a-zA-Z0-9\s_-]/g, '')
     .trim()
@@ -915,9 +926,22 @@ function buildInvokeFunctionAction(step: IntegrationStep, runAfter: RunAfterMap)
   };
 }
 
+/** Sanitize a variable name: strip forbidden chars and enforce the 80-char action name limit. */
+function sanitizeVariableName(name: string): string {
+  // Replace forbidden chars (< > % & \ ? / and single quotes) with underscores.
+  // Also strip any other character not valid in Logic Apps action/variable names.
+  return name
+    .replace(/[<>%&\\?/']/g, '_')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .slice(0, 80)
+    || 'variable';
+}
+
 function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): WdlAction {
   const cfg = step.config as Record<string, unknown>;
-  const varName = (cfg['variableName'] as string) ?? 'variable';
+  // Sanitize variable names derived from BizTalk — they may contain chars forbidden in WDL.
+  const rawVarName = (cfg['variableName'] as string) ?? 'variable';
+  const varName = sanitizeVariableName(rawVarName);
   // config.expression holds the raw XLANG/s or partial WDL expression from the intent constructor.
   // Use it as the value when config.value was not explicitly set by AI enrichment.
   const expression = cfg['expression'] as string | undefined;
@@ -1039,20 +1063,107 @@ function buildDefaultAction(step: IntegrationStep, runAfter: RunAfterMap): Compo
   };
 }
 
+// ─── FTP/SFTP Delete File Helper ─────────────────────────────────────────────
+
+/**
+ * FIX-04: BizTalk FTP/SFTP adapters auto-delete processed files after successful
+ * processing. Logic Apps FTP/SFTP ServiceProvider connectors do NOT auto-delete.
+ * This helper appends an explicit deleteFile action as the last success-path action.
+ */
+function appendFtpDeleteAction(
+  actions: Record<string, WdlAction>,
+  connector: 'ftp' | 'sftp',
+): Record<string, WdlAction> {
+  // Find the last action in the map (insertion order) to set as predecessor
+  const actionNames = Object.keys(actions);
+  const lastActionName = actionNames[actionNames.length - 1];
+  const runAfter: RunAfterMap = lastActionName ? { [lastActionName]: ['SUCCEEDED'] } : {};
+
+  const serviceProviderId = connector === 'sftp'
+    ? '/serviceProviders/sftpWithSsh'
+    : '/serviceProviders/ftp';
+  const operationId   = connector === 'sftp' ? 'deleteFile' : 'deleteFile';
+  const actionName    = connector === 'sftp'
+    ? 'Delete_Processed_SFTP_File'
+    : 'Delete_Processed_FTP_File';
+  const filePath      = connector === 'sftp'
+    ? "@triggerOutputs()?['body']?['OriginalPath']"
+    : "@triggerOutputs()?['body']?['FilePath']";
+
+  const deleteAction: ServiceProviderAction = {
+    type: 'ServiceProvider',
+    inputs: {
+      parameters: { filePath },
+      serviceProviderConfiguration: {
+        connectionName:    connector,
+        operationId,
+        serviceProviderId,
+      },
+    },
+    runAfter,
+  };
+
+  return { ...actions, [actionName]: deleteAction };
+}
+
 // ─── Error Scope Wrapper ──────────────────────────────────────────────────────
 
 /**
  * Wraps all generated actions in a top-level Scope action.
  * Adds a catch handler that executes after the Scope fails.
+ *
+ * FIX-01: InitializeVariable actions are hoisted ABOVE the Scope_Main wrapper.
+ * Logic Apps Standard prohibits InitializeVariable inside a Scope action — doing so
+ * causes a deployment error: "Initialize Variables cannot be placed inside a Scope action."
+ * Hoisted actions keep their original runAfter chains; the Scope_Main runAfter is set to
+ * reference the last hoisted InitializeVariable (or {} if there are none).
+ * Any action inside the Scope whose runAfter references a hoisted InitializeVariable has
+ * that reference removed (making it a "first in scope" action with runAfter: {}).
  */
 function wrapInErrorScope(
   actions: Record<string, WdlAction>,
   errorHandling: ErrorHandlingConfig
 ): Record<string, WdlAction> {
+  // ── FIX-01: Separate InitializeVariable from remaining actions ──────────────
+  const initNames = new Set<string>();
+  const hoistedInit: Record<string, WdlAction> = {};
+  const scopeBodyRaw: Record<string, WdlAction> = {};
+
+  for (const [name, action] of Object.entries(actions)) {
+    if (action.type === 'InitializeVariable') {
+      initNames.add(name);
+      hoistedInit[name] = action;
+    } else {
+      scopeBodyRaw[name] = action;
+    }
+  }
+
+  // Strip references to hoisted init actions from scope-body runAfter maps.
+  // If an action's entire runAfter consisted of init-action predecessors, it
+  // becomes a "first in scope" action (runAfter: {}).
+  const scopeBody: Record<string, WdlAction> = {};
+  for (const [name, action] of Object.entries(scopeBodyRaw)) {
+    const rawRunAfter = action.runAfter as RunAfterMap | undefined;
+    if (rawRunAfter && Object.keys(rawRunAfter).some(k => initNames.has(k))) {
+      const filtered: RunAfterMap = Object.fromEntries(
+        Object.entries(rawRunAfter).filter(([k]) => !initNames.has(k))
+      );
+      scopeBody[name] = { ...action, runAfter: filtered };
+    } else {
+      scopeBody[name] = action;
+    }
+  }
+
+  // Scope_Main runs after the last InitializeVariable action (or immediately if none)
+  const lastInitName = Object.keys(hoistedInit).pop();
+  const scopeRunAfter: RunAfterMap = lastInitName
+    ? { [lastInitName]: ['SUCCEEDED'] }
+    : {};
+
   const mainScope: ScopeAction = {
     type:    'Scope',
-    actions,
-    runAfter: {},
+    actions: scopeBody,
+    runAfter: scopeRunAfter,
   };
 
   const catchActions: Record<string, WdlAction> = {};
@@ -1090,7 +1201,9 @@ function wrapInErrorScope(
 
   const retryPolicy = buildRetryPolicy(errorHandling);
 
+  // Hoisted InitializeVariable actions come first (before Scope_Main)
   return {
+    ...hoistedInit,
     Scope_Main:     retryPolicy ? { ...mainScope, retryPolicy } as ScopeAction : mainScope,
     ...catchActions,
   };
