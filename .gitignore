@@ -51,6 +51,8 @@ proxy/.dev.vars
 Sample BizTalk Old SDK/
 Sample LogicApps/
 Samples Sandro/
+# Sandro Pereira ebook — learning material, not for distribution
+Sandro Ebook/
 
 # ── Internal planning & methodology docs ───────────────────
 # Core IP — business model, migration methodology, detailed reference mappings
