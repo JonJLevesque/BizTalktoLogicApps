@@ -227,7 +227,7 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
 
         if (reviewResult.changesApplied.length > 0) {
           try {
-            const fixedWorkflow = JSON.parse(reviewResult.fixedWorkflowJson) as WorkflowJson;
+            const fixedWorkflow = restoreInvokeFunctionTypes(JSON.parse(reviewResult.fixedWorkflowJson) as WorkflowJson);
             const reValidated = validateWorkflow(fixedWorkflow);
             const reScored = scoreWorkflowQuality(fixedWorkflow, enrichedIntent);
 
@@ -392,5 +392,59 @@ function gradeValue(grade: string): number {
     case 'D': return 2;
     case 'F': return 1;
     default:  return 0;
+  }
+}
+
+/**
+ * Undo the proxy's incorrect `InvokeFunction` → `Function` rename.
+ *
+ * Logic Apps Standard has two distinct action types:
+ *   InvokeFunction — calls a local code function (.cs stub) inside the same Logic App.
+ *                    No connection reference needed.
+ *   Function       — calls an external Azure Function App.
+ *                    Requires inputs.function.connectionName.
+ *
+ * The Step 5 review proxy sometimes misidentifies InvokeFunction actions and renames them
+ * to Function, which breaks deployment (no connectionName present). This post-processing
+ * pass reverts the change client-side so the proxy cannot corrupt local function calls.
+ */
+function restoreInvokeFunctionTypes(workflow: WorkflowJson): WorkflowJson {
+  walkActionMap(workflow.definition.actions as unknown as Record<string, Record<string, unknown>>);
+  return workflow;
+}
+
+function walkActionMap(actions: Record<string, Record<string, unknown>>): void {
+  for (const action of Object.values(actions)) {
+    const inp = action['inputs'] as Record<string, unknown> | undefined;
+    if (
+      action['type'] === 'Function' &&
+      typeof inp?.['functionName'] === 'string' &&
+      !inp?.['function']
+    ) {
+      action['type'] = 'InvokeFunction';
+    }
+
+    // Recurse into nested action containers (Scope, If true branch, ForEach, Until)
+    const nested = action['actions'] as Record<string, Record<string, unknown>> | undefined;
+    if (nested) walkActionMap(nested);
+
+    // If/else branch
+    const elseObj = action['else'] as Record<string, unknown> | undefined;
+    const elseActions = elseObj?.['actions'] as Record<string, Record<string, unknown>> | undefined;
+    if (elseActions) walkActionMap(elseActions);
+
+    // Switch cases
+    const cases = action['cases'] as Record<string, Record<string, unknown>> | undefined;
+    if (cases) {
+      for (const caseObj of Object.values(cases)) {
+        const caseActions = caseObj['actions'] as Record<string, Record<string, unknown>> | undefined;
+        if (caseActions) walkActionMap(caseActions);
+      }
+    }
+
+    // Switch default
+    const defaultCase = action['default'] as Record<string, unknown> | undefined;
+    const defaultActions = defaultCase?.['actions'] as Record<string, Record<string, unknown>> | undefined;
+    if (defaultActions) walkActionMap(defaultActions);
   }
 }
