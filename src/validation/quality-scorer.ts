@@ -39,6 +39,22 @@ const VALID_RUNAFTER_STATUSES = new Set(['SUCCEEDED', 'FAILED', 'TIMEDOUT', 'SKI
 const GENERIC_NAME_PATTERN = /^(Action|Step|Untitled|Unnamed)\d*$/i;
 const PASCAL_CASE_PATTERN = /^[A-Z][a-zA-Z0-9_]*$/;
 
+/** True if a value looks like raw C# code rather than a WDL expression or plain string. */
+function looksCSharp(val: string): boolean {
+  if (val.startsWith('@{')) return false; // WDL inline expression
+  if (val.startsWith('@')) return false;  // WDL reference like @variables('x')
+  // C# statement terminator, object construction, or chained method call
+  return /;/.test(val) ||
+    /\bnew\s+[A-Z]/.test(val) ||
+    /\b\w+\.\w+\(/.test(val);
+}
+
+/** True if an If-action expression is a tautology placeholder (@true / @false literal). */
+function isTautologyExpression(expr: unknown): boolean {
+  const s = JSON.stringify(expr);
+  return s.includes('"@true"') || s.includes('"@false"');
+}
+
 function getGrade(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
   if (score >= 90) return 'A';
   if (score >= 75) return 'B';
@@ -307,6 +323,35 @@ export function scoreWorkflowQuality(workflowJson: unknown, intentJson?: unknown
       completenessScore = Math.max(0, completenessScore - penalty);
       completenessIssues.push(`${emptySetVars.length} SetVariable action(s) with empty values`);
       recommendations.push('Translate C# expressions to WDL @{...} syntax for all SetVariable values');
+    }
+
+    // Penalty: Untranslated C# code in SetVariable values (-5 each, max -20)
+    const csharpSetVars = allActionsForPenalty.filter(([, a]) => {
+      if (a['type'] !== 'SetVariable') return false;
+      const inputs = a['inputs'];
+      if (!isRecord(inputs)) return false;
+      const val = inputs['value'];
+      return typeof val === 'string' && val !== '' && looksCSharp(val);
+    });
+    if (csharpSetVars.length > 0) {
+      const penalty = Math.min(csharpSetVars.length * 5, 20);
+      completenessScore = Math.max(0, completenessScore - penalty);
+      completenessIssues.push(`${csharpSetVars.length} SetVariable action(s) contain untranslated C# code — replace with WDL @{...} expressions or Local Code Functions`);
+      recommendations.push('Replace raw C# code in SetVariable values with WDL @{...} expressions or Local Code Function calls');
+    }
+
+    // Penalty: Tautology If conditions (-5 each, max -15)
+    // Placeholder conditions like {"equals": ["@true", true]} mean the XLANG/s condition was never translated.
+    const tautologyIfs = allActionsForPenalty.filter(([, a]) => {
+      if (a['type'] !== 'If') return false;
+      const expr = a['expression'];
+      return expr !== undefined && expr !== null && isTautologyExpression(expr);
+    });
+    if (tautologyIfs.length > 0) {
+      const penalty = Math.min(tautologyIfs.length * 5, 15);
+      completenessScore = Math.max(0, completenessScore - penalty);
+      completenessIssues.push(`${tautologyIfs.length} If action(s) have placeholder conditions (@true/@false) — original XLANG/s conditions must be translated to WDL`);
+      recommendations.push('Translate XLANG/s conditions to WDL JSON predicate objects for all If actions');
     }
   }
 
