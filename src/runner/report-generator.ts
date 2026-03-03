@@ -470,9 +470,13 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push('1. **Install the extension** — "Azure Logic Apps (Standard)" (`ms-azuretools.vscode-azurelogicapps`)');
   lines.push('2. **Open the folder** — File → Open Folder → select this output directory');
   lines.push('3. **The `.vscode/settings.json`** is pre-configured for Logic Apps Standard');
-  lines.push('4. **Edit connection settings** — update `local.settings.json` with your real connection strings');
-  lines.push('5. **Open a workflow in Designer** — right-click any `workflow.json` → "Open in Designer"');
-  lines.push('6. **Deploy to Azure** — use the Logic Apps extension sidebar → Deploy to Logic App');
+  lines.push('4. **Start Azurite** — the designer requires the local storage emulator. Click each item in');
+  lines.push('   the VS Code bottom status bar: `Azurite Table Service`, `Azurite Queue Service`, `Azurite Blob Service`.');
+  lines.push('   All three must show as running (green) before the designer will load. If Azurite is not installed,');
+  lines.push('   run: `npm install -g azurite`');
+  lines.push('5. **Edit connection settings** — update `local.settings.json` with your real connection strings');
+  lines.push('6. **Open a workflow in Designer** — right-click any `workflow.json` → "Open in Designer"');
+  lines.push('7. **Deploy to Azure** — use the Logic Apps extension sidebar → Deploy to Logic App');
   lines.push('');
   if (buildResult.localCodeFunctions && Object.keys(buildResult.localCodeFunctions).length > 0) {
     lines.push('**Local Code Functions** — the following `.cs` stubs were generated for custom C# logic:');

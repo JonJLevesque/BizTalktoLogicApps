@@ -937,14 +937,37 @@ function sanitizeVariableName(name: string): string {
     || 'variable';
 }
 
+/**
+ * Extracts the left-hand-side identifier from a C# assignment expression.
+ * e.g. "mchSourceLoyalty = someHelper.Method();" → "mchSourceLoyalty"
+ * Returns undefined if no clean identifier can be found.
+ */
+function extractLhsVariableName(expr: string): string | undefined {
+  // Take the first line only (multi-line blocks: first assignment sets the name)
+  const firstLine = expr.split(/[\r\n]/)[0]?.trim() ?? '';
+  const eqIdx = firstLine.indexOf('=');
+  if (eqIdx <= 0) return undefined;
+  const lhs = firstLine.slice(0, eqIdx).trim();
+  // lhs may be "var name", "Type name", or just "name" — take the last word
+  const parts = lhs.split(/\s+/);
+  const candidate = parts[parts.length - 1] ?? '';
+  // Must be a valid C# / WDL identifier
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(candidate)) return candidate;
+  return undefined;
+}
+
 function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): WdlAction {
   const cfg = step.config as Record<string, unknown>;
+  const expression = cfg['expression'] as string | undefined;
+  // Try explicit variableName first, then extract from the C# LHS, then fall back to a safe default
+  const rawVarName =
+    (cfg['variableName'] as string | undefined) ??
+    (expression ? extractLhsVariableName(expression) : undefined) ??
+    'localVar';
   // Sanitize variable names derived from BizTalk — they may contain chars forbidden in WDL.
-  const rawVarName = (cfg['variableName'] as string) ?? 'variable';
   const varName = sanitizeVariableName(rawVarName);
   // config.expression holds the raw XLANG/s or partial WDL expression from the intent constructor.
   // Use it as the value when config.value was not explicitly set by AI enrichment.
-  const expression = cfg['expression'] as string | undefined;
   const resolvedValue = cfg['value'] ?? expression ?? '';
 
   if (cfg['initialize']) {
