@@ -6,10 +6,11 @@
  * All processing is local — no customer artifacts leave the machine.
  *
  * Commands:
+ *   run        Run the full migration pipeline in one command (main entry point)
  *   analyze    Analyze BizTalk artifacts and produce a migration spec
- *   build      Build a Logic Apps Standard deployment package
+ *   estate     Assess an entire BizTalk estate across multiple applications
+ *   build      Build a Logic Apps Standard deployment package from a spec
  *   convert    Convert a single BizTalk map to LML/XSLT
- *   validate   Validate generated Logic Apps artifacts
  *   templates  List available workflow templates (Premium)
  *
  * Examples:
@@ -106,7 +107,6 @@ program
       console.error(chalk.yellow('  Set one of:'));
       console.error(chalk.yellow('    BTLA_LICENSE_KEY=<key>       (production — proxy mode)'));
       console.error(chalk.yellow('    ANTHROPIC_API_KEY=sk-...     (direct Anthropic API, dev use)'));
-      console.error(chalk.yellow('    BTLA_DEV_MODE=true           (offline, no AI enrichment)'));
       process.exit(1);
     }
 
@@ -357,14 +357,14 @@ program
 
       console.log('');
       console.log(chalk.bold('── Estate Assessment Summary ────────────────────────'));
-      console.log(`  Applications:  ${chalk.cyan(result.totals.applications)}`);
-      console.log(`  Orchestrations:${chalk.cyan(result.totals.orchestrations)}`);
-      console.log(`  Maps:          ${chalk.cyan(result.totals.maps)}`);
-      console.log(`  Total gaps:    ${chalk.cyan(result.totals.totalGaps)} (🔴 ${result.totals.criticalGaps} critical, 🟠 ${result.totals.highGaps} high)`);
-      console.log(`  Total effort:  ~${chalk.cyan(result.totals.totalEstimatedEffortDays)} day(s)`);
-      console.log(`  Time:          ${elapsed}s`);
+      console.log(`  Applications:   ${chalk.cyan(result.totals.applications)}`);
+      console.log(`  Orchestrations: ${chalk.cyan(result.totals.orchestrations)}`);
+      console.log(`  Maps:           ${chalk.cyan(result.totals.maps)}`);
+      console.log(`  Total gaps:     ${chalk.cyan(result.totals.totalGaps)} (🔴 ${result.totals.criticalGaps} critical, 🟠 ${result.totals.highGaps} high)`);
+      console.log(`  Total effort:   ~${chalk.cyan(result.totals.totalEstimatedEffortDays)} day(s)`);
+      console.log(`  Time:           ${elapsed}s`);
       if (result.failures.length > 0) {
-        console.log(`  Parse failures:${chalk.yellow(result.failures.length)}`);
+        console.log(`  Parse failures: ${chalk.yellow(result.failures.length)}`);
       }
       console.log('');
       console.log(`  ${chalk.bold('estate-report.md')} written to ${chalk.cyan(estateOpts.output)}`);

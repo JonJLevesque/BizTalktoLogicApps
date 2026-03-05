@@ -8,8 +8,15 @@
  */
 
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { LicenseCache } from './license-cache.js';
 import type { CachedLicense, LicenseTier } from './feature-gates.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PKG_VERSION = (JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8')) as { version: string }).version;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,7 +140,7 @@ export class LicenseValidator {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'biztalk-to-logicapps/0.1.0',
+          'User-Agent': `biztalk-to-logicapps/${PKG_VERSION}`,
           // Proxy auth middleware expects the key as Bearer token
           'Authorization': `Bearer ${licenseKey}`,
         },

@@ -87,7 +87,7 @@ const THRESHOLDS: Record<ComplexityClass, { min: number; max: number }> = {
   'simple':         { min: 0,  max: 10  },
   'moderate':       { min: 11, max: 25  },
   'complex':        { min: 26, max: 50  },
-  'highly-complex': { min: 51, max: Infinity },
+  'highly-complex': { min: 51, max: 100 },
 };
 
 // ─── Score Detail ─────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ export function scoreApplication(app: BizTalkApplication): ComplexityBreakdown {
     }
   }
 
-  const totalScore = contributors.reduce((sum, c) => sum + c.score, 0);
+  const totalScore = Math.min(contributors.reduce((sum, c) => sum + c.score, 0), 100);
   const classification = classify(totalScore);
   const hotSpots = identifyHotSpots(contributors);
   const summary = buildSummary(totalScore, classification, contributors, app);
