@@ -14,18 +14,13 @@
  * Privacy: raw XML never leaves the machine — only structural metadata goes to Claude.
  */
 
-import type { BizTalkApplication } from '../types/biztalk.js';
 import type { WorkflowJson } from '../types/logicapps.js';
 import type { IntegrationIntent, IntegrationPattern } from '../shared/integration-intent.js';
 import type { MigrationRunOptions, MigrationRunResult, MigrationStep } from './types.js';
 
 import { listArtifacts }                from '../mcp-server/tools/file-tools.js';
-import { analyzeOrchestration, analyzeOrchestrationXml } from '../stage1-understand/orchestration-analyzer.js';
-import { analyzeMap, analyzeMapXml }    from '../stage1-understand/map-analyzer.js';
-import { analyzePipeline, analyzePipelineXml } from '../stage1-understand/pipeline-analyzer.js';
-import { analyzeBindings, analyzeBindingsXml } from '../stage1-understand/binding-analyzer.js';
-import { scoreApplication }             from '../stage1-understand/complexity-scorer.js';
 import { detectPatterns }               from '../stage1-understand/pattern-detector.js';
+import { parseArtifacts }               from './artifact-parser.js';
 import { constructIntent }              from '../stage1-understand/intent-constructor.js';
 import { validateIntegrationIntent }    from '../shared/intent-validator.js';
 import { analyzeGaps }                  from '../stage2-document/gap-analyzer.js';
@@ -306,80 +301,6 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
     result.qualityReport = finalQualityReport;
   }
   return result;
-}
-
-// ─── Internal: Parse Artifacts ────────────────────────────────────────────────
-
-async function parseArtifacts(
-  inventory: Awaited<ReturnType<typeof listArtifacts>>,
-  appName: string,
-  errors: string[],
-  onStep: (msg: string) => void
-): Promise<BizTalkApplication> {
-  const orchestrations: ReturnType<typeof analyzeOrchestrationXml>[] = [];
-  const maps: ReturnType<typeof analyzeMapXml>[] = [];
-  const pipelines: ReturnType<typeof analyzePipelineXml>[] = [];
-  const bindingFiles: ReturnType<typeof analyzeBindingsXml>[] = [];
-
-  for (const f of inventory.orchestrations) {
-    try {
-      onStep(`Parsing orchestration: ${f.split('/').pop()}`);
-      // Use analyzeOrchestration (not analyzeOrchestrationXml) — it calls readBizTalkFile
-      // which handles UTF-16 LE encoding and strips the #if __DESIGNER_DATA preprocessor block.
-      orchestrations.push(await analyzeOrchestration(f));
-    } catch (err) {
-      errors.push(`Failed to parse orchestration ${f}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  for (const f of inventory.maps) {
-    try {
-      onStep(`Parsing map: ${f.split('/').pop()}`);
-      // Use analyzeMap (not analyzeMapXml) — it calls readBizTalkFile for UTF-16 LE support.
-      maps.push(await analyzeMap(f));
-    } catch (err) {
-      errors.push(`Failed to parse map ${f}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  for (const f of inventory.pipelines) {
-    try {
-      onStep(`Parsing pipeline: ${f.split('/').pop()}`);
-      // Use analyzePipeline (not analyzePipelineXml) — it calls readBizTalkFile for UTF-16 LE support.
-      pipelines.push(await analyzePipeline(f));
-    } catch (err) {
-      errors.push(`Failed to parse pipeline ${f}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  for (const f of inventory.bindings) {
-    try {
-      onStep(`Parsing bindings: ${f.split('/').pop()}`);
-      // Use analyzeBindings (not analyzeBindingsXml) — it calls readBizTalkFile
-      // which handles UTF-16 LE encoding that real BizTalk BindingInfo.xml files use.
-      bindingFiles.push(await analyzeBindings(f));
-    } catch (err) {
-      errors.push(`Failed to parse bindings ${f}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  const app: BizTalkApplication = {
-    name: appName,
-    biztalkVersion: 'unknown',
-    orchestrations,
-    maps,
-    pipelines,
-    schemas: [],
-    bindingFiles,
-    complexityScore: 0,
-    complexityClassification: 'moderate',
-  };
-
-  const complexity = scoreApplication(app);
-  app.complexityScore = complexity.totalScore;
-  app.complexityClassification = complexity.classification;
-
-  return app;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,15 +1,22 @@
 /**
  * Runner Types — Automated Migration Pipeline
  *
- * Types for the one-command migration runner.
+ * Types for the one-command migration runner and estate assessment runner.
  * The runner orchestrates the full 5-step pipeline without requiring
  * the consultant to understand prompts, chains, or MCP tools.
  */
 
-import type { IntegrationIntent } from '../shared/integration-intent.js';
+import type { IntegrationIntent, IntegrationPattern } from '../shared/integration-intent.js';
 import type { BuildResult } from '../stage3-build/package-builder.js';
 import type { QualityReport } from '../validation/quality-scorer.js';
 import type { WorkflowValidationResult } from '../validation/workflow-validator.js';
+import type { BizTalkApplication } from '../types/biztalk.js';
+import type {
+  MigrationGap,
+  ComplexityClass,
+  ArchitectureRecommendation,
+} from '../types/migration.js';
+import type { ComplexityBreakdown } from '../stage1-understand/complexity-scorer.js';
 
 // ─── Pipeline Steps ───────────────────────────────────────────────────────────
 
@@ -97,3 +104,58 @@ export interface ReviewResponse {
 
 // Re-export for convenience
 export type { BuildResult, QualityReport, WorkflowValidationResult };
+
+// ─── Estate Assessment ────────────────────────────────────────────────────────
+
+export interface EstateRunOptions {
+  /** Root directory — each subdirectory is treated as one BizTalk application */
+  estateDir: string;
+  /** Output path for the generated estate-report.md */
+  outputPath: string;
+  /** Progress callback called as each app is processed */
+  onProgress?: (progress: EstateProgress) => void;
+}
+
+export interface EstateProgress {
+  phase: 'scan' | 'analyze' | 'report';
+  current: number;
+  total: number;
+  appName: string;
+  message: string;
+}
+
+export interface AppAssessment {
+  name: string;
+  dirPath: string;
+  app: BizTalkApplication;
+  complexity: ComplexityBreakdown;
+  gaps: MigrationGap[];
+  patterns: IntegrationPattern[];
+  architecture: ArchitectureRecommendation;
+  estimatedEffortDays: number;
+  wave: 1 | 2 | 3 | 4;
+}
+
+export interface EstateResult {
+  assessments: AppAssessment[];
+  failures: Array<{ name: string; dirPath: string; error: string }>;
+  totals: EstateTotals;
+  report: string;
+}
+
+export interface EstateTotals {
+  applications: number;
+  orchestrations: number;
+  maps: number;
+  pipelines: number;
+  schemas: number;
+  totalGaps: number;
+  criticalGaps: number;
+  highGaps: number;
+  mediumGaps: number;
+  totalEstimatedEffortDays: number;
+  complexityDistribution: Record<ComplexityClass, number>;
+  adapterInventory: Array<{ adapterType: string; appCount: number; hasKnownGaps: boolean }>;
+  requiresIntegrationAccount: number;
+  requiresOnPremGateway: number;
+}

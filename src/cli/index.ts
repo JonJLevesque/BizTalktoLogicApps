@@ -47,6 +47,8 @@ import { listTemplates }       from '../greenfield/template-library.js';
 import { validateLicense }     from '../licensing/index.js';
 import { runMigration }        from '../runner/index.js';
 import { writeOutput }         from '../runner/index.js';
+import { runEstateAssessment } from '../runner/index.js';
+import { extractMsi }          from '../runner/index.js';
 import type { BizTalkApplication } from '../types/biztalk.js';
 import type { MigrationResult }    from '../types/migration.js';
 
@@ -81,15 +83,24 @@ program
 program
   .command('run')
   .description('Run the full BizTalk → Logic Apps migration pipeline in one command')
-  .requiredOption('--dir <path>', 'Directory containing BizTalk artifacts (.odx, .btm, .btp, BindingInfo.xml)')
+  .option('--dir <path>', 'Directory containing BizTalk artifacts (.odx, .btm, .btp, BindingInfo.xml)')
+  .option('--from-msi <path>', 'Extract a BizTalk MSI package and migrate the contents (requires 7z)')
   .requiredOption('--app <name>', 'BizTalk application name')
   .option('--output <dir>', 'Output directory for generated Logic Apps project', './logic-apps-output')
   .option('--skip-enrichment', 'Skip Claude AI enrichment (offline/dev mode)')
   .action(async (opts) => {
+    const runOpts = opts as { dir?: string; fromMsi?: string; app: string; output: string; skipEnrichment?: boolean; license?: string };
+
+    // Validate: at least one of --dir or --from-msi is required
+    if (!runOpts.dir && !runOpts.fromMsi) {
+      console.error(chalk.red('✗ You must specify either --dir <path> or --from-msi <msiPath>'));
+      process.exit(1);
+    }
+
     // Fail fast if no credentials are configured (avoids silent TODO_CLAUDE-filled output)
     const hasDevMode   = process.env['BTLA_DEV_MODE'] === 'true';
     const hasApiKey    = !!process.env['ANTHROPIC_API_KEY'];
-    const hasLicenseKey = !!(process.env['BTLA_LICENSE_KEY'] ?? (opts as { license?: string }).license);
+    const hasLicenseKey = !!(process.env['BTLA_LICENSE_KEY'] ?? runOpts.license);
     if (!hasDevMode && !hasApiKey && !hasLicenseKey) {
       console.error(chalk.red('✗ No credentials configured.'));
       console.error(chalk.yellow('  Set one of:'));
@@ -99,6 +110,24 @@ program
       process.exit(1);
     }
 
+    // Handle --from-msi: extract before running
+    let msiCleanup: (() => void) | undefined;
+    let artifactDir = runOpts.dir ?? '';
+
+    if (runOpts.fromMsi) {
+      const msiSpinner = ora(`Extracting MSI: ${runOpts.fromMsi}`).start();
+      try {
+        const extracted = extractMsi(runOpts.fromMsi);
+        msiCleanup = extracted.cleanup;
+        artifactDir = extracted.extractedDir;
+        msiSpinner.succeed(`MSI extracted to ${chalk.cyan(artifactDir)}`);
+      } catch (err) {
+        msiSpinner.fail('MSI extraction failed');
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exit(1);
+      }
+    }
+
     const spinner = ora().start();
 
     const steps: string[] = [];
@@ -106,10 +135,10 @@ program
 
     try {
       const result = await runMigration({
-        artifactDir:     opts.dir as string,
-        appName:         opts.app as string,
-        outputDir:       opts.output as string,
-        skipEnrichment:  !!(opts.skipEnrichment as boolean | undefined),
+        artifactDir:     artifactDir,
+        appName:         runOpts.app,
+        outputDir:       runOpts.output,
+        skipEnrichment:  !!runOpts.skipEnrichment,
         onProgress: ({ step, message, detail }) => {
           const label = `[${step.toUpperCase().padEnd(8)}]`;
           spinner.text = `${chalk.cyan(label)} ${message}${detail ? chalk.gray(' — ' + detail) : ''}`;
@@ -128,10 +157,13 @@ program
       // Write output to disk
       spinner.text = '[WRITE   ] Writing output files...';
       writeOutput({
-        outputDir:      opts.output as string,
+        outputDir:      runOpts.output,
         buildResult:    result.buildResult!,
         migrationReport: result.migrationReport,
       });
+
+      // Clean up MSI temp dir after successful write
+      msiCleanup?.();
 
       spinner.succeed(chalk.green('Migration complete'));
 
@@ -139,8 +171,8 @@ program
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log('');
       console.log(chalk.bold('── Migration Summary ────────────────────────────────'));
-      console.log(`  Application:  ${chalk.cyan(opts.app as string)}`);
-      console.log(`  Output:       ${chalk.cyan(opts.output as string)}`);
+      console.log(`  Application:  ${chalk.cyan(runOpts.app)}`);
+      console.log(`  Output:       ${chalk.cyan(runOpts.output)}`);
       console.log(`  Workflows:    ${chalk.cyan(result.buildResult?.project.workflows.length ?? 0)}`);
       if (result.qualityReport) {
         const gradeColor = result.qualityReport.grade <= 'B' ? chalk.green : chalk.yellow;
@@ -157,10 +189,11 @@ program
       }
 
       console.log('');
-      console.log(`  ${chalk.bold('migration-report.md')} written to ${chalk.cyan(opts.output as string)}`);
+      console.log(`  ${chalk.bold('migration-report.md')} written to ${chalk.cyan(runOpts.output)}`);
       console.log(chalk.bold('────────────────────────────────────────────────────\n'));
 
     } catch (error) {
+      msiCleanup?.();
       spinner.fail('Migration pipeline failed');
       console.error(chalk.red(error instanceof Error ? error.message : String(error)));
       process.exit(1);
@@ -174,15 +207,33 @@ program
   .description('Analyze BizTalk artifacts and generate a migration specification')
   .requiredOption('--app <name>', 'BizTalk application name')
   .option('--dir <path>', 'Directory containing .odx/.btm/.btp files', '.')
+  .option('--from-msi <path>', 'Extract a BizTalk MSI package and analyze the contents (requires 7z)')
   .option('--bindings <file>', 'Path to binding XML export file')
   .option('--out <file>', 'Output file for migration spec JSON', 'migration-spec.json')
   .option('--verbose', 'Show detailed output')
   .action(async (opts) => {
+    const analyzeOpts = opts as { app: string; dir: string; fromMsi?: string; bindings?: string; out: string; verbose?: boolean };
     const spinner = ora('Analyzing BizTalk application...').start();
 
+    // Handle --from-msi extraction
+    let msiCleanupAnalyze: (() => void) | undefined;
+    if (analyzeOpts.fromMsi) {
+      spinner.text = `Extracting MSI: ${analyzeOpts.fromMsi}`;
+      try {
+        const extracted = extractMsi(analyzeOpts.fromMsi);
+        msiCleanupAnalyze = extracted.cleanup;
+        analyzeOpts.dir = extracted.extractedDir;
+        spinner.text = 'Analyzing BizTalk application...';
+      } catch (err) {
+        spinner.fail('MSI extraction failed');
+        console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+        process.exit(1);
+      }
+    }
+
     try {
-      const dir  = opts.dir as string;
-      const appName = opts.app as string;
+      const dir  = analyzeOpts.dir;
+      const appName = analyzeOpts.app;
 
       // Collect artifact files — use file-path analyzers for UTF-16 LE support
       const orchestrations = [];
@@ -204,8 +255,8 @@ program
       }
 
       // Auto-discover BindingInfo.xml from --dir if --bindings not specified
-      const bindingPaths: string[] = opts.bindings
-        ? [opts.bindings as string]
+      const bindingPaths: string[] = analyzeOpts.bindings
+        ? [analyzeOpts.bindings]
         : collectFiles(dir, '.xml').filter(f => basename(f).toLowerCase() === 'bindinginfo.xml');
       const bindingFiles = [];
       for (const bp of bindingPaths) {
@@ -252,15 +303,75 @@ program
         migrationPlan:      plan,
       };
 
-      const outPath = opts.out as string;
+      const outPath = analyzeOpts.out;
       writeFileSync(outPath, JSON.stringify(migrationResult, null, 2));
+      msiCleanupAnalyze?.();
       spinner.succeed(`Migration spec written to ${chalk.green(outPath)}`);
 
       // Print summary
       printAnalysisSummary(app, gaps, arch, complexity);
 
     } catch (error) {
+      msiCleanupAnalyze?.();
       spinner.fail('Analysis failed');
+      console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+      process.exit(1);
+    }
+  });
+
+// ─── estate command ───────────────────────────────────────────────────────────
+
+program
+  .command('estate')
+  .description('Assess an entire BizTalk estate — runs gap analysis on all apps in a root directory')
+  .requiredOption('--dir <path>', 'Root directory containing BizTalk application subdirectories')
+  .option('--output <file>', 'Output file for the estate report', './estate-report.md')
+  .action(async (opts) => {
+    const estateOpts = opts as { dir: string; output: string };
+    const spinner = ora().start();
+    const startTime = Date.now();
+
+    try {
+      let current = 0;
+      let total = 0;
+
+      const result = await runEstateAssessment({
+        estateDir:  estateOpts.dir,
+        outputPath: estateOpts.output,
+        onProgress: ({ phase, current: c, total: t, appName, message }) => {
+          current = c;
+          total   = t;
+          const phasePad = phase.toUpperCase().padEnd(7);
+          const counter  = total > 0 ? ` (${current}/${total})` : '';
+          const app      = appName ? ` ${appName}:` : '';
+          spinner.text   = `${chalk.cyan(`[${phasePad}]`)}${counter}${app} ${message}`;
+        },
+      });
+
+      // Write the report to disk
+      ensureDir(dirname(estateOpts.output));
+      writeFileSync(estateOpts.output, result.report, 'utf-8');
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      spinner.succeed(chalk.green(`Estate assessment complete`));
+
+      console.log('');
+      console.log(chalk.bold('── Estate Assessment Summary ────────────────────────'));
+      console.log(`  Applications:  ${chalk.cyan(result.totals.applications)}`);
+      console.log(`  Orchestrations:${chalk.cyan(result.totals.orchestrations)}`);
+      console.log(`  Maps:          ${chalk.cyan(result.totals.maps)}`);
+      console.log(`  Total gaps:    ${chalk.cyan(result.totals.totalGaps)} (🔴 ${result.totals.criticalGaps} critical, 🟠 ${result.totals.highGaps} high)`);
+      console.log(`  Total effort:  ~${chalk.cyan(result.totals.totalEstimatedEffortDays)} day(s)`);
+      console.log(`  Time:          ${elapsed}s`);
+      if (result.failures.length > 0) {
+        console.log(`  Parse failures:${chalk.yellow(result.failures.length)}`);
+      }
+      console.log('');
+      console.log(`  ${chalk.bold('estate-report.md')} written to ${chalk.cyan(estateOpts.output)}`);
+      console.log(chalk.bold('────────────────────────────────────────────────────\n'));
+
+    } catch (error) {
+      spinner.fail('Estate assessment failed');
       console.error(chalk.red(error instanceof Error ? error.message : String(error)));
       process.exit(1);
     }
