@@ -30,7 +30,7 @@ You need to pull your application's files out of BizTalk first. Here's how:
 
 1. Expand **Applications** in the left panel
 2. Right-click the application you want to migrate
-3. Click **Export → MSI file** — save it somewhere and extract it. This gives you `.odx`, `.btm`, and `.btp` files.
+3. Click **Export → MSI file** — save it somewhere. You can pass the `.msi` directly to the tool with `--from-msi`, or extract it yourself to get the `.odx`, `.btm`, and `.btp` files and use `--dir`.
 4. Right-click the same application again
 5. Click **Export → Bindings** → save the file as **`BindingInfo.xml`**
 
