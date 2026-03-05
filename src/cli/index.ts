@@ -663,6 +663,16 @@ function complexityColor(complexity: string): string {
   }
 }
 
+// ─── MCP Server ───────────────────────────────────────────────────────────────
+
+program
+  .command('mcp')
+  .description('Start the MCP server for Claude Desktop / VS Code integration')
+  .action(async () => {
+    const { startMcpServer } = await import('../mcp-server/server.js');
+    await startMcpServer();
+  });
+
 // ─── Run ──────────────────────────────────────────────────────────────────────
 
 program.parse(process.argv);

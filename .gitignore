@@ -59,6 +59,7 @@ Sandro Ebook/
 MIGRATION-PLAN.md
 docs/reference/
 docs/proxy-api-spec.md
+docs/architecture.md
 
 # ── Proxy server ──────────────────────────────────────────
 # Keep secrets out; track everything else
@@ -71,3 +72,8 @@ site/
 .wrangler/
 .playwright-mcp/
 .claude/
+
+# ── Generated outputs and archives ─────────────────────────
+outputs/
+*.zip
+.metadata_never_index

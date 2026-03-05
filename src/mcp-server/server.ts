@@ -255,7 +255,12 @@ async function main() {
   console.error(`[biztalk-migrate] MCP server started — tier: ${licenseTier}, tools: ${getToolsForTier(licenseTier).length}`);
 }
 
-main().catch(err => {
-  console.error('[biztalk-migrate] Fatal startup error:', err);
-  process.exit(1);
-});
+export const startMcpServer = main;
+
+// Auto-start when run directly
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch(err => {
+    console.error('[biztalk-migrate] Fatal startup error:', err);
+    process.exit(1);
+  });
+}

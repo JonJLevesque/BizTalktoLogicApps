@@ -1,7 +1,7 @@
 {
   "name": "biztalk-migrate",
   "displayName": "BizTalk to Logic Apps",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Migrate BizTalk Server applications to Azure Logic Apps Standard — CLI, MCP server, and VS Code extension",
   "author": "Jon Levesque <me@jonlevesque.com>",
   "publisher": "biztalk-migrate",
@@ -32,7 +32,6 @@
   "files": [
     "dist/",
     "schemas/",
-    "docs/reference/",
     "README.md",
     "LICENSE"
   ],
@@ -42,7 +41,7 @@
   },
   "main": "./dist/cli/index.js",
   "bin": {
-    "biztalk-migrate": "dist/cli/index.js"
+    "biztalk-migrate": "./dist/cli/index.js"
   },
   "exports": {
     ".": "./dist/cli/index.js",
@@ -63,7 +62,7 @@
     "mcp:dev": "node --watch dist/mcp-server/server.js",
     "cli:analyze": "node dist/cli/index.js analyze",
     "cli:build": "node dist/cli/index.js build",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm test && npm run build"
   },
   "activationEvents": [
     "onLanguage:xml",
@@ -190,38 +189,14 @@
     "zod-to-json-schema": "^3.22.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
-    "jest": "^29.7.0",
     "prettier": "^3.2.0",
     "rimraf": "^5.0.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.4.0"
-  },
-  "jest": {
-    "preset": "ts-jest/presets/default-esm",
-    "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [
-      ".ts"
-    ],
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "useESM": true
-        }
-      ]
-    },
-    "testMatch": [
-      "**/tests/**/*.test.ts",
-      "**/*.test.ts"
-    ]
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
   }
 }

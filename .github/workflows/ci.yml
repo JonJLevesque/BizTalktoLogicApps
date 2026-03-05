@@ -34,10 +34,10 @@ jobs:
         run: npm test
 
       - name: Run golden-master tests
-        run: node --experimental-vm-modules node_modules/.bin/jest tests/golden-master/
+        run: npx vitest run tests/golden-master/
 
       - name: Run regression tests
-        run: node --experimental-vm-modules node_modules/.bin/jest tests/regression/
+        run: npx vitest run tests/regression/
 
       - name: Build
         run: npm run build

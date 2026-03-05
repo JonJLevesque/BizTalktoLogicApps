@@ -139,6 +139,21 @@ biztalk-migrate run --dir ./artifacts --app "OrderSystem" --output ./output
 
 ---
 
+### Running from an MSI File
+
+If you have a BizTalk MSI export (the `.msi` file from the BizTalk Administration Console), you can pass it directly without extracting it first:
+
+```bash
+biztalk-migrate run \
+  --from-msi ./MyBizTalkApp.msi \
+  --app "OrderSystem" \
+  --output ./output
+```
+
+The tool extracts the artifacts from the MSI automatically.
+
+---
+
 ### Including Your License Key in the Command
 
 If you didn't set it as an environment variable, add `BTLA_LICENSE_KEY=your-key` to the front of the command:
@@ -202,7 +217,8 @@ logic-apps-output/
 │   └── OrderProcessingOrchTests.cs      ← MSTest scaffold (optional)
 ├── .vscode/
 │   └── settings.json              ← VS Code settings for Logic Apps extension
-└── migration-report.md            ← Open this first — explains what migrated and what didn't
+├── migration-report.md            ← Open this first — explains what migrated and what didn't
+└── migration-report.html          ← Same report, formatted for browser / print-to-PDF
 ```
 
 > **If your BizTalk application has multiple orchestrations**, each one gets its own folder and `workflow.json`. They share `connections.json`, `host.json`, and the `Artifacts/` folder.
@@ -359,6 +375,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) o
 }
 ```
 
+> **Note:** The `mcp` subcommand starts the stdio MCP server. It requires a valid license key.
+
 Restart Claude Desktop. Then say: *"Migrate my BizTalk application"* and Claude will guide you through it.
 
 ---
@@ -377,6 +395,26 @@ biztalk-migrate run \
 Open `migration-report.md`. You'll have the complexity score, gap count, and estimated effort before you've billed a single hour — enough to write a SOW.
 
 **Quality target for customer handoff**: Grade A (≥90/100). Most applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
+
+---
+
+### Estate Assessment (Multiple Applications)
+
+When a client has dozens of BizTalk applications, run the estate command across the entire export folder to get a portfolio-level view — complexity distribution, wave planning, and connector inventory — in one report:
+
+```bash
+biztalk-migrate estate \
+  --dir ./client-biztalk-exports \
+  --output ./estate-report.md
+```
+
+This generates `estate-report.md` (and `estate-report.html`) with:
+- Application inventory with complexity scores and wave assignments
+- Connector/adapter summary across all apps
+- Effort estimates by wave
+- Common gaps and risks across the estate
+
+No license key required for estate assessment.
 
 ---
 

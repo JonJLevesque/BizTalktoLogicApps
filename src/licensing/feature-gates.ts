@@ -168,7 +168,7 @@ export class FeatureGateError extends Error {
     super(
       `Feature "${feature}" requires a ${requiredTier} license. ` +
       `Current license tier: ${currentTier === 'none' ? 'unlicensed' : currentTier}. ` +
-      `Upgrade at https://biztalk-migrate.io/upgrade`
+      `Upgrade at https://biztalkmigrate.com`
     );
     this.name = 'FeatureGateError';
     this.feature = feature;
