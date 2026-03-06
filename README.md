@@ -243,7 +243,7 @@ The tool scores the generated workflow 0–100 and gives it a letter grade:
 | **D** | 40–59 | Issues to address. Read the report carefully. |
 | **F** | < 40 | Structural problems. Check the error section in the report. |
 
-Most applications score **Grade A** automatically. If you get lower, the migration report's **Actionable Fix List** tells you exactly what to change and how.
+Many applications score **Grade A** automatically. If you get lower, the migration report's **Actionable Fix List** tells you exactly what to change and how.
 
 ---
 
@@ -399,7 +399,7 @@ This generates `estate-report.md` (and `estate-report.html`) with:
 
 You'll have complexity scores, gap counts, and wave-level effort estimates before you've billed a single hour — enough to write a SOW.
 
-**Quality target for customer handoff**: Grade A (≥90/100). Most applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
+**Quality target for customer handoff**: Grade A (≥90/100). Many applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
 
 ---
 
