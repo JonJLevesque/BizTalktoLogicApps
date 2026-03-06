@@ -383,24 +383,7 @@ Restart Claude Desktop. Then say: *"Migrate my BizTalk application"* and Claude 
 
 ## For Consultants
 
-**Before the first client meeting** (runs on the Free tier, takes seconds):
-
-```bash
-biztalk-migrate run \
-  --dir ./client-export \
-  --app "ClientOrderSystem" \
-  --output ./pre-engagement-report
-```
-
-Open `migration-report.md`. You'll have the complexity score, gap count, and estimated effort before you've billed a single hour — enough to write a SOW.
-
-**Quality target for customer handoff**: Grade A (≥90/100). Most applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
-
----
-
-### Estate Assessment (Multiple Applications)
-
-When a client has dozens of BizTalk applications, run the estate command across the entire export folder to get a portfolio-level view — complexity distribution, wave planning, and connector inventory — in one report:
+**Before the first client meeting** — run the estate command across the client's entire BizTalk export folder. No license key required, takes seconds:
 
 ```bash
 biztalk-migrate estate \
@@ -414,7 +397,9 @@ This generates `estate-report.md` (and `estate-report.html`) with:
 - Effort estimates by wave
 - Common gaps and risks across the estate
 
-No license key required for estate assessment.
+You'll have complexity scores, gap counts, and wave-level effort estimates before you've billed a single hour — enough to write a SOW.
+
+**Quality target for customer handoff**: Grade A (≥90/100). Most applications reach this automatically. The migration report's Actionable Fix List closes the remaining gap.
 
 ---
 
