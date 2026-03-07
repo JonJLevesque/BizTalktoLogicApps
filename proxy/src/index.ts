@@ -39,6 +39,7 @@ const app = new Hono<AppEnv>();
 
 const ALLOWED_ORIGINS = [
   'https://biztalkmigrate.com',
+  'https://www.biztalkmigrate.com',
   'https://biztalkmigrate.pages.dev',
   'http://localhost:3000',
 ];
