@@ -35,8 +35,9 @@ import type {
   RunAfterMap,
   WdlAction,
 } from '../types/logicapps.js';
-import type { IntegrationIntent } from '../shared/integration-intent.js';
-import type { BizTalkApplication } from '../types/biztalk.js';
+import type { IntegrationIntent, IntegrationStep } from '../shared/integration-intent.js';
+import { createIntegrationIntent } from '../shared/integration-intent.js';
+import type { BizTalkApplication, ParsedPipeline, BtpComponent } from '../types/biztalk.js';
 import type { MigrationResult } from '../types/migration.js';
 import { generateWorkflow }              from './workflow-generator.js';
 import { convertMap }                    from './map-converter.js';
@@ -114,6 +115,30 @@ export function buildPackage(
       wrapInScope:  options.wrapInScope ?? true,
     });
     workflows.push({ name: workflowName, workflow: wf });
+  }
+
+  // ── 1b. Generate pipeline workflows (one per .btp pipeline file) ────────────
+  // Sandro's architecture: each pipeline is a reusable standalone workflow with a
+  // Request trigger. Orchestration workflows call pipeline workflows when needed.
+  const pipelineWorkflowNames: string[] = [];
+  const seenPipelineNames = new Set<string>();
+  for (const pipeline of app.pipelines) {
+    if (seenPipelineNames.has(pipeline.name)) {
+      warnings.push(`Skipped duplicate pipeline "${pipeline.name}"`);
+      continue;
+    }
+    seenPipelineNames.add(pipeline.name);
+    const pipelineIntent = buildPipelineIntent(pipeline);
+    const workflowName = sanitizeWorkflowName(`Pipeline_${pipeline.name}`);
+    const wf = generateWorkflow(pipelineIntent, {
+      workflowName,
+      kind:        'Stateful',
+      wrapInScope: options.wrapInScope ?? true,
+    });
+    // Pipeline workflows are always called as children — ensure Response action
+    ensureResponseAction(wf, warnings);
+    workflows.push({ name: workflowName, workflow: wf });
+    pipelineWorkflowNames.push(workflowName);
   }
 
   // If no orchestrations, generate a single workflow from the intent
@@ -402,6 +427,150 @@ function buildOrchestrationIntent(
   };
 }
 
+
+// ─── Pipeline Workflow Builder ────────────────────────────────────────────────
+
+/**
+ * Maps a BizTalk pipeline component short name to its Logic Apps step description.
+ * Used in mapPipelineComponentToAction().
+ */
+const COMPONENT_ACTION_MAP: Record<string, { type: IntegrationStep['type']; actionType: string; config: Record<string, unknown>; needsFunction: boolean }> = {
+  // Receive pipeline components
+  'XmlDasmComp':          { type: 'set-variable', actionType: 'Compose', config: { value: '@xml(triggerBody())' }, needsFunction: false },
+  'FlatFileDasmComp':     { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'FlatFileDecode', expression: 'Decode flat file message to XML' }, needsFunction: true },
+  'FFDasmComp':           { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'FlatFileDecode', expression: 'Decode flat file message to XML' }, needsFunction: true },
+  'XmlValidator':         { type: 'set-variable', actionType: 'Compose', config: { value: '@triggerBody()', note: 'TODO: Add XML validation via Integration Account schema' }, needsFunction: false },
+  'JsonDecoder':          { type: 'set-variable', actionType: 'Compose', config: { value: '@json(string(triggerBody()))' }, needsFunction: false },
+  'PartyRes':             { type: 'set-variable', actionType: 'Compose', config: { value: '@triggerBody()', note: 'Party resolution: replace with Azure Table lookup' }, needsFunction: false },
+  // Send pipeline components
+  'XmlAsmComp':           { type: 'set-variable', actionType: 'Compose', config: { value: '@string(triggerBody())' }, needsFunction: false },
+  'FlatFileAsmComp':      { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'FlatFileEncode', expression: 'Encode XML to flat file format' }, needsFunction: true },
+  'FFAsmComp':            { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'FlatFileEncode', expression: 'Encode XML to flat file format' }, needsFunction: true },
+  'JsonEncoder':          { type: 'set-variable', actionType: 'Compose', config: { value: '@json(string(triggerBody()))' }, needsFunction: false },
+  // EDI / AS2 — require Integration Account
+  'EDIDisassemblerComp':  { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'EdiDecode', expression: 'EDI decode requires Integration Account connector' }, needsFunction: true },
+  'EDIAssemblerComp':     { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'EdiEncode', expression: 'EDI encode requires Integration Account connector' }, needsFunction: true },
+  'BatchMarkerPipelineComponent': { type: 'set-variable', actionType: 'Compose', config: { value: '@triggerBody()', note: 'Batch marker: handle via Service Bus batching pattern' }, needsFunction: false },
+  'AS2Decoder':           { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'As2Decode', expression: 'AS2 decode requires Integration Account connector' }, needsFunction: true },
+  'AS2Encoder':           { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'As2Encode', expression: 'AS2 encode requires Integration Account connector' }, needsFunction: true },
+  'MIME_SMIME_Decoder':   { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'MimeDecode', expression: 'MIME/S-MIME decode requires custom Azure Function' }, needsFunction: true },
+  'MIME_SMIME_Encoder':   { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'MimeEncode', expression: 'MIME/S-MIME encode requires custom Azure Function' }, needsFunction: true },
+};
+
+/**
+ * Maps a known BizTalk pipeline component to an IntegrationStep action descriptor.
+ */
+function mapPipelineComponentToAction(
+  component: BtpComponent,
+  stepId: string
+): IntegrationStep {
+  const mapped = COMPONENT_ACTION_MAP[component.componentType];
+  if (mapped) {
+    return {
+      id: stepId,
+      type: mapped.type,
+      description: `${component.stage}: ${component.componentType}`,
+      actionType: mapped.actionType,
+      config: { ...mapped.config },
+      runAfter: [],
+    };
+  }
+
+  // Unknown component → treat as custom requiring InvokeFunction
+  return {
+    id: stepId,
+    type: 'invoke-function',
+    description: `${component.stage}: ${component.fullTypeName} (unknown component)`,
+    actionType: 'InvokeFunction',
+    config: { functionName: component.componentType || 'CustomPipelineComponent', expression: component.fullTypeName },
+    runAfter: [],
+  };
+}
+
+/**
+ * Detects the primary data format handled by a pipeline based on its components.
+ */
+function detectFormatFromComponents(pipeline: ParsedPipeline): 'xml' | 'json' | 'flat-file' | 'edi-x12' | 'as2' | 'unknown' {
+  for (const comp of pipeline.components) {
+    const lower = comp.componentType.toLowerCase();
+    if (lower.includes('flatfile') || lower.includes('ff')) return 'flat-file';
+    if (lower.includes('edi') || lower.includes('x12') || lower.includes('edifact')) return 'edi-x12';
+    if (lower.includes('as2')) return 'as2';
+    if (lower.includes('json')) return 'json';
+    if (lower.includes('xml')) return 'xml';
+  }
+  return 'xml'; // default
+}
+
+/**
+ * Builds an IntegrationIntent for a pipeline workflow.
+ * Each .btp pipeline becomes a reusable standalone Logic Apps workflow with a
+ * Request trigger so it can be called from any orchestration workflow.
+ *
+ * Sandro's principle: pipelines are shared — putting them into separate workflows
+ * allows re-use across orchestrations without duplication.
+ */
+function buildPipelineIntent(pipeline: ParsedPipeline): IntegrationIntent {
+  const steps: IntegrationStep[] = [];
+  let stepIndex = 0;
+
+  for (const component of pipeline.components) {
+    stepIndex++;
+    const stepId = `step_pipeline_${stepIndex}`;
+
+    if (component.isCustom) {
+      // Custom (third-party) component → generate InvokeFunction stub
+      steps.push({
+        id: stepId,
+        type: 'invoke-function',
+        description: `Custom pipeline component: ${component.fullTypeName}`,
+        actionType: 'InvokeFunction',
+        config: { functionName: component.componentType || 'CustomPipelineComponent', expression: component.fullTypeName },
+        runAfter: [],
+      });
+    } else {
+      steps.push(mapPipelineComponentToAction(component, stepId));
+    }
+  }
+
+  // Default/empty pipelines get a simple pass-through step
+  if (steps.length === 0) {
+    steps.push({
+      id: 'step_passthrough',
+      type: 'set-variable',
+      description: 'Pass-through: forward message unchanged',
+      actionType: 'Compose',
+      config: { value: '@triggerBody()' },
+      runAfter: [],
+    });
+  }
+
+  const format = detectFormatFromComponents(pipeline);
+
+  return createIntegrationIntent('biztalk-migration', {
+    trigger: {
+      type: 'webhook',
+      source: `Called by ${pipeline.direction === 'receive' ? 'orchestration (receive pipeline)' : 'orchestration (send pipeline)'}`,
+      connector: 'request',
+      config: {},
+    },
+    steps,
+    errorHandling: { strategy: 'terminate' },
+    systems: [],
+    dataFormats: {
+      input: pipeline.direction === 'receive' ? format : 'xml',
+      output: pipeline.direction === 'send'    ? format : 'xml',
+    },
+    patterns: [],
+    metadata: {
+      source: 'biztalk-migration',
+      complexity: 'simple',
+      estimatedActions: steps.length + 2,
+      requiresIntegrationAccount: false,
+      requiresOnPremGateway: false,
+    },
+  });
+}
 
 /**
  * Collects all `invoke-function` steps from the intent and generates
