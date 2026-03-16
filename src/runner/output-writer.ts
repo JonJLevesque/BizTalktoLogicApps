@@ -280,6 +280,7 @@ const WORKFLOW_DESIGNTIME_LOCAL_SETTINGS = {
     APP_KIND: 'workflowapp',
     FUNCTIONS_WORKER_RUNTIME: 'node',
     AzureWebJobsSecretStorageType: 'Files',
+    ProjectDirectoryPath: '',
   },
 };
 
