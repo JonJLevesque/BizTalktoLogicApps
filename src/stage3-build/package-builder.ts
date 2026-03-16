@@ -660,16 +660,16 @@ const COMPONENT_ACTION_MAP: Record<string, { type: IntegrationStep['type']; acti
   // Receive pipeline components
   'XmlDasmComp':          { type: 'set-variable', actionType: 'Compose', config: { value: '@xml(triggerBody())' }, needsFunction: false },
   // FIX-4: Flat File uses Logic Apps Standard built-in FlatFileDecoding/FlatFileEncoding actions (not InvokeFunction)
-  'FlatFileDasmComp':     { type: 'transform', actionType: 'FlatFileDecoding', config: { content: '@triggerBody()', schemaName: 'TODO_flat_file_schema' }, needsFunction: false },
-  'FFDasmComp':           { type: 'transform', actionType: 'FlatFileDecoding', config: { content: '@triggerBody()', schemaName: 'TODO_flat_file_schema' }, needsFunction: false },
+  'FlatFileDasmComp':     { type: 'transform', actionType: 'FlatFileDecoding', config: { content: '@triggerBody()', schemaName: 'FlatFileSchemaName' }, needsFunction: false },
+  'FFDasmComp':           { type: 'transform', actionType: 'FlatFileDecoding', config: { content: '@triggerBody()', schemaName: 'FlatFileSchemaName' }, needsFunction: false },
   'XmlValidator':         { type: 'set-variable', actionType: 'Compose', config: { value: '@triggerBody()', note: 'TODO: Add XML validation via Integration Account schema' }, needsFunction: false },
   'JsonDecoder':          { type: 'set-variable', actionType: 'Compose', config: { value: '@json(string(triggerBody()))' }, needsFunction: false },
   'PartyRes':             { type: 'set-variable', actionType: 'Compose', config: { value: '@triggerBody()', note: 'Party resolution: replace with Azure Table lookup' }, needsFunction: false },
   // Send pipeline components
   'XmlAsmComp':           { type: 'set-variable', actionType: 'Compose', config: { value: '@string(triggerBody())' }, needsFunction: false },
   // FIX-4: Flat File uses Logic Apps Standard built-in FlatFileDecoding/FlatFileEncoding actions (not InvokeFunction)
-  'FlatFileAsmComp':      { type: 'transform', actionType: 'FlatFileEncoding', config: { content: '@triggerBody()', schemaName: 'TODO_flat_file_schema' }, needsFunction: false },
-  'FFAsmComp':            { type: 'transform', actionType: 'FlatFileEncoding', config: { content: '@triggerBody()', schemaName: 'TODO_flat_file_schema' }, needsFunction: false },
+  'FlatFileAsmComp':      { type: 'transform', actionType: 'FlatFileEncoding', config: { content: '@triggerBody()', schemaName: 'FlatFileSchemaName' }, needsFunction: false },
+  'FFAsmComp':            { type: 'transform', actionType: 'FlatFileEncoding', config: { content: '@triggerBody()', schemaName: 'FlatFileSchemaName' }, needsFunction: false },
   'JsonEncoder':          { type: 'set-variable', actionType: 'Compose', config: { value: '@json(string(triggerBody()))' }, needsFunction: false },
   // EDI / AS2 — require Integration Account
   'EDIDisassemblerComp':  { type: 'invoke-function', actionType: 'InvokeFunction', config: { functionName: 'EdiDecode', expression: 'EDI decode requires Integration Account connector' }, needsFunction: true },
