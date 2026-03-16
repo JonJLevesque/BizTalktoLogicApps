@@ -106,10 +106,10 @@ export function generateWorkflow(
   }
 
   // Build a consistent step-ID → action-name map for the entire intent
-  const nameMap = buildFullNameMap(intent.steps);
+  const maps = buildFullNameMap(intent.steps);
 
   const triggers = buildTrigger(intent.trigger);
-  let   actions  = buildActions(intent.steps, nameMap);
+  let   actions  = buildActions(intent.steps, maps);
 
   // FIX-04: BizTalk FTP/SFTP adapters auto-delete processed files; Logic Apps does NOT.
   // Append an explicit deleteFile action as the last success-path action so files
@@ -180,8 +180,8 @@ function generateSequentialConvoyWorkflow(
   };
 
   // Build inner business logic actions from intent steps
-  const nameMap  = buildFullNameMap(intent.steps);
-  const bizLogic = buildActions(intent.steps, nameMap);
+  const maps  = buildFullNameMap(intent.steps);
+  const bizLogic = buildActions(intent.steps, maps);
 
   const processScope: ScopeAction = {
     type: 'Scope',
@@ -291,34 +291,44 @@ function generateSequentialConvoyWorkflow(
 // ─── Name Map ─────────────────────────────────────────────────────────────────
 
 /**
- * Builds a Map<stepId, actionName> for ALL steps (including nested branches).
- * Action names are unique PascalCase strings safe for use as WDL action keys.
+ * Two-map structure for action name resolution:
+ *  - step: Map<IntegrationStep, string>  keyed by object reference — used in buildActions
+ *           so the same step.id in different branches gets DIFFERENT unique names.
+ *  - id:   Map<string, string>           keyed by step.id (first occurrence wins) — used
+ *           in buildRunAfter to resolve explicit dependency references by ID.
  */
-function buildFullNameMap(steps: IntegrationStep[]): Map<string, string> {
-  const nameMap   = new Map<string, string>();
+interface NameMaps {
+  step: Map<IntegrationStep, string>;
+  id:   Map<string, string>;
+}
+
+function buildFullNameMap(steps: IntegrationStep[]): NameMaps {
+  const maps: NameMaps = { step: new Map(), id: new Map() };
   const usedNames = new Set<string>();
-  populateNameMap(steps, nameMap, usedNames);
-  return nameMap;
+  populateNameMap(steps, maps, usedNames);
+  return maps;
 }
 
 function populateNameMap(
   steps: IntegrationStep[],
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   usedNames: Set<string>
 ): void {
   for (const step of steps) {
     const name = uniqueActionName(step.description || step.type, usedNames);
-    nameMap.set(step.id, name);
+    maps.step.set(step, name);
+    // id map: first occurrence wins (for runAfter resolution within same branch)
+    if (!maps.id.has(step.id)) maps.id.set(step.id, name);
     usedNames.add(name);
 
-    // Recurse into branches
+    // Recurse into branches — same usedNames ensures global uniqueness
     const b = step.branches;
     if (b) {
-      if (b.trueBranch)   populateNameMap(b.trueBranch,   nameMap, usedNames);
-      if (b.falseBranch)  populateNameMap(b.falseBranch,  nameMap, usedNames);
-      if (b.defaultSteps) populateNameMap(b.defaultSteps, nameMap, usedNames);
+      if (b.trueBranch)   populateNameMap(b.trueBranch,   maps, usedNames);
+      if (b.falseBranch)  populateNameMap(b.falseBranch,  maps, usedNames);
+      if (b.defaultSteps) populateNameMap(b.defaultSteps, maps, usedNames);
       if (b.cases) {
-        for (const c of b.cases) populateNameMap(c.steps, nameMap, usedNames);
+        for (const c of b.cases) populateNameMap(c.steps, maps, usedNames);
       }
     }
   }
@@ -450,13 +460,13 @@ function connectorDefaultTriggerOperation(connector: string): string {
 
 function buildActions(
   steps: IntegrationStep[],
-  nameMap: Map<string, string>
+  maps: NameMaps
 ): Record<string, WdlAction> {
   const actions: Record<string, WdlAction> = {};
   let prevActionName: string | undefined;
 
   for (const step of steps) {
-    const actionName = nameMap.get(step.id) ?? step.id;
+    const actionName = maps.step.get(step) ?? step.id;
 
     // BizTalk orchestrations are sequential by default. If a step has no explicit
     // runAfter dependencies declared in the intent, chain it after the previous action.
@@ -465,10 +475,10 @@ function buildActions(
     if ((!step.runAfter || step.runAfter.length === 0) && prevActionName !== undefined) {
       runAfter = { [prevActionName]: ['SUCCEEDED'] };
     } else {
-      runAfter = buildRunAfter(step.runAfter, nameMap);
+      runAfter = buildRunAfter(step.runAfter, maps);
     }
 
-    const action = buildStep(step, nameMap, runAfter);
+    const action = buildStep(step, maps, runAfter);
     actions[actionName] = action;
     prevActionName = actionName;
   }
@@ -476,11 +486,11 @@ function buildActions(
   return actions;
 }
 
-function buildRunAfter(stepIds: string[] | undefined | null, nameMap: Map<string, string>): RunAfterMap {
+function buildRunAfter(stepIds: string[] | undefined | null, maps: NameMaps): RunAfterMap {
   if (!Array.isArray(stepIds) || stepIds.length === 0) return {};
   const ra: RunAfterMap = {};
   for (const id of stepIds) {
-    const name = nameMap.get(id);
+    const name = maps.id.get(id);
     if (name) ra[name] = ['SUCCEEDED'];
   }
   return ra;
@@ -488,29 +498,29 @@ function buildRunAfter(stepIds: string[] | undefined | null, nameMap: Map<string
 
 function buildStep(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): WdlAction {
   switch (step.type) {
     case 'transform':      return buildTransformAction(step, runAfter);
-    case 'route':          return buildRouteAction(step, nameMap, runAfter);
+    case 'route':          return buildRouteAction(step, maps, runAfter);
     case 'condition':
       // If the intent constructor produced cases (3+ branch Decision → Switch), use route builder
       return (step.branches?.cases && step.branches.cases.length > 0)
-        ? buildRouteAction(step, nameMap, runAfter)
-        : buildConditionAction(step, nameMap, runAfter);
+        ? buildRouteAction(step, maps, runAfter)
+        : buildConditionAction(step, maps, runAfter);
     case 'send':           return buildSendAction(step, runAfter);
     case 'enrich':         return buildEnrichAction(step, runAfter);
-    case 'validate':       return buildValidateAction(step, nameMap, runAfter);
-    case 'split':          return buildSplitAction(step, nameMap, runAfter);
-    case 'loop':           return buildLoopAction(step, nameMap, runAfter);
-    case 'aggregate':      return buildAggregateAction(step, nameMap, runAfter);
+    case 'validate':       return buildValidateAction(step, maps, runAfter);
+    case 'split':          return buildSplitAction(step, maps, runAfter);
+    case 'loop':           return buildLoopAction(step, maps, runAfter);
+    case 'aggregate':      return buildAggregateAction(step, maps, runAfter);
     case 'delay':          return buildDelayAction(step, runAfter);
     case 'invoke-child':   return buildInvokeChildAction(step, runAfter);
     case 'invoke-function':return buildInvokeFunctionAction(step, runAfter);
     case 'set-variable':   return buildSetVariableAction(step, runAfter);
-    case 'error-handler':  return buildErrorHandlerAction(step, nameMap, runAfter);
-    case 'parallel':       return buildParallelAction(step, nameMap, runAfter);
+    case 'error-handler':  return buildErrorHandlerAction(step, maps, runAfter);
+    case 'parallel':       return buildParallelAction(step, maps, runAfter);
     case 'receive':
     default:               return buildDefaultAction(step, runAfter);
   }
@@ -548,7 +558,7 @@ function buildTransformAction(step: IntegrationStep, runAfter: RunAfterMap): Tra
 
 function buildRouteAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): IfAction | SwitchAction {
   const cfg = step.config as Record<string, unknown>;
@@ -560,25 +570,25 @@ function buildRouteAction(
     for (const c of b.cases) {
       cases[`case_${c.value.replace(/\W/g, '_')}`] = {
         case:    c.value,
-        actions: buildActions(c.steps, nameMap),
+        actions: buildActions(c.steps, maps),
       };
     }
     return {
       type:       'Switch',
       expression: (cfg['expression'] as string) ?? "@{triggerBody()}",
       cases,
-      ...(b.defaultSteps ? { default: { actions: buildActions(b.defaultSteps, nameMap) } } : {}),
+      ...(b.defaultSteps ? { default: { actions: buildActions(b.defaultSteps, maps) } } : {}),
       runAfter,
     };
   }
 
   // Binary routing → If
-  return buildConditionAction(step, nameMap, runAfter);
+  return buildConditionAction(step, maps, runAfter);
 }
 
 function buildConditionAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): IfAction {
   const cfg = step.config as Record<string, unknown>;
@@ -593,8 +603,8 @@ function buildConditionAction(
   return {
     type:       'If',
     expression: expression as IfAction['expression'],
-    actions:    b?.trueBranch  ? buildActions(b.trueBranch,  nameMap) : {},
-    ...(b?.falseBranch ? { else: { actions: buildActions(b.falseBranch, nameMap) } } : {}),
+    actions:    b?.trueBranch  ? buildActions(b.trueBranch,  maps) : {},
+    ...(b?.falseBranch ? { else: { actions: buildActions(b.falseBranch, maps) } } : {}),
     runAfter,
   };
 }
@@ -651,7 +661,7 @@ function buildEnrichAction(step: IntegrationStep, runAfter: RunAfterMap): HttpAc
 
 function buildValidateAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): IfAction {
   const cfg = step.config as Record<string, unknown>;
@@ -680,7 +690,7 @@ function buildValidateAction(
 
 function buildSplitAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): ForEachAction {
   const cfg = step.config as Record<string, unknown>;
@@ -688,7 +698,7 @@ function buildSplitAction(
     type:    'Foreach',
     foreach: (cfg['collection'] as string) ?? "@{body('Parse_Message')?['items']}",
     actions: step.branches?.trueBranch
-      ? buildActions(step.branches.trueBranch, nameMap)
+      ? buildActions(step.branches.trueBranch, maps)
       : {},
     ...(step.loopConfig?.concurrency
       ? { runtimeConfiguration: { concurrency: { repetitions: step.loopConfig.concurrency } } }
@@ -699,7 +709,7 @@ function buildSplitAction(
 
 function buildLoopAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): UntilAction | ForEachAction {
   const cfg = step.config as Record<string, unknown>;
@@ -711,7 +721,7 @@ function buildLoopAction(
       type:    'Foreach',
       foreach: lc.iterateOver,
       actions: step.branches?.trueBranch
-        ? buildActions(step.branches.trueBranch, nameMap)
+        ? buildActions(step.branches.trueBranch, maps)
         : {},
       runAfter,
     } satisfies ForEachAction;
@@ -728,7 +738,7 @@ function buildLoopAction(
     expression: resolvedExpr,
     limit:      { count: 60, timeout: 'PT1H' },
     actions:    step.branches?.trueBranch
-      ? buildActions(step.branches.trueBranch, nameMap)
+      ? buildActions(step.branches.trueBranch, maps)
       : {},
     runAfter,
   } satisfies UntilAction;
@@ -907,7 +917,7 @@ function parseXlangCondition(expr: string): Record<string, unknown> {
 
 function buildAggregateAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): ScopeAction {
   const cfg = step.config as Record<string, unknown>;
@@ -924,7 +934,7 @@ function buildAggregateAction(
   };
 
   if (step.branches?.trueBranch) {
-    Object.assign(innerActions, buildActions(step.branches.trueBranch, nameMap));
+    Object.assign(innerActions, buildActions(step.branches.trueBranch, maps));
   }
 
   return {
@@ -1082,7 +1092,7 @@ function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): W
 
 function buildErrorHandlerAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): ScopeAction {
   const cfg = step.config as Record<string, unknown>;
@@ -1090,7 +1100,7 @@ function buildErrorHandlerAction(
   // Error handler scopes run after the failed action
   const errorRunAfter: RunAfterMap = {};
   if (step.handlesErrorFrom) {
-    const srcName = nameMap.get(step.handlesErrorFrom);
+    const srcName = maps.id.get(step.handlesErrorFrom ?? '');
     if (srcName) errorRunAfter[srcName] = ['FAILED', 'TIMEDOUT'];
   }
 
@@ -1121,7 +1131,7 @@ function buildErrorHandlerAction(
   }
 
   if (step.branches?.trueBranch) {
-    Object.assign(innerActions, buildActions(step.branches.trueBranch, nameMap));
+    Object.assign(innerActions, buildActions(step.branches.trueBranch, maps));
   }
 
   return {
@@ -1133,7 +1143,7 @@ function buildErrorHandlerAction(
 
 function buildParallelAction(
   step: IntegrationStep,
-  nameMap: Map<string, string>,
+  maps: NameMaps,
   runAfter: RunAfterMap
 ): ScopeAction {
   // Parallel branches in WDL: wrap in Scope, then each branch action
@@ -1143,16 +1153,16 @@ function buildParallelAction(
 
   if (step.branches?.trueBranch) {
     for (const sub of step.branches.trueBranch) {
-      const name   = nameMap.get(sub.id) ?? sub.id;
+      const name   = maps.step.get(sub) ?? sub.id;
       // All parallel branches run with empty runAfter (start simultaneously)
-      innerActions[name] = buildStep(sub, nameMap, {});
+      innerActions[name] = buildStep(sub, maps, {});
     }
   }
 
   if (step.branches?.falseBranch) {
     for (const sub of step.branches.falseBranch) {
-      const name = nameMap.get(sub.id) ?? sub.id;
-      innerActions[name] = buildStep(sub, nameMap, {});
+      const name = maps.step.get(sub) ?? sub.id;
+      innerActions[name] = buildStep(sub, maps, {});
     }
   }
 
@@ -1287,7 +1297,7 @@ function wrapInErrorScope(
         message: "@{result('Scope_Main')[0]['error']['message']}",
       },
     },
-    runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT', 'SKIPPED'] },
+    runAfter: { 'Scope_Main': ['FAILED', 'TIMEDOUT'] },
   } satisfies TerminateAction;
 
   if (errorHandling.deadLetterTarget) {
@@ -1308,12 +1318,11 @@ function wrapInErrorScope(
     } satisfies ServiceProviderAction;
   }
 
-  const retryPolicy = buildRetryPolicy(errorHandling);
-
+  // Scopes do not support retryPolicy — they are containers, not actions.
   // Hoisted InitializeVariable actions come first (before Scope_Main)
   return {
     ...hoistedInit,
-    Scope_Main:     retryPolicy ? { ...mainScope, retryPolicy } as ScopeAction : mainScope,
+    Scope_Main: mainScope,
     ...catchActions,
   };
 }

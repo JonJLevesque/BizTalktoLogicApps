@@ -255,7 +255,10 @@ export function buildPackage(
       continue;
     }
     seenPipelineNames.add(pipeline.name);
-    const pipelineIntent = buildPipelineIntent(pipeline);
+    const firstOrchName = app.orchestrations[0]
+      ? sanitizeWorkflowName(app.orchestrations[0].name)
+      : undefined;
+    const pipelineIntent = buildPipelineIntent(pipeline, firstOrchName);
     let workflowName = sanitizeWorkflowName(`Pipeline_${pipeline.name}`);
     if (usedWorkflowNames.has(workflowName)) {
       let c = 2;
@@ -765,9 +768,23 @@ function detectFormatFromComponents(pipeline: ParsedPipeline): 'xml' | 'json' | 
  * Sandro's principle: pipelines are shared — putting them into separate workflows
  * allows re-use across orchestrations without duplication.
  */
-function buildPipelineIntent(pipeline: ParsedPipeline): IntegrationIntent {
+function buildPipelineIntent(pipeline: ParsedPipeline, targetOrchName?: string): IntegrationIntent {
   const steps = buildPipelineSteps(pipeline);
   const format = detectFormatFromComponents(pipeline);
+
+  // Receive pipelines always hand off to an orchestration workflow after processing.
+  // If the target orchestration name is unknown, use a placeholder the developer can fill in.
+  if (pipeline.direction === 'receive') {
+    const workflowName = targetOrchName ?? 'TODO_Orchestration_Workflow_Name';
+    steps.push({
+      id:          'step_call_orchestration',
+      type:        'invoke-child',
+      description: `Call orchestration: ${workflowName}`,
+      actionType:  'Workflow',
+      config:      { workflowName },
+      runAfter:    [],
+    });
+  }
 
   return createIntegrationIntent('biztalk-migration', {
     trigger: {
