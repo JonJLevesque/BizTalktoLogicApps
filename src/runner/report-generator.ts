@@ -342,7 +342,7 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push(`  ${appName}.code-workspace     ← open this in VS Code`);
   lines.push(`  ${appName}/                   ← Logic Apps project`);
   if (hasFunctions) {
-    lines.push(`  ${appName}-Functions/        ← C# Functions project`);
+    lines.push(`  ${appName}_Functions/        ← C# Functions project`);
   }
   lines.push(`  migration-report.md`);
   lines.push(`  migration-report.html`);
@@ -372,7 +372,7 @@ export function generateMigrationReport(input: ReportInput): string {
 
   if (hasFunctions && buildResult.localCodeFunctions) {
     const csFiles = Object.keys(buildResult.localCodeFunctions).filter(k => k.endsWith('.cs'));
-    lines.push(`**Local Code Function stubs** *(inside \`${appName}-Functions/\`)*`);
+    lines.push(`**Local Code Function stubs** *(inside \`${appName}_Functions/\`)*`);
     lines.push('Implement each stub before deploying. Build the Functions project to copy DLLs to `lib/custom/net472/`.');
     for (const name of csFiles) {
       lines.push(`- \`${name}\``);
@@ -529,7 +529,7 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push('## Getting Started');
   lines.push('');
   lines.push(`1. **Open the workspace** — File → Open Workspace from File → select \`${appName}.code-workspace\``);
-  lines.push(`   This loads both \`${appName}/\` (Logic Apps project) and \`${appName}-Functions/\` (C# Functions project) in the same VS Code window.`);
+  lines.push(`   This loads both \`${appName}/\` (Logic Apps project) and \`${appName}_Functions/\` (C# Functions project) in the same VS Code window.`);
   lines.push('2. **Install prerequisites** — VS Code will prompt to install the "Azure Logic Apps (Standard)" extension (`ms-azuretools.vscode-azurelogicapps`). Accept the recommendation.');
   lines.push('3. **Start Azurite** — the designer requires the local storage emulator.');
   lines.push('   Click `Azurite Blob Service`, `Azurite Queue Service`, and `Azurite Table Service` in the VS Code status bar.');
@@ -543,7 +543,7 @@ export function generateMigrationReport(input: ReportInput): string {
   }
   if (hasFunctions) {
     const ffStep = hasFlatFilePipelines ? '6' : '5';
-    lines.push(`${ffStep}. **Build the Functions project** — right-click \`${appName}-Functions\` in the Explorer panel → "Build functions project".`);
+    lines.push(`${ffStep}. **Build the Functions project** — right-click \`${appName}_Functions\` in the Explorer panel → "Build functions project".`);
     lines.push(`   This compiles the C# stubs and copies the DLLs to \`${appName}/lib/custom/net472/\`.`);
     lines.push(`   The Logic Apps designer cannot load Local Code Function actions until this step completes.`);
   }
@@ -597,7 +597,7 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push('```');
   lines.push(`Right-click the "${appName}" subfolder (not the workspace root) → "Deploy to Logic App..."`);
   lines.push('```');
-  lines.push(`> The workspace root contains \`${appName}.code-workspace\`, \`${appName}/\`, and \`${appName}-Functions/\`.`);
+  lines.push(`> The workspace root contains \`${appName}.code-workspace\`, \`${appName}/\`, and \`${appName}_Functions/\`.`);
   lines.push(`> Deploy from the \`${appName}/\` folder only — that is the Logic Apps project.`);
   lines.push('');
   lines.push('**Option B — Azure CLI:**');

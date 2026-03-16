@@ -39,10 +39,10 @@
  *       parameters.json
  *       arm-template.json / arm-parameters.json (if infrastructure included)
  *       tests/ {WorkflowName}.tests.json
- *     {AppName}-Functions/             ← C# project (only if local code functions exist)
+ *     {AppName}_Functions/             ← C# project (only if local code functions exist)
  *       {FunctionName}.cs
- *       {AppName}-Functions.csproj
- *       {AppName}-Functions.sln
+ *       {AppName}_Functions.csproj
+ *       {AppName}_Functions.sln
  *       .vscode/
  */
 
@@ -70,7 +70,7 @@ export function writeOutput(options: WriteOptions): void {
   //     {AppName}.code-workspace
   //     {AppName}/                        ← Logic Apps project
   //       connections.json, host.json, workflows/, Artifacts/, lib/, ...
-  //     {AppName}-Functions/              ← C# Functions project (only if custom code)
+  //     {AppName}_Functions/              ← C# Functions project (only if custom code)
   //       *.cs, *.csproj, *.sln, .vscode/
   //     migration-report.md
   //     migration-report.html
@@ -168,7 +168,7 @@ export function writeOutput(options: WriteOptions): void {
   const functionNames = functionFileNames.map(k => k.replace(/\.cs$/, ''));
 
   if (functionNames.length > 0) {
-    const functionsProjectName = `${appName}-Functions`;
+    const functionsProjectName = `${appName}_Functions`;
     // Namespace must match the C# stubs (package-builder uses appName + 'Functions')
     const functionsNamespace = appName.replace(/[^A-Za-z0-9]/g, '') + 'Functions';
     // Functions project is a sibling to the Logic Apps project — both under outputDir
@@ -225,8 +225,8 @@ export function writeOutput(options: WriteOptions): void {
   ];
   if (functionNames.length > 0) {
     workspaceFolders.push({
-      name: `${appName}-Functions`,
-      path: `./${appName}-Functions`,
+      name: `${appName}_Functions`,
+      path: `./${appName}_Functions`,
     });
   }
   writeJson(join(outputDir, `${appName}.code-workspace`), {
@@ -521,7 +521,7 @@ __blobstorage__
 __queuestorage__
 global.json
 local.settings.json
-*-Functions
+*_Functions
 workflow-designtime/
 `;
 
