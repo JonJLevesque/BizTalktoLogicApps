@@ -593,6 +593,7 @@ __queuestorage__
 global.json
 local.settings.json
 *_Functions
+test
 workflow-designtime/
 `;
 
