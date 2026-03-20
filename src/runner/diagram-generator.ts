@@ -161,7 +161,9 @@ export function generateBizTalkDiagram(app: BizTalkApplication): string {
   const sendPorts        = app.bindingFiles.flatMap(b => b.sendPorts);
   const rcvPipelines     = [...new Set(receiveLocations.map(r => r.pipelineName).filter(Boolean))];
   const sndPipelines     = [...new Set(sendPorts.map(s => s.pipelineName).filter(Boolean))];
-  const orchestrations   = app.orchestrations;
+  // Deduplicate orchestrations by name (same class may appear in multiple .odx files)
+  const orchSeen         = new Set<string>();
+  const orchestrations   = app.orchestrations.filter(o => orchSeen.has(o.name) ? false : (orchSeen.add(o.name), true));
   const maps             = app.maps;
 
   // Column layout: ReceiveLocations | RcvPipelines | Orchestrations | Maps | SndPipelines | SendPorts

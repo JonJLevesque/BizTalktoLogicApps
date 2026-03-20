@@ -1,7 +1,7 @@
 {
   "name": "biztalk-migrate",
   "displayName": "BizTalk to Logic Apps",
-  "version": "1.0.54",
+  "version": "1.0.55",
   "description": "Migrate BizTalk Server applications to Azure Logic Apps Standard — CLI, MCP server, and VS Code extension",
   "author": "Jon Levesque <me@jonlevesque.com>",
   "publisher": "biztalk-migrate",
