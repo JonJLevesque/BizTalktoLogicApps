@@ -607,6 +607,8 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .dia-details{margin-top:10px}
 .dia-details>summary{font-size:12px;color:var(--muted);cursor:pointer;padding:4px 0;user-select:none}
 .dia-details>summary:hover{color:var(--accent)}
+.dia-flow-section{margin-top:16px}
+.dia-flow-label{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
 
 /* ── Footer ── */
 .footer{
