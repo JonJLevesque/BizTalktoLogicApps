@@ -380,6 +380,16 @@ const VSCODE_TASKS = {
   version: '2.0.0',
   tasks: [
     {
+      label: 'fixProjectDirectoryPath',
+      type: 'shell',
+      command: 'powershell',
+      args: [
+        '-Command',
+        "$file = '${workspaceFolder}\\workflow-designtime\\local.settings.json'; $json = Get-Content $file -Raw | ConvertFrom-Json; $json.Values.ProjectDirectoryPath = '${workspaceFolder}'; $json | ConvertTo-Json -Depth 10 | Set-Content $file -Encoding UTF8",
+      ],
+      problemMatcher: [],
+    },
+    {
       label: 'generateDebugSymbols',
       command: '${config:azureLogicAppsStandard.dotnetBinaryPath}',
       args: ['${input:getDebugSymbolDll}'],
@@ -398,6 +408,7 @@ const VSCODE_TASKS = {
       problemMatcher: '$func-watch',
       isBackground: true,
       label: 'func: host start',
+      dependsOn: 'fixProjectDirectoryPath',
       group: { kind: 'build', isDefault: true },
     },
   ],
