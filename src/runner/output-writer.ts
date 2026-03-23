@@ -369,7 +369,7 @@ function generateLaunchJson(appName: string, hasCustomCode: boolean): Record<str
           : `Run/Debug ${appName}`,
         type: 'logicapp',
         request: 'launch',
-        isCodeless: true,
+        ...(hasCustomCode ? {} : { isCodeless: true }),
         ...(hasCustomCode ? { funcRuntime: 'coreclr', customCodeRuntime: 'clr' } : {}),
       },
     ],
@@ -517,7 +517,7 @@ function generateFunctionJson(namespace: string, functionName: string, assemblyN
   };
   return {
     Name: null,
-    ScriptFile: `../net472/${assemblyName}.dll`,
+    ScriptFile: `../bin/${assemblyName}.dll`,
     FunctionDirectory: null,
     EntryPoint: `${namespace}.${functionName}.${functionName}Run`,
     Language: 'net472',

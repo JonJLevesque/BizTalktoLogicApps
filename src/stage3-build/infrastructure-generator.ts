@@ -111,14 +111,14 @@ export function generateArmTemplate(arch: ArchitectureRecommendation): ArmTempla
  */
 export function generateLocalSettings(
   appSettings: Record<string, string>,
-  _hasLocalCodeFunctions = false,
+  hasLocalCodeFunctions = false,
 ): Record<string, unknown> {
   return {
     IsEncrypted: false,
     Values: {
       AzureWebJobsStorage:           'UseDevelopmentStorage=true',
       FUNCTIONS_INPROC_NET8_ENABLED: '1',
-      FUNCTIONS_WORKER_RUNTIME:      'dotnet',
+      FUNCTIONS_WORKER_RUNTIME:      hasLocalCodeFunctions ? 'node' : 'dotnet',
       APP_KIND:                      'workflowapp',
       AzureWebJobsFeatureFlags:      'EnableMultiLanguageWorker',
       ProjectDirectoryPath:          '',
