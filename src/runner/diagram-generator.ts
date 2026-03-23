@@ -295,24 +295,9 @@ export function generateLogicAppsDiagram(
 </details>`;
   }).join('');
 
-  // Details table
-  const tableRows = workflows.map(wf => {
-    const def      = wf.workflow.definition;
-    const triggers = Object.keys(def.triggers ?? {});
-    const actions  = Object.keys(def.actions ?? {});
-    return `<tr><td><strong>${esc(wf.name)}</strong></td><td>${esc(triggers.join(', ') || '—')}</td><td>${actions.length}</td><td>${esc(wf.workflow.kind ?? 'Stateful')}</td></tr>`;
-  });
-
   return `
 <div class="dia-wrap">
   ${wfItems}
-  <details class="dia-details">
-    <summary>View workflow details</summary>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Workflow</th><th>Trigger</th><th>Actions</th><th>Kind</th></tr></thead>
-      <tbody>${tableRows.join('')}</tbody>
-    </table></div>
-  </details>
 </div>`;
 }
 
