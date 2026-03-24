@@ -47,7 +47,7 @@
  */
 
 import { mkdirSync, writeFileSync, existsSync, copyFileSync } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, resolve } from 'path';
 import type { BuildResult } from '../stage3-build/package-builder.js';
 import { migrationReportToHtml } from './markdown-to-html.js';
 
@@ -93,10 +93,18 @@ export function writeOutput(options: WriteOptions): void {
   // ── Root Logic Apps project files ──────────────────────────────────────────
   writeJson(join(logicAppDir, 'connections.json'), buildResult.project.connections);
   writeJson(join(logicAppDir, 'host.json'), buildResult.project.host);
-  // ProjectDirectoryPath is left as '' — the VS Code Azure Logic Apps extension sets it
-  // dynamically at debug time from the workspace folder. Hardcoding the migration
-  // machine's path would break the workspace on every other machine.
-  writeJson(join(logicAppDir, 'local.settings.json'), buildResult.localSettings);
+  // Set ProjectDirectoryPath to the absolute path of the logic app project folder.
+  // This matches what the VS Code extension does when creating a project. On another
+  // machine the path will differ, but the extension will offer to update it on first open.
+  const absLogicAppDir = resolve(logicAppDir);
+  const localSettingsWithPath = {
+    ...(buildResult.localSettings as Record<string, unknown>),
+    Values: {
+      ...((buildResult.localSettings as Record<string, Record<string, unknown>>).Values),
+      ProjectDirectoryPath: absLogicAppDir,
+    },
+  };
+  writeJson(join(logicAppDir, 'local.settings.json'), localSettingsWithPath);
   writeJson(join(logicAppDir, 'parameters.json'), {});
 
   // ── Artifacts — always created (Maps, Rules, Schemas always present) ────────
@@ -128,7 +136,10 @@ export function writeOutput(options: WriteOptions): void {
   const wdDir = join(logicAppDir, 'workflow-designtime');
   ensureDir(wdDir);
   writeJson(join(wdDir, 'host.json'), WORKFLOW_DESIGNTIME_HOST);
-  writeJson(join(wdDir, 'local.settings.json'), WORKFLOW_DESIGNTIME_LOCAL_SETTINGS);
+  writeJson(join(wdDir, 'local.settings.json'), {
+    ...WORKFLOW_DESIGNTIME_LOCAL_SETTINGS,
+    Values: { ...WORKFLOW_DESIGNTIME_LOCAL_SETTINGS.Values, ProjectDirectoryPath: absLogicAppDir },
+  });
 
   // ── lib/custom structure (inside Logic Apps project) ───────────────────────
   const net472Dir = join(logicAppDir, 'lib', 'custom', 'net472');
@@ -147,7 +158,6 @@ export function writeOutput(options: WriteOptions): void {
   });
   writeJson(join(vscodeDir, 'settings.json'), generateVscodeSettings());
   writeJson(join(vscodeDir, 'tasks.json'), VSCODE_TASKS);
-  writeFileSync(join(vscodeDir, 'fix-project-path.ps1'), FIX_PROJECT_PATH_PS1, 'utf-8');
 
   // ── .funcignore / .gitignore (inside Logic Apps project) ───────────────────
   writeFileSync(join(logicAppDir, '.funcignore'), FUNCIGNORE_CONTENT, 'utf-8');
@@ -381,18 +391,6 @@ const VSCODE_TASKS = {
   version: '2.0.0',
   tasks: [
     {
-      label: 'fixProjectDirectoryPath',
-      type: 'shell',
-      command: 'powershell',
-      args: [
-        '-ExecutionPolicy', 'Bypass',
-        '-File', '${workspaceFolder}\\.vscode\\fix-project-path.ps1',
-        '-ProjectDir', '${workspaceFolder}',
-      ],
-      problemMatcher: [],
-      runOptions: { runOn: 'folderOpen' },
-    },
-    {
       label: 'generateDebugSymbols',
       command: '${config:azureLogicAppsStandard.dotnetBinaryPath}',
       args: ['${input:getDebugSymbolDll}'],
@@ -411,7 +409,6 @@ const VSCODE_TASKS = {
       problemMatcher: '$func-watch',
       isBackground: true,
       label: 'func: host start',
-      dependsOn: 'fixProjectDirectoryPath',
       group: { kind: 'build', isDefault: true },
     },
   ],
@@ -606,19 +603,6 @@ function randomGuid(): string {
 }
 
 // ─── Static templates ─────────────────────────────────────────────────────────
-
-const FIX_PROJECT_PATH_PS1 = `\
-param([string]$ProjectDir)
-
-foreach ($f in @('local.settings.json', 'workflow-designtime\\local.settings.json')) {
-    $path = Join-Path $ProjectDir $f
-    if (Test-Path $path) {
-        $json = Get-Content $path -Raw | ConvertFrom-Json
-        $json.Values.ProjectDirectoryPath = $ProjectDir
-        $json | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8
-    }
-}
-`;
 
 const FUNCIGNORE_CONTENT = `\
 .debug
