@@ -158,6 +158,7 @@ export function writeOutput(options: WriteOptions): void {
   });
   writeJson(join(vscodeDir, 'settings.json'), generateVscodeSettings());
   writeJson(join(vscodeDir, 'tasks.json'), VSCODE_TASKS);
+  writeFileSync(join(vscodeDir, 'fix-project-path.ps1'), FIX_PROJECT_PATH_PS1, 'utf-8');
 
   // ── .funcignore / .gitignore (inside Logic Apps project) ───────────────────
   writeFileSync(join(logicAppDir, '.funcignore'), FUNCIGNORE_CONTENT, 'utf-8');
@@ -301,6 +302,23 @@ export function writeOutput(options: WriteOptions): void {
   }
   writeJson(join(outputDir, `${appName}.code-workspace`), {
     folders: workspaceFolders,
+    tasks: {
+      version: '2.0.0',
+      tasks: [
+        {
+          label: 'fixProjectDirectoryPath',
+          type: 'shell',
+          command: 'powershell',
+          args: [
+            '-ExecutionPolicy', 'Bypass',
+            '-File', `\${workspaceFolder:${appName}}\\.vscode\\fix-project-path.ps1`,
+            '-ProjectDir', `\${workspaceFolder:${appName}}`,
+          ],
+          problemMatcher: [],
+          runOptions: { runOn: 'folderOpen' },
+        },
+      ],
+    },
     settings: {
       'terminal.integrated.env.windows': {
         PATH: '${env:USERPROFILE}\\.azurelogicapps\\dependencies\\DotNetSDK;${env:PATH}',
@@ -308,6 +326,7 @@ export function writeOutput(options: WriteOptions): void {
       'omnisharp.dotNetCliPaths': [
         '${env:USERPROFILE}\\.azurelogicapps\\dependencies\\DotNetSDK',
       ],
+      'azurite.location': '${env:USERPROFILE}\\.azurelogicapps\\.azurite',
     },
   });
 
@@ -584,6 +603,19 @@ function randomGuid(): string {
 }
 
 // ─── Static templates ─────────────────────────────────────────────────────────
+
+const FIX_PROJECT_PATH_PS1 = `\
+param([string]$ProjectDir)
+
+foreach ($f in @('local.settings.json', 'workflow-designtime\\local.settings.json')) {
+    $path = Join-Path $ProjectDir $f
+    if (Test-Path $path) {
+        $json = Get-Content $path -Raw | ConvertFrom-Json
+        $json.Values.ProjectDirectoryPath = $ProjectDir
+        $json | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8
+    }
+}
+`;
 
 const FUNCIGNORE_CONTENT = `\
 .debug
