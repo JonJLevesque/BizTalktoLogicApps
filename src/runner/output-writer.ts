@@ -455,18 +455,7 @@ const FUNCTIONS_VSCODE_TASKS = {
 // ─── C# project generators ────────────────────────────────────────────────────
 
 function generateCsproj(appName: string): string {
-  // Match SampleLogicApps/Empty/empty-workspace/Empty_Function/Empty_Function.csproj exactly.
-  // LogicAppFolder is just the sibling folder name; all target paths use ..\$(LogicAppFolder).
-  // Explicit SDK imports (Sdk.props / Sdk.targets) instead of <Project Sdk="..."> shorthand.
-  // This allows us to override ParameterizedFunctionJsonGenerator AFTER NuGet package targets
-  // are imported, which is required to work around a bug in Microsoft.Azure.Workflows.WebJobs.Sdk
-  // v1.1.0 where that post-build task selects the net472 build tool based on project TFM rather
-  // than the MSBuild host runtime — causing it to fail when building with `dotnet build` (.NET 8
-  // MSBuild). The no-op override below suppresses the failing task; functions work correctly at
-  // runtime. Full designer metadata requires building from Visual Studio with .NET Framework MSBuild.
-  return `<Project>
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-
+  return `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <TargetFramework>net472</TargetFramework>
@@ -484,20 +473,6 @@ function generateCsproj(appName: string): string {
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="bin\\$(Configuration)\\net472\\" />
-  </ItemGroup>
-
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
-
-  <!-- No-op override: suppresses the broken ParameterizedFunctionJsonGenerator post-build task
-       from Microsoft.Azure.Workflows.WebJobs.Sdk v1.1.0 when building with dotnet build.
-       Must appear AFTER Sdk.targets import to take precedence. -->
-  <Target Name="ParameterizedFunctionJsonGenerator" />
 
   <Target Name="Task" AfterTargets="Compile">
     <ItemGroup>
@@ -523,6 +498,12 @@ function generateCsproj(appName: string): string {
     <RemoveDir Directories="@(DirsToClean)" />
   </Target>
 
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="bin\\$(Configuration)\\net472\\" />
+  </ItemGroup>
 </Project>
 `;
 }
