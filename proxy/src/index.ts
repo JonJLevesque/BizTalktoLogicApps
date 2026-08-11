@@ -21,7 +21,7 @@ import { Hono }                              from 'hono';
 import { cors }                              from 'hono/cors';
 import type { AppEnv, AnthropicSystemBlock, LicenseRecord } from './types.js';
 import { authMiddleware }                    from './auth.js';
-import { rateLimitMiddleware }               from './rate-limit.js';
+import { rateLimitMiddleware, trialRateLimitMiddleware } from './rate-limit.js';
 import { callAnthropic, AnthropicError }     from './anthropic.js';
 import { getDomainPrompt }                   from './prompt-loader.js';
 import {
@@ -182,7 +182,9 @@ app.post('/v1/validate',
 
 // ── Trial key ─────────────────────────────────────────────────────────────────
 
-app.post('/v1/license/trial', async (c) => {
+// Unauthenticated — per-IP daily rate limit prevents mass trial-key provisioning
+// from exhausting the global MONTHLY_CALL_LIMIT (which would 503 paying customers).
+app.post('/v1/license/trial', trialRateLimitMiddleware(), async (c) => {
   let body: Record<string, unknown>;
   try {
     body = await c.req.json<Record<string, unknown>>();
