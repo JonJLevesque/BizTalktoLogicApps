@@ -83,6 +83,65 @@ const SERVICE_PROVIDER_IDS: Record<string, string> = {
   azureFile:       '/serviceProviders/azureFile',
 };
 
+/**
+ * Normalizes a connector name coming from the IntegrationIntent (Stage 1 uses
+ * names like "azureblob", "eventhub", "sqlServer") to the canonical token used
+ * by this module's lookup tables (SERVICE_PROVIDER_IDS, operation tables).
+ * Unknown connectors pass through unchanged.
+ */
+const CONNECTOR_NORMALIZATION: Record<string, string> = {
+  blob:         'blob',
+  azureblob:    'blob',
+  servicebus:   'serviceBus',
+  sftp:         'sftp',
+  ftp:          'ftp',
+  sql:          'sql',
+  sqlserver:    'sql',
+  eventhub:     'eventHubs',
+  eventhubs:    'eventHubs',
+  azurequeue:   'azureQueues',
+  azurequeues:  'azureQueues',
+  cosmosdb:     'cosmosDb',
+  azuretables:  'azureTables',
+  azurefile:    'azureFile',
+  filesystem:   'filesystem',
+  smtp:         'smtp',
+};
+
+function normalizeConnector(connector: string): string {
+  return CONNECTOR_NORMALIZATION[connector.toLowerCase()] ?? connector;
+}
+
+/**
+ * Default ServiceProvider operation IDs for send steps, per connector.
+ * Mirrors the BizTalk adapter → Logic Apps operation mapping
+ * (FILE→createBlob, SB-Messaging→sendMessage, SFTP→uploadFile, ...).
+ */
+const SERVICE_PROVIDER_SEND_OPERATIONS: Record<string, string> = {
+  blob:        'createBlob',
+  serviceBus:  'sendMessage',
+  sftp:        'uploadFile',
+  ftp:         'uploadFile',
+  sql:         'executeQuery',
+  smtp:        'sendEmail',
+  eventHubs:   'sendEvent',
+  azureQueues: 'putMessage',
+  filesystem:  'createFile',
+};
+
+/**
+ * Which operation parameter carries the message payload for each connector's
+ * send operation. Used to default the payload to the predecessor's output when
+ * the intent config does not provide one.
+ */
+const SEND_CONTENT_PARAMETER: Record<string, string> = {
+  blob:       'content',
+  sftp:       'content',
+  ftp:        'content',
+  filesystem: 'content',
+  smtp:       'body',
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export interface WorkflowGeneratorOptions {
@@ -107,6 +166,11 @@ export function generateWorkflow(
 
   // Build a consistent step-ID → action-name map for the entire intent
   const maps = buildFullNameMap(intent.steps);
+
+  // Honor the intent's retry policy: HTTP/ServiceProvider send actions use it
+  // instead of the hardcoded default when the intent declares one.
+  const intentRetry = buildRetryPolicy(intent.errorHandling);
+  if (intentRetry) maps.retry = intentRetry;
 
   const triggers = buildTrigger(intent.trigger);
   let   actions  = buildActions(intent.steps, maps);
@@ -185,6 +249,8 @@ function generateSequentialConvoyWorkflow(
 
   // Build inner business logic actions from intent steps
   const maps  = buildFullNameMap(intent.steps);
+  const convoyRetry = buildRetryPolicy(intent.errorHandling);
+  if (convoyRetry) maps.retry = convoyRetry;
   const bizLogic = buildActions(intent.steps, maps);
 
   const processScope: ScopeAction = {
@@ -304,6 +370,8 @@ function generateSequentialConvoyWorkflow(
 interface NameMaps {
   step: Map<IntegrationStep, string>;
   id:   Map<string, string>;
+  /** Retry policy from the intent's errorHandling config — applied to send actions */
+  retry?: RetryPolicy;
 }
 
 function buildFullNameMap(steps: IntegrationStep[]): NameMaps {
@@ -403,14 +471,26 @@ function buildTrigger(trigger: IntegrationTrigger): Record<string, WdlTrigger> {
   }
 }
 
+/**
+ * Reads recurrence settings from a trigger config.
+ * Stage 1 writes them as a NESTED object (config.recurrence = { frequency, interval });
+ * flat config.frequency / config.interval is also accepted for hand-written intents.
+ */
+function readRecurrence(cfg: Record<string, unknown>): RecurrenceTrigger['recurrence'] {
+  const nested = cfg['recurrence'] as Partial<RecurrenceTrigger['recurrence']> | undefined;
+  return {
+    frequency: nested?.frequency
+      ?? (cfg['frequency'] as RecurrenceTrigger['recurrence']['frequency'])
+      ?? 'Minute',
+    interval: nested?.interval ?? (cfg['interval'] as number) ?? 5,
+  };
+}
+
 function buildRecurrenceTrigger(trigger: IntegrationTrigger): RecurrenceTrigger {
   const cfg = trigger.config as Record<string, unknown>;
   return {
     type: 'Recurrence',
-    recurrence: {
-      frequency: (cfg['frequency'] as RecurrenceTrigger['recurrence']['frequency']) ?? 'Minute',
-      interval:  (cfg['interval'] as number) ?? 5,
-    },
+    recurrence: readRecurrence(cfg),
   };
 }
 
@@ -424,12 +504,13 @@ function buildRequestTrigger(): HttpRequestTrigger {
 
 function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProviderTrigger {
   const connector  = trigger.connector ?? 'blob';
-  const providerId = SERVICE_PROVIDER_IDS[connector] ?? `/serviceProviders/${connector}`;
+  const normalized = normalizeConnector(connector);
+  const providerId = SERVICE_PROVIDER_IDS[normalized] ?? `/serviceProviders/${normalized}`;
   const cfg        = trigger.config as Record<string, unknown>;
 
   // Derive a sensible operation ID from connector + direction
   const operationId = cfg['operationId'] as string
-    ?? connectorDefaultTriggerOperation(connector);
+    ?? connectorDefaultTriggerOperation(normalized);
 
   return {
     type: 'ServiceProvider',
@@ -441,14 +522,11 @@ function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProvid
         serviceProviderId: providerId,
       },
     },
-    recurrence: {
-      frequency: (cfg['frequency'] as RecurrenceTrigger['recurrence']['frequency']) ?? 'Minute',
-      interval:  (cfg['interval'] as number) ?? 5,
-    },
+    recurrence: readRecurrence(cfg),
   };
 }
 
-function connectorDefaultTriggerOperation(connector: string): string {
+function connectorDefaultTriggerOperation(normalizedConnector: string): string {
   const ops: Record<string, string> = {
     blob:       'whenABlobIsAddedOrModified',
     serviceBus: 'receiveMessages',
@@ -457,7 +535,7 @@ function connectorDefaultTriggerOperation(connector: string): string {
     sql:        'whenAnItemIsCreated',
     eventHubs:  'receiveEvents',
   };
-  return ops[connector] ?? 'trigger';
+  return ops[normalizedConnector] ?? 'trigger';
 }
 
 // ─── Action Generation ────────────────────────────────────────────────────────
@@ -513,8 +591,8 @@ function buildStep(
       return (step.branches?.cases && step.branches.cases.length > 0)
         ? buildRouteAction(step, maps, runAfter)
         : buildConditionAction(step, maps, runAfter);
-    case 'send':           return buildSendAction(step, runAfter);
-    case 'enrich':         return buildEnrichAction(step, runAfter);
+    case 'send':           return buildSendAction(step, maps, runAfter);
+    case 'enrich':         return buildEnrichAction(step, maps, runAfter);
     case 'validate':       return buildValidateAction(step, maps, runAfter);
     case 'split':          return buildSplitAction(step, maps, runAfter);
     case 'loop':           return buildLoopAction(step, maps, runAfter);
@@ -523,7 +601,12 @@ function buildStep(
     case 'invoke-child':   return buildInvokeChildAction(step, runAfter);
     case 'invoke-function':return buildInvokeFunctionAction(step, runAfter);
     case 'set-variable':   return buildSetVariableAction(step, runAfter);
-    case 'error-handler':  return buildErrorHandlerAction(step, maps, runAfter);
+    case 'error-handler':
+      // Terminate/Throw/Suspend shapes map to Terminate actions — an empty
+      // Scope here would silently swallow the terminate semantics.
+      return step.actionType === 'Terminate'
+        ? buildTerminateAction(step, runAfter)
+        : buildErrorHandlerAction(step, maps, runAfter);
     case 'parallel':       return buildParallelAction(step, maps, runAfter);
     case 'receive':
     default:               return buildDefaultAction(step, runAfter);
@@ -613,26 +696,41 @@ function buildConditionAction(
   };
 }
 
-function buildSendAction(step: IntegrationStep, runAfter: RunAfterMap): WdlAction {
-  const cfg = step.config as Record<string, unknown>;
+/**
+ * Returns the WDL expression for the message payload a send step should emit:
+ * the output of its predecessor action, or the trigger body when the step is
+ * first in the chain. Never uses step.description — descriptions are NOT
+ * action names, so body('<description>') would be a dangling reference.
+ */
+function predecessorBodyExpr(runAfter: RunAfterMap): string {
+  const predecessor = Object.keys(runAfter)[0];
+  return predecessor ? `body('${predecessor}')` : 'triggerBody()';
+}
 
-  // Service Bus send
-  if (step.connector === 'serviceBus' || (cfg['queueOrTopicName'] as string)) {
-    return {
-      type: 'ServiceProvider',
-      inputs: {
-        parameters: {
-          entityName:   cfg['queueOrTopicName'] ?? '@parameters(\'ServiceBusQueueName\')',
-          message:      { body: cfg['body'] ?? `@{base64(body('${step.description}'))}` },
-        },
-        serviceProviderConfiguration: {
-          connectionName:    'serviceBus',
-          operationId:       'sendMessage',
-          serviceProviderId: '/serviceProviders/serviceBus',
-        },
-      },
-      runAfter,
-    } satisfies ServiceProviderAction;
+/** True for config values the intent constructor left as TODO_CLAUDE sentinels. */
+function isTodoSentinel(value: unknown): boolean {
+  return typeof value === 'string' && value.startsWith('TODO_CLAUDE');
+}
+
+function buildSendAction(step: IntegrationStep, maps: NameMaps, runAfter: RunAfterMap): WdlAction {
+  const cfg = step.config as Record<string, unknown>;
+  const connector  = step.connector;
+  const normalized = connector ? normalizeConnector(connector) : undefined;
+  const spOperation = normalized ? SERVICE_PROVIDER_SEND_OPERATIONS[normalized] : undefined;
+
+  // ServiceProvider send: the step declares a ServiceProvider actionType, uses a
+  // known built-in connector, or carries legacy Service Bus config. Previously
+  // everything except Service Bus fell through to a broken HTTP action.
+  const wantsServiceProvider =
+    step.actionType === 'ServiceProvider' ||
+    spOperation !== undefined ||
+    cfg['queueOrTopicName'] !== undefined;
+
+  if (wantsServiceProvider && step.actionType !== 'Http') {
+    const spConnector = (spOperation !== undefined || step.actionType === 'ServiceProvider') && connector
+      ? connector
+      : 'serviceBus';
+    return buildServiceProviderSendAction(step, spConnector, maps, runAfter);
   }
 
   // HTTP send (default)
@@ -641,15 +739,69 @@ function buildSendAction(step: IntegrationStep, runAfter: RunAfterMap): WdlActio
     inputs: {
       method:  (cfg['method'] as HttpAction['inputs']['method']) ?? 'POST',
       uri:     (cfg['uri'] as string) ?? '@parameters(\'TargetEndpointUrl\')',
-      body:    cfg['body'] ?? `@{body('${step.description}')}`,
+      body:    cfg['body'] ?? `@{${predecessorBodyExpr(runAfter)}}`,
       headers: (cfg['headers'] as Record<string, string>) ?? { 'Content-Type': 'application/xml' },
     },
-    retryPolicy: DEFAULT_HTTP_RETRY,
+    retryPolicy: maps.retry ?? DEFAULT_HTTP_RETRY,
     runAfter,
   } satisfies HttpAction;
 }
 
-function buildEnrichAction(step: IntegrationStep, runAfter: RunAfterMap): HttpAction {
+function buildServiceProviderSendAction(
+  step: IntegrationStep,
+  connector: string,
+  maps: NameMaps,
+  runAfter: RunAfterMap
+): ServiceProviderAction {
+  const cfg        = step.config as Record<string, unknown>;
+  const normalized = normalizeConnector(connector);
+  const providerId = SERVICE_PROVIDER_IDS[normalized] ?? `/serviceProviders/${normalized}`;
+  const operationId = (cfg['operationId'] as string | undefined)
+    ?? SERVICE_PROVIDER_SEND_OPERATIONS[normalized]
+    ?? 'sendMessage';
+  const bodyExpr = predecessorBodyExpr(runAfter);
+
+  let parameters: Record<string, unknown>;
+  if (normalized === 'serviceBus') {
+    parameters = {
+      entityName: cfg['entityName'] ?? cfg['queueOrTopicName'] ?? '@parameters(\'ServiceBusQueueName\')',
+      message:    { body: cfg['body'] ?? `@{base64(${bodyExpr})}` },
+    };
+  } else {
+    // Pass the step config through as operation parameters (containerName,
+    // blobName, filePath, query, ...), excluding non-parameter keys.
+    parameters = stripSendInternalKeys(cfg);
+    // Default the payload parameter to the predecessor's output when the
+    // config does not provide one (or left a TODO_CLAUDE sentinel).
+    const contentKey = SEND_CONTENT_PARAMETER[normalized];
+    if (contentKey && (parameters[contentKey] === undefined || isTodoSentinel(parameters[contentKey]))) {
+      parameters[contentKey] = `@{${bodyExpr}}`;
+    }
+  }
+
+  return {
+    type: 'ServiceProvider',
+    inputs: {
+      parameters,
+      serviceProviderConfiguration: {
+        connectionName:    connector,
+        operationId,
+        serviceProviderId: providerId,
+      },
+    },
+    ...(maps.retry ? { retryPolicy: maps.retry } : {}),
+    runAfter,
+  };
+}
+
+function stripSendInternalKeys(cfg: Record<string, unknown>): Record<string, unknown> {
+  const skip = new Set(['operationId', 'method', 'uri', 'headers', 'queueOrTopicName']);
+  return Object.fromEntries(
+    Object.entries(cfg).filter(([k]) => !skip.has(k))
+  );
+}
+
+function buildEnrichAction(step: IntegrationStep, maps: NameMaps, runAfter: RunAfterMap): HttpAction {
   const cfg = step.config as Record<string, unknown>;
   return {
     type: 'Http',
@@ -658,7 +810,7 @@ function buildEnrichAction(step: IntegrationStep, runAfter: RunAfterMap): HttpAc
       uri:     (cfg['uri'] as string) ?? '@parameters(\'EnrichmentApiUrl\')',
       queries: (cfg['queries'] as Record<string, string>) ?? {},
     },
-    retryPolicy: DEFAULT_HTTP_RETRY,
+    retryPolicy: maps.retry ?? DEFAULT_HTTP_RETRY,
     runAfter,
   };
 }
@@ -1110,6 +1262,32 @@ function buildSetVariableAction(step: IntegrationStep, runAfter: RunAfterMap): W
   } satisfies SetVariableAction;
 }
 
+/**
+ * Builds a Terminate action for BizTalk Terminate/Throw/Suspend shapes.
+ * These arrive as type 'error-handler' with actionType 'Terminate' — routing
+ * them through buildErrorHandlerAction produced an empty Scope that silently
+ * dropped the terminate semantics.
+ */
+function buildTerminateAction(step: IntegrationStep, runAfter: RunAfterMap): TerminateAction {
+  const cfg = step.config as Record<string, unknown>;
+  const runStatus = (cfg['runStatus'] as TerminateAction['inputs']['runStatus']) ?? 'Failed';
+  return {
+    type: 'Terminate',
+    inputs: {
+      runStatus,
+      ...(runStatus === 'Failed'
+        ? {
+            runError: {
+              code:    (cfg['code'] as string) ?? 'WorkflowTerminated',
+              message: (cfg['message'] as string) ?? step.description,
+            },
+          }
+        : {}),
+    },
+    runAfter,
+  };
+}
+
 function buildErrorHandlerAction(
   step: IntegrationStep,
   maps: NameMaps,
@@ -1420,7 +1598,9 @@ function buildRetryPolicy(cfg: ErrorHandlingConfig): RetryPolicy | undefined {
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
 function stripInternalKeys(cfg: Record<string, unknown>): Record<string, unknown> {
-  const skip = new Set(['operationId', 'frequency', 'interval']);
+  // 'recurrence' is hoisted to the trigger's top-level recurrence property —
+  // it must NOT leak into inputs.parameters.
+  const skip = new Set(['operationId', 'frequency', 'interval', 'recurrence']);
   return Object.fromEntries(
     Object.entries(cfg).filter(([k]) => !skip.has(k))
   );
