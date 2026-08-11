@@ -322,6 +322,19 @@ export function scoreWorkflowQuality(workflowJson: unknown, intentJson?: unknown
       recommendations.push('Resolve all TODO_CLAUDE markers with valid WDL expressions');
     }
 
+    // Penalty: Placeholder stub actions (-5 each, max -15)
+    // The workflow generator emits Compose actions noted 'TODO: implement this action'
+    // for steps it cannot translate. These are unimplemented placeholders, not
+    // working logic, and must count against completeness just like TODO_CLAUDE.
+    const stubMatches = workflowStr.match(/TODO: implement this action/g);
+    const stubCount = stubMatches ? stubMatches.length : 0;
+    if (stubCount > 0) {
+      const penalty = Math.min(stubCount * 5, 15);
+      completenessScore = Math.max(0, completenessScore - penalty);
+      completenessIssues.push(`${stubCount} placeholder stub action(s) ('TODO: implement this action') — steps were not translated`);
+      recommendations.push('Replace placeholder Compose stub actions with real WDL implementations for the untranslated steps');
+    }
+
     // Penalty: Empty SetVariable values (-3 each, max -9)
     const allActionsForPenalty = collectAllActions(actions);
     const emptySetVars = allActionsForPenalty.filter(([, a]) => {
