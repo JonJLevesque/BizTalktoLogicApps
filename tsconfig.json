@@ -25,5 +25,5 @@
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "src/vscode/**"]
+  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts"]
 }

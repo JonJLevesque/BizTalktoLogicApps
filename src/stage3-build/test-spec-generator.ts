@@ -34,7 +34,6 @@
  */
 
 import type { IntegrationIntent, IntegrationStep } from '../shared/integration-intent.js';
-import type { MigrationPlan } from '../types/migration.js';
 
 // ─── Test spec types ──────────────────────────────────────────────────────────
 
@@ -335,7 +334,7 @@ function buildRetryTest(
 
 // ─── MSTest Method Builder ────────────────────────────────────────────────────
 
-function buildTestMethod(tc: TestCase, workflowName: string): string {
+function buildTestMethod(tc: TestCase, _workflowName: string): string {
   const methodName = sanitizeClassName(tc.name);
   const payload    = JSON.stringify(tc.trigger, null, 4)
     .split('\n').map((l, i) => i === 0 ? l : `        ${l}`).join('\n');

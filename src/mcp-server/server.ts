@@ -52,6 +52,7 @@ const PKG_VERSION = (JSON.parse(readFileSync(join(__dirname, '../../package.json
 import { ALL_TOOLS, getToolsForTier }    from './tools/definitions.js';
 import { dispatchTool }                  from './tools/handler.js';
 import { PROMPT_DEFINITIONS, buildPromptMessages } from './prompts/migration-guide.js';
+import { BUNDLED_REFERENCE }             from './resources/bundled-reference.js';
 import { validateLicense, getLicenseTier }         from '../licensing/index.js';
 
 // ─── Server Info ──────────────────────────────────────────────────────────────
@@ -147,64 +148,85 @@ async function main() {
   // Resolve relative to the compiled server.js location so npm global installs work correctly
   const PROJECT_ROOT = join(__dirname, '..', '..');
 
-  const RESOURCES = [
+  // Each resource lists candidate files (relative to PROJECT_ROOT), tried in order:
+  //   - docs/reference/*.md exists only on a full source checkout with the
+  //     private reference docs — npm installs fall back to the bundled summary.
+  //   - training-pair.json files ship in the npm tarball (package.json "files")
+  //     and are copied into dist/mcp-server/resources/examples/ for the
+  //     bundled VS Code extension build.
+  const RESOURCES: ReadonlyArray<{
+    uri: string;
+    name: string;
+    description: string;
+    mimeType: string;
+    files: readonly string[];
+  }> = [
     {
       uri:         'biztalk://reference/component-mapping',
       name:        'Component Mapping Reference',
       description: 'BizTalk orchestration shapes → Logic Apps actions (35+ mappings)',
       mimeType:    'text/markdown',
-      file:        'docs/reference/component-mapping.md',
+      files:       ['docs/reference/component-mapping.md'],
     },
     {
       uri:         'biztalk://reference/connector-mapping',
       name:        'Connector Mapping Reference',
       description: 'BizTalk adapters → Logic Apps connectors (47+ adapters with config examples)',
       mimeType:    'text/markdown',
-      file:        'docs/reference/connector-mapping.md',
+      files:       ['docs/reference/connector-mapping.md'],
     },
     {
       uri:         'biztalk://reference/expression-mapping',
       name:        'Expression Mapping Reference',
       description: 'XLANG/s to WDL expression translation guide',
       mimeType:    'text/markdown',
-      file:        'docs/reference/expression-mapping.md',
+      files:       ['docs/reference/expression-mapping.md'],
     },
     {
       uri:         'biztalk://reference/pattern-mapping',
       name:        'Pattern Mapping Reference',
       description: 'Enterprise integration pattern migrations (16 patterns)',
       mimeType:    'text/markdown',
-      file:        'docs/reference/pattern-mapping.md',
+      files:       ['docs/reference/pattern-mapping.md'],
     },
     {
       uri:         'biztalk://reference/gap-analysis',
       name:        'Gap Analysis Reference',
       description: 'Critical gaps between BizTalk capabilities and Logic Apps equivalents',
       mimeType:    'text/markdown',
-      file:        'docs/reference/gap-analysis.md',
+      files:       ['docs/reference/gap-analysis.md'],
     },
     {
       uri:         'biztalk://schema/decision-trees',
       name:        'Decision Trees Schema',
       description: 'Machine-readable decision trees for SKU, connector, and transform choices',
       mimeType:    'application/json',
-      file:        'schemas/decision-trees.json',
+      files:       [
+        'schemas/decision-trees.json',
+        'dist/mcp-server/resources/schemas/decision-trees.json',
+      ],
     },
     {
       uri:         'biztalk://examples/simple-file-receive',
       name:        'Simple File Receive Example',
       description: 'Training pair: FILE receive → transform → send (simple linear flow)',
       mimeType:    'application/json',
-      file:        'tests/fixtures/02-simple-file-receive/training-pair.json',
+      files:       [
+        'tests/fixtures/02-simple-file-receive/training-pair.json',
+        'dist/mcp-server/resources/examples/02-simple-file-receive.training-pair.json',
+      ],
     },
     {
       uri:         'biztalk://examples/content-based-routing',
       name:        'Content-Based Routing Example',
       description: 'Training pair: FILE receive → decide → route (CBR pattern)',
       mimeType:    'application/json',
-      file:        'tests/fixtures/03-content-based-routing/training-pair.json',
+      files:       [
+        'tests/fixtures/03-content-based-routing/training-pair.json',
+        'dist/mcp-server/resources/examples/03-content-based-routing.training-pair.json',
+      ],
     },
-  ] as const;
+  ];
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources: RESOURCES.map(r => ({
@@ -222,29 +244,48 @@ async function main() {
       throw new McpError(ErrorCode.InvalidRequest, `Unknown resource: ${uri}`);
     }
 
-    try {
-      const filePath = join(PROJECT_ROOT, resource.file);
-      const content = readFileSync(filePath, 'utf-8');
+    // 1. Prefer the full document when it exists on disk (source checkout,
+    //    npm-shipped fixture, or bundled extension copy).
+    for (const relPath of resource.files) {
+      try {
+        const content = readFileSync(join(PROJECT_ROOT, relPath), 'utf-8');
+        return {
+          contents: [{
+            uri,
+            mimeType: resource.mimeType,
+            text:     content,
+          }],
+        };
+      } catch {
+        // try the next candidate
+      }
+    }
+
+    // 2. Bundled condensed reference (ships with every install).
+    const bundled = BUNDLED_REFERENCE[uri];
+    if (bundled) {
       return {
         contents: [{
           uri,
           mimeType: resource.mimeType,
-          text:     content,
-        }],
-      };
-    } catch {
-      // Resource files aren't shipped in the npm package — graceful fallback
-      return {
-        contents: [{
-          uri,
-          mimeType: 'text/plain',
-          text: `Resource "${resource.name}" is not available in this installation.\n\n`
-              + `This resource requires the full repository clone from:\n`
-              + `https://github.com/JonJLevesque/BTtoLA\n\n`
-              + `Description: ${resource.description}`,
+          text:     bundled,
         }],
       };
     }
+
+    // 3. Honest fallback — nothing usable in this installation.
+    return {
+      contents: [{
+        uri,
+        mimeType: 'text/plain',
+        text: `Resource "${resource.name}" is not available in this installation.\n\n`
+            + `Description: ${resource.description}\n\n`
+            + `The equivalent knowledge is applied automatically by the AI enrichment\n`
+            + `step when BTLA_LICENSE_KEY is configured, and the analysis tools\n`
+            + `(detect_patterns, generate_gap_analysis, generate_architecture) expose\n`
+            + `the same mappings per-application. Support: me@jonlevesque.com`,
+      }],
+    };
   });
 
   // ── Start ───────────────────────────────────────────────────────────────────

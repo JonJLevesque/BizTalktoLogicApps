@@ -11,50 +11,10 @@
 import type { BizTalkApplication, OdxShape } from '../types/biztalk.js';
 import type {
   WorkflowJson,
-  ServiceProviderAction,
   WorkflowAction,
   WdlAction,
   WdlTrigger,
 } from '../types/logicapps.js';
-
-// ─── Colours ──────────────────────────────────────────────────────────────────
-
-const COLORS = {
-  receive:       { fill: '#d4edda', stroke: '#28a745', text: '#155724' },
-  pipeline:      { fill: '#cce5ff', stroke: '#0056b3', text: '#004085' },
-  orchestration: { fill: '#e2d9f3', stroke: '#6f42c1', text: '#432874' },
-  map:           { fill: '#fde8cd', stroke: '#e8760a', text: '#7a3e00' },
-  sendport:      { fill: '#fff3cd', stroke: '#d39e00', text: '#7d5a00' },
-  workflow:      { fill: '#cce5ff', stroke: '#0078d4', text: '#004578' },
-  trigger:       { fill: '#d4edda', stroke: '#28a745', text: '#155724' },
-  connector:     { fill: '#fff3cd', stroke: '#d39e00', text: '#7d5a00' },
-};
-
-// ─── Layout constants ─────────────────────────────────────────────────────────
-
-const NODE_W  = 160;
-const NODE_H  = 50;
-const COL_GAP = 220;
-const ROW_GAP = 70;
-const PAD_X   = 20;
-const PAD_Y   = 30;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface DiagramNode {
-  id:    string;
-  label: string;
-  sub:   string;
-  kind:  keyof typeof COLORS;
-  col:   number;
-  row:   number;
-}
-
-interface DiagramEdge {
-  from:   string;
-  to:     string;
-  dashed?: boolean;
-}
 
 // ─── SVG builder helpers ──────────────────────────────────────────────────────
 
@@ -66,92 +26,6 @@ function truncate(s: string, max = 18): string {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
-function nodeX(col: number): number { return PAD_X + col * COL_GAP; }
-function nodeY(row: number): number { return PAD_Y + row * ROW_GAP; }
-function nodeCy(row: number): number { return nodeY(row) + NODE_H / 2; }
-
-function renderNode(n: DiagramNode): string {
-  const c = COLORS[n.kind];
-  const x = nodeX(n.col);
-  const y = nodeY(n.row);
-  return `
-  <g class="dia-node" data-id="${esc(n.id)}">
-    <title>${esc(n.label)}${n.sub ? ' — ' + esc(n.sub) : ''}</title>
-    <rect x="${x}" y="${y}" width="${NODE_W}" height="${NODE_H}" rx="8"
-      fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5"/>
-    <text x="${x + NODE_W / 2}" y="${y + 19}" text-anchor="middle"
-      font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600"
-      fill="${c.text}">${esc(truncate(n.label, 20))}</text>
-    <text x="${x + NODE_W / 2}" y="${y + 34}" text-anchor="middle"
-      font-family="system-ui,-apple-system,sans-serif" font-size="10"
-      fill="${c.stroke}">${esc(truncate(n.sub, 24))}</text>
-  </g>`;
-}
-
-function renderEdge(from: DiagramNode, to: DiagramNode, prefix: string, dashed = false): string {
-  const dash = dashed ? ' stroke-dasharray="4,2"' : '';
-  if (from.col === to.col) {
-    // Same-column edge: use quadratic bezier arcing to the right
-    const x  = nodeX(from.col) + NODE_W;
-    const y1 = nodeCy(from.row);
-    const y2 = nodeCy(to.row);
-    const cx = x + 35;
-    return `<path d="M${x},${y1} Q${cx},${(y1 + y2) / 2} ${x},${y2}"
-    fill="none" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#${prefix}-arrow)"${dash}/>`;
-  }
-  const x1 = nodeX(from.col) + NODE_W;
-  const y1 = nodeCy(from.row);
-  const x2 = nodeX(to.col);
-  const y2 = nodeCy(to.row);
-  const mx = (x1 + x2) / 2;
-  return `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"
-    fill="none" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#${prefix}-arrow)"${dash}/>`;
-}
-
-function svgWrapper(nodes: DiagramNode[], edges: DiagramEdge[], prefix: string): string {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-  const cols = nodes.reduce((m, n) => Math.max(m, n.col), 0) + 1;
-  const rows = nodes.reduce((m, n) => Math.max(m, n.row), 0) + 1;
-  const svgW = PAD_X * 2 + cols * COL_GAP - (COL_GAP - NODE_W);
-  const svgH = PAD_Y * 2 + rows * ROW_GAP - (ROW_GAP - NODE_H);
-
-  const edgeSvg = edges.map(e => {
-    const f = nodeMap.get(e.from);
-    const t = nodeMap.get(e.to);
-    if (!f || !t) return '';
-    return renderEdge(f, t, prefix, e.dashed);
-  }).join('');
-
-  const nodeSvg = nodes.map(renderNode).join('');
-
-  return `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%" preserveAspectRatio="xMinYMin meet"
-  xmlns="http://www.w3.org/2000/svg" style="max-width:${svgW}px;overflow:visible">
-  <defs>
-    <marker id="${prefix}-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#9ca3af"/>
-    </marker>
-  </defs>
-  ${edgeSvg}
-  ${nodeSvg}
-</svg>`;
-}
-
-// ─── Heuristic edge builder ────────────────────────────────────────────────────
-// Connects each fromId[i] to toIds[min(i, toIds.length-1)].
-// Avoids cartesian N×M explosion; deduplicates.
-
-function heuristicEdges(fromIds: string[], toIds: string[], edges: DiagramEdge[]): void {
-  if (fromIds.length === 0 || toIds.length === 0) return;
-  const seen = new Set<string>();
-  fromIds.forEach((fId, i) => {
-    const tId = toIds[Math.min(i, toIds.length - 1)] as string;
-    const key = `${fId}->${tId}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      edges.push({ from: fId, to: tId });
-    }
-  });
-}
 
 // ─── BizTalk Architecture Diagram ─────────────────────────────────────────────
 

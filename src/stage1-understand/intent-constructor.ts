@@ -21,12 +21,10 @@ import type {
   TriggerType,
   DataFormat,
   ErrorStrategy,
-  StepType,
 } from '../shared/integration-intent.js';
 import type {
   BizTalkApplication,
   OdxShape,
-  ShapeType,
 } from '../types/biztalk.js';
 import { flattenShapes } from './orchestration-analyzer.js';
 import { sanitizeServiceBusEntityName } from '../stage3-build/connection-generator.js';
@@ -48,31 +46,6 @@ function isOnPrem(adapterType: string, address?: string): boolean {
 function requiresGateway(adapterType: string, address?: string): boolean {
   return isOnPrem(adapterType, address);
 }
-
-// ─── Shape to Step Type Mapping ────────────────────────────────────────────────
-
-type StepTypeEntry = { type: StepType; actionType: string };
-
-const SHAPE_TO_STEP: Partial<Record<ShapeType, StepTypeEntry>> = {
-  'TransformShape':           { type: 'transform',      actionType: 'Xslt' },
-  'DecisionShape':            { type: 'condition',      actionType: 'If' },
-  'LoopShape':                { type: 'loop',           actionType: 'Until' },
-  'ScopeShape':               { type: 'error-handler',  actionType: 'Scope' },
-  'DelayShape':               { type: 'delay',          actionType: 'Delay' },
-  'CallOrchestrationShape':   { type: 'invoke-child',   actionType: 'Workflow' },
-  'StartOrchestrationShape':  { type: 'invoke-child',   actionType: 'Workflow' },
-  'CallRulesShape':           { type: 'invoke-function',actionType: 'Workflow' },
-  'ExpressionShape':          { type: 'set-variable',   actionType: 'SetVariable' },
-  'MessageAssignmentShape':   { type: 'set-variable',   actionType: 'Compose' },
-  'ConstructShape':           { type: 'set-variable',   actionType: 'Compose' },
-  'ParallelActionsShape':     { type: 'parallel',       actionType: 'parallel-group' },
-  'TerminateShape':           { type: 'error-handler',  actionType: 'Terminate' },
-  'ThrowShape':               { type: 'error-handler',  actionType: 'Terminate' },
-  'SuspendShape':             { type: 'error-handler',  actionType: 'Terminate' },
-  'CompensateShape':          { type: 'error-handler',  actionType: 'Compensate' },
-  'ListenShape':              { type: 'condition',      actionType: 'If' },
-  'GroupShape':               { type: 'condition',      actionType: 'If' },
-};
 
 // ─── Detect data format from pipeline name ─────────────────────────────────────
 

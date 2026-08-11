@@ -80,3 +80,8 @@ site/
 outputs/
 *.zip
 .metadata_never_index
+
+# ── VS Code extension build output ─────────────────────────
+vscode-extension/dist/
+vscode-extension/LICENSE
+*.vsix

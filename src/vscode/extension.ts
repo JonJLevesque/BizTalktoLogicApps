@@ -76,7 +76,7 @@ export function deactivate(): void {
 
 // ─── Command Implementations ──────────────────────────────────────────────────
 
-async function analyzeActiveFile(context: vscode.ExtensionContext): Promise<void> {
+async function analyzeActiveFile(_context: vscode.ExtensionContext): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     void vscode.window.showErrorMessage('No file is open. Open a .odx, .btm, .btp, or binding XML file first.');
@@ -111,7 +111,7 @@ async function analyzeActiveFile(context: vscode.ExtensionContext): Promise<void
   );
 }
 
-async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void> {
+async function analyzeDirectory(_context: vscode.ExtensionContext): Promise<void> {
   const folder = await vscode.window.showOpenDialog({
     canSelectFolders: true,
     canSelectFiles:   false,
@@ -119,13 +119,14 @@ async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void>
     openLabel:        'Select BizTalk Project Folder',
   });
 
-  if (!folder || folder.length === 0) return;
-  const dirPath = folder[0].fsPath;
+  const selectedFolder = folder?.[0];
+  if (!selectedFolder) return;
+  const dirPath = selectedFolder.fsPath;
 
   const appName = await vscode.window.showInputBox({
     prompt:      'Enter the BizTalk application name',
     placeHolder: 'MyBizTalkApp',
-    value:       dirPath.split('/').pop(),
+    value:       dirPath.split('/').pop() ?? 'MyBizTalkApp',
   });
 
   if (!appName) return;
@@ -138,7 +139,7 @@ async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void>
   );
 }
 
-async function buildPackageCommand(context: vscode.ExtensionContext): Promise<void> {
+async function buildPackageCommand(_context: vscode.ExtensionContext): Promise<void> {
   const specFile = await vscode.window.showOpenDialog({
     canSelectFolders: false,
     canSelectFiles:   true,
@@ -147,7 +148,8 @@ async function buildPackageCommand(context: vscode.ExtensionContext): Promise<vo
     filters:          { 'JSON files': ['json'] },
   });
 
-  if (!specFile || specFile.length === 0) return;
+  const selectedSpec = specFile?.[0];
+  if (!selectedSpec) return;
 
   const outputDir = await vscode.window.showOpenDialog({
     canSelectFolders: true,
@@ -156,10 +158,11 @@ async function buildPackageCommand(context: vscode.ExtensionContext): Promise<vo
     openLabel:        'Select Output Folder',
   });
 
-  if (!outputDir || outputDir.length === 0) return;
+  const selectedOutput = outputDir?.[0];
+  if (!selectedOutput) return;
 
-  outputChannel.appendLine(`Building Logic Apps package from: ${specFile[0].fsPath}`);
-  outputChannel.appendLine(`Output directory: ${outputDir[0].fsPath}`);
+  outputChannel.appendLine(`Building Logic Apps package from: ${selectedSpec.fsPath}`);
+  outputChannel.appendLine(`Output directory: ${selectedOutput.fsPath}`);
   outputChannel.show();
 
   void vscode.window.showInformationMessage('Package build started. See output channel for progress.');
@@ -185,9 +188,16 @@ async function startMcpServer(context: vscode.ExtensionContext): Promise<void> {
     return;
   }
 
-  const serverPath = join(context.extensionPath, 'dist', 'mcp-server', 'server.js');
-  if (!existsSync(serverPath)) {
-    void vscode.window.showErrorMessage('MCP server not found. Run npm run build first.');
+  // server.mjs = esbuild bundle inside the packaged extension (see
+  // scripts/build-vscode-extension.mjs); server.js = plain tsc output when
+  // running from a repository checkout.
+  const serverCandidates = [
+    join(context.extensionPath, 'dist', 'mcp-server', 'server.mjs'),
+    join(context.extensionPath, 'dist', 'mcp-server', 'server.js'),
+  ];
+  const serverPath = serverCandidates.find(p => existsSync(p));
+  if (!serverPath) {
+    void vscode.window.showErrorMessage('MCP server not found. Run npm run build:vscode first.');
     return;
   }
 
@@ -227,13 +237,13 @@ async function createFromNlp(context: vscode.ExtensionContext): Promise<void> {
   openDashboard(context);
 }
 
-function listTemplates(context: vscode.ExtensionContext): void {
+function listTemplates(_context: vscode.ExtensionContext): void {
   void vscode.commands.executeCommand('biztalk-migrate.openDashboard');
 }
 
 // ─── Run Migration (One-Command Pipeline) ─────────────────────────────────────
 
-async function runMigrationCommand(context: vscode.ExtensionContext): Promise<void> {
+async function runMigrationCommand(_context: vscode.ExtensionContext): Promise<void> {
   // Step 1: Select artifact folder
   const artifactFolder = await vscode.window.showOpenDialog({
     canSelectFolders: true,
@@ -241,8 +251,9 @@ async function runMigrationCommand(context: vscode.ExtensionContext): Promise<vo
     canSelectMany:    false,
     openLabel:        'Select BizTalk Artifacts Folder',
   });
-  if (!artifactFolder || artifactFolder.length === 0) return;
-  const artifactDir = artifactFolder[0].fsPath;
+  const selectedArtifactFolder = artifactFolder?.[0];
+  if (!selectedArtifactFolder) return;
+  const artifactDir = selectedArtifactFolder.fsPath;
 
   // Step 2: Application name
   const appName = await vscode.window.showInputBox({
@@ -344,7 +355,7 @@ async function runMigrationCommand(context: vscode.ExtensionContext): Promise<vo
 
 // ─── Dashboard WebView ────────────────────────────────────────────────────────
 
-function getDashboardHtml(webview: vscode.Webview, context: vscode.ExtensionContext): string {
+function getDashboardHtml(_webview: vscode.Webview, _context: vscode.ExtensionContext): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

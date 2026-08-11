@@ -395,7 +395,7 @@ function uniqueActionName(description: string, usedNames: Set<string>): string {
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
   // Logic Apps action names max 80 chars — truncate before uniqueness check
-  let base = (words.join('_') || 'Action').slice(0, 80);
+  const base = (words.join('_') || 'Action').slice(0, 80);
   if (!usedNames.has(base)) return base;
 
   let counter = 2;
@@ -1142,7 +1142,7 @@ function sanitizeVariableName(name: string): string {
   // Also strip any other character not valid in Logic Apps action/variable names.
   return name
     .replace(/[<>%&\\?/']/g, '_')
-    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
     .slice(0, 80)
     || 'variable';
 }
@@ -1554,6 +1554,11 @@ function wrapInErrorScope(
   };
 }
 
+/**
+ * Maps the intent's ErrorHandlingConfig.retryPolicy to a WDL RetryPolicy.
+ * Returns undefined when the intent declares none (callers fall back to
+ * DEFAULT_HTTP_RETRY).
+ */
 function buildRetryPolicy(cfg: ErrorHandlingConfig): RetryPolicy | undefined {
   if (!cfg.retryPolicy) return undefined;
   return {

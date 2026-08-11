@@ -201,7 +201,6 @@ function generateXslt(
 ): string {
   const sourceNs   = extractNamespace(map.sourceSchemaRef);
   const destNs     = extractNamespace(map.destinationSchemaRef);
-  const sourceRoot = extractRootNode(map.sourceSchemaRef);
   const destRoot   = extractRootNode(map.destinationSchemaRef);
 
   const templates = buildXsltTemplates(map, includeTodos, warnings);
@@ -345,7 +344,6 @@ function functoidToXsltTemplate(
 
 function buildStringFunctoidTemplate(f: BtmFunctoid): string {
   // String concatenation is the most common string functoid
-  const params = f.inputs.map((_, i) => `param${i}`).join(', ');
   const concat = f.inputs.map((_, i) => `$param${i}`).join(', ');
   return [
     `  <xsl:template name="string_functoid_${f.functoidId}">`,
