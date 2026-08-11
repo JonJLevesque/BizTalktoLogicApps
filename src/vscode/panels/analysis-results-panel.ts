@@ -13,9 +13,8 @@
  */
 
 import * as vscode from 'vscode';
-import type { MigrationPlan } from '../../stage2-document/migration-spec-generator.js';
 import type { ComplexityBreakdown } from '../../stage1-understand/complexity-scorer.js';
-import type { MigrationGap } from '../../types/migration.js';
+import type { MigrationGap, MigrationPlan } from '../../types/migration.js';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -248,7 +247,13 @@ function getAnalysisHtml(result: AnalysisResult): string {
   ${plan.architectureRecommendation ? `
   <h2>Architecture Recommendation</h2>
   <div class="card">
-    <blockquote>${escapeHtml(plan.architectureRecommendation)}</blockquote>
+    <blockquote>${escapeHtml(plan.architectureRecommendation.rationale)}</blockquote>
+    <p style="margin:12px 0 0;font-size:12px;color:var(--vscode-descriptionForeground);">
+      Target SKU: <strong>${escapeHtml(plan.architectureRecommendation.targetSku)}</strong>
+      &nbsp;·&nbsp; Workflows: <strong>${plan.architectureRecommendation.workflowCount}</strong>
+      &nbsp;·&nbsp; Integration Account: <strong>${plan.architectureRecommendation.requiresIntegrationAccount ? 'Required' : 'Not required'}</strong>
+      &nbsp;·&nbsp; On-prem Gateway: <strong>${plan.architectureRecommendation.requiresOnPremGateway ? 'Required' : 'Not required'}</strong>
+    </p>
   </div>
   ` : ''}
 

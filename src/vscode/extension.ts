@@ -119,13 +119,14 @@ async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void>
     openLabel:        'Select BizTalk Project Folder',
   });
 
-  if (!folder || folder.length === 0) return;
-  const dirPath = folder[0].fsPath;
+  const selectedFolder = folder?.[0];
+  if (!selectedFolder) return;
+  const dirPath = selectedFolder.fsPath;
 
   const appName = await vscode.window.showInputBox({
     prompt:      'Enter the BizTalk application name',
     placeHolder: 'MyBizTalkApp',
-    value:       dirPath.split('/').pop(),
+    value:       dirPath.split('/').pop() ?? 'MyBizTalkApp',
   });
 
   if (!appName) return;
@@ -147,7 +148,8 @@ async function buildPackageCommand(context: vscode.ExtensionContext): Promise<vo
     filters:          { 'JSON files': ['json'] },
   });
 
-  if (!specFile || specFile.length === 0) return;
+  const selectedSpec = specFile?.[0];
+  if (!selectedSpec) return;
 
   const outputDir = await vscode.window.showOpenDialog({
     canSelectFolders: true,
@@ -156,10 +158,11 @@ async function buildPackageCommand(context: vscode.ExtensionContext): Promise<vo
     openLabel:        'Select Output Folder',
   });
 
-  if (!outputDir || outputDir.length === 0) return;
+  const selectedOutput = outputDir?.[0];
+  if (!selectedOutput) return;
 
-  outputChannel.appendLine(`Building Logic Apps package from: ${specFile[0].fsPath}`);
-  outputChannel.appendLine(`Output directory: ${outputDir[0].fsPath}`);
+  outputChannel.appendLine(`Building Logic Apps package from: ${selectedSpec.fsPath}`);
+  outputChannel.appendLine(`Output directory: ${selectedOutput.fsPath}`);
   outputChannel.show();
 
   void vscode.window.showInformationMessage('Package build started. See output channel for progress.');
@@ -241,8 +244,9 @@ async function runMigrationCommand(context: vscode.ExtensionContext): Promise<vo
     canSelectMany:    false,
     openLabel:        'Select BizTalk Artifacts Folder',
   });
-  if (!artifactFolder || artifactFolder.length === 0) return;
-  const artifactDir = artifactFolder[0].fsPath;
+  const selectedArtifactFolder = artifactFolder?.[0];
+  if (!selectedArtifactFolder) return;
+  const artifactDir = selectedArtifactFolder.fsPath;
 
   // Step 2: Application name
   const appName = await vscode.window.showInputBox({
