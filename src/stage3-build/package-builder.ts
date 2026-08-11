@@ -46,6 +46,7 @@ import { generateConnectionsFromApp, generateConnectionsFromIntent } from './con
 import { generateArmTemplate, generateBicepTemplate, generateTerraformFiles, generateLocalSettings } from './infrastructure-generator.js';
 import { generateTestSpec, generateMsTestScaffold }  from './test-spec-generator.js';
 import { isComplexCSharpCall, extractMethodCallInfo } from './csharp-translator.js';
+import { ADAPTER_CONNECTOR_MAP, isOnPremAdapter }     from './connector-catalog.js';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -585,32 +586,12 @@ function buildOrchestrationIntent(
 
 // ─── Receiver Workflow Helpers ────────────────────────────────────────────────
 
-/** Adapter type → connector + trigger type mapping (mirrors intent-constructor.ts) */
-const RECEIVER_ADAPTER_MAP: Record<string, { connector: string; triggerType: TriggerType }> = {
-  'FILE':             { connector: 'azureblob',   triggerType: 'polling' },
-  'FTP':              { connector: 'ftp',          triggerType: 'polling' },
-  'SFTP':             { connector: 'sftp',         triggerType: 'polling' },
-  'HTTP':             { connector: 'request',      triggerType: 'webhook' },
-  'HTTPS':            { connector: 'request',      triggerType: 'webhook' },
-  'SOAP':             { connector: 'request',      triggerType: 'webhook' },
-  'WCF-BasicHttp':    { connector: 'request',      triggerType: 'webhook' },
-  'WCF-WSHttp':       { connector: 'request',      triggerType: 'webhook' },
-  'WCF-NetMsmq':      { connector: 'serviceBus',  triggerType: 'polling' },
-  'MSMQ':             { connector: 'serviceBus',  triggerType: 'polling' },
-  'SB-Messaging':     { connector: 'serviceBus',  triggerType: 'polling' },
-  'EventHubs':        { connector: 'eventhub',    triggerType: 'polling' },
-  'SQL':              { connector: 'sql',          triggerType: 'polling' },
-  'AzureBlob':        { connector: 'azureblob',   triggerType: 'polling' },
-  'AzureQueue':       { connector: 'azurequeue',  triggerType: 'polling' },
-  'SFTP-Custom':      { connector: 'sftp',         triggerType: 'polling' },
-  'SAP':              { connector: 'sap',          triggerType: 'polling' },
-};
-
-function isOnPremAdapter(adapterType: string, address?: string): boolean {
-  if (['SQL', 'Oracle', 'SAP', 'SharePoint', 'MQSeries', 'WebSphere MQ'].includes(adapterType)) return true;
-  if (adapterType === 'FILE' && address && (address.match(/^[A-Za-z]:\\/) || address.startsWith('\\\\') || address.startsWith('/'))) return true;
-  return false;
-}
+/**
+ * Adapter type → connector + trigger type mapping.
+ * Single source of truth: the canonical connector catalog (connector-catalog.ts).
+ * isOnPremAdapter is imported from the same module.
+ */
+const RECEIVER_ADAPTER_MAP = ADAPTER_CONNECTOR_MAP;
 
 /**
  * Builds an IntegrationTrigger from a BizTalk receive location.

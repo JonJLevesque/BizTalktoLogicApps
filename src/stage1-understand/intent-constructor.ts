@@ -30,48 +30,19 @@ import type {
 } from '../types/biztalk.js';
 import { flattenShapes } from './orchestration-analyzer.js';
 import { sanitizeServiceBusEntityName } from '../stage3-build/connection-generator.js';
+import { ADAPTER_CONNECTOR_MAP, isOnPremAdapter } from '../stage3-build/connector-catalog.js';
 
 export const TODO_CLAUDE = 'TODO_CLAUDE';
 
 // ─── Adapter to Connector Mapping ──────────────────────────────────────────────
+// Single source of truth: the canonical connector catalog (Stage 3). All adapter →
+// connector rows, trigger types, and on-premises rules live in ADAPTER_CONNECTOR_MAP
+// so Stage 1 (intent), Stage 3 (connections), and Stage 3 (workflow) can never drift.
 
-const ADAPTER_TO_CONNECTOR: Record<string, { connector: string; triggerType: TriggerType; onPremises?: boolean }> = {
-  'FILE':             { connector: 'azureblob',    triggerType: 'polling' },
-  'FTP':              { connector: 'ftp',           triggerType: 'polling' },
-  'SFTP':             { connector: 'sftp',          triggerType: 'polling' },
-  'HTTP':             { connector: 'request',       triggerType: 'webhook' },
-  'HTTPS':            { connector: 'request',       triggerType: 'webhook' },
-  'SOAP':             { connector: 'request',       triggerType: 'webhook' },
-  'WCF-BasicHttp':    { connector: 'request',       triggerType: 'webhook' },
-  'WCF-WSHttp':       { connector: 'request',       triggerType: 'webhook' },
-  'WCF-NetTcp':       { connector: 'azurefunction', triggerType: 'webhook' },
-  'WCF-NetMsmq':      { connector: 'serviceBus',   triggerType: 'polling' },
-  'WCF-NetNamedPipe': { connector: 'azurefunction', triggerType: 'webhook' },
-  'WCF-Custom':       { connector: 'request',       triggerType: 'webhook' },
-  'MSMQ':             { connector: 'serviceBus',   triggerType: 'polling' },
-  'SB-Messaging':     { connector: 'serviceBus',   triggerType: 'polling' },
-  'EventHubs':        { connector: 'eventhub',     triggerType: 'polling' },
-  'SQL':              { connector: 'sql',           triggerType: 'polling',  onPremises: true },
-  'SQL Server':       { connector: 'sql',           triggerType: 'polling' },
-  'Oracle':           { connector: 'oracle',        triggerType: 'polling',  onPremises: true },
-  'SAP':              { connector: 'sap',           triggerType: 'polling',  onPremises: true },
-  'MQSeries':         { connector: 'ibmmq',         triggerType: 'polling' },
-  'WebSphere MQ':     { connector: 'ibmmq',         triggerType: 'polling' },
-  'SharePoint':       { connector: 'sharepoint',   triggerType: 'polling' },
-  'SMTP':             { connector: 'smtp',          triggerType: 'manual' },
-  'POP3':             { connector: 'office365',    triggerType: 'polling' },
-  'AzureBlob':        { connector: 'azureblob',    triggerType: 'polling' },
-  'AzureQueue':       { connector: 'azurequeue',   triggerType: 'polling' },
-  'EDI':              { connector: 'x12',           triggerType: 'polling' },
-  'AS2':              { connector: 'as2',           triggerType: 'polling' },
-};
+const ADAPTER_TO_CONNECTOR = ADAPTER_CONNECTOR_MAP;
 
 function isOnPrem(adapterType: string, address?: string): boolean {
-  const onPremAdapters = ['SQL', 'Oracle', 'SAP', 'SharePoint', 'MQSeries', 'WebSphere MQ'];
-  if (onPremAdapters.includes(adapterType)) return true;
-  // FILE adapter with local path (not Blob) is on-prem
-  if (adapterType === 'FILE' && address && (address.match(/^[A-Za-z]:\\/) || address.startsWith('\\\\') || address.startsWith('/'))) return true;
-  return false;
+  return isOnPremAdapter(adapterType, address);
 }
 
 function requiresGateway(adapterType: string, address?: string): boolean {
@@ -711,11 +682,16 @@ export function constructIntent(
     }
   }
 
-  // Determine if Integration Account is required
-  const requiresIntegrationAccount = app.maps.length > 0 ||
-    app.orchestrations.some(o => o.hasBRECalls) ||
-    inputFormat === 'edi-x12' || inputFormat === 'edi-edifact' ||
-    outputFormat === 'edi-x12' || outputFormat === 'edi-edifact';
+  // Determine if Integration Account is required.
+  // IMPORTANT: XSLT maps do NOT require an Integration Account in Logic Apps
+  // Standard — maps are packaged locally under Artifacts/Maps and referenced by
+  // the Transform action. BRE policies migrate to the Azure Logic Apps Rules
+  // Engine, which has no Integration Account dependency either. Only B2B/EDI
+  // artifacts (X12/EDIFACT/AS2 schemas and trading partner agreements) need one.
+  const requiresIntegrationAccount =
+    inputFormat === 'edi-x12' || inputFormat === 'edi-edifact' || inputFormat === 'as2' ||
+    outputFormat === 'edi-x12' || outputFormat === 'edi-edifact' || outputFormat === 'as2' ||
+    app.schemas.some(sch => sch.isEDISchema);
 
   // Determine if on-premises gateway required
   const requiresOnPremGateway = systems.some(s => s.requiresGateway);

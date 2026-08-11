@@ -66,22 +66,16 @@ const WDL_SCHEMA = 'https://schema.management.azure.com/providers/Microsoft.Logi
 const DEFAULT_HTTP_RETRY: RetryPolicy = { type: 'fixed', count: 3, interval: 'PT30S' };
 
 // ─── Connector → ServiceProvider ID mapping ───────────────────────────────────
-
-const SERVICE_PROVIDER_IDS: Record<string, string> = {
-  blob:            '/serviceProviders/AzureBlob',
-  azureBlob:       '/serviceProviders/AzureBlob',
-  serviceBus:      '/serviceProviders/serviceBus',
-  sftp:            '/serviceProviders/sftpWithSsh',
-  ftp:             '/serviceProviders/ftp',
-  sql:             '/serviceProviders/sql',
-  sqlServer:       '/serviceProviders/sql',
-  eventHubs:       '/serviceProviders/eventHubs',
-  cosmosDb:        '/serviceProviders/documentdb',
-  servicebus:      '/serviceProviders/serviceBus',
-  azureQueues:     '/serviceProviders/azurequeues',
-  azureTables:     '/serviceProviders/azuretables',
-  azureFile:       '/serviceProviders/azureFile',
-};
+// Single source of truth: the canonical connector catalog. getServiceProviderId()
+// normalizes any legacy spelling ('blob', 'azureBlob', 'eventHubs', …) and returns
+// the case-correct id (e.g. 'azureblob' → '/serviceProviders/AzureBlob' — the old
+// local table missed 'azureblob' and fell back to the wrong-case
+// '/serviceProviders/azureblob', which breaks deployment).
+import {
+  getServiceProviderId,
+  normalizeConnectorName,
+  CONNECTOR_CATALOG,
+} from './connector-catalog.js';
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -423,8 +417,9 @@ function buildRequestTrigger(): HttpRequestTrigger {
 }
 
 function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProviderTrigger {
-  const connector  = trigger.connector ?? 'blob';
-  const providerId = SERVICE_PROVIDER_IDS[connector] ?? `/serviceProviders/${connector}`;
+  // Canonical connector name — MUST match the connections.json key (WDL Rule 7)
+  const connector  = normalizeConnectorName(trigger.connector ?? 'azureblob');
+  const providerId = getServiceProviderId(connector);
   const cfg        = trigger.config as Record<string, unknown>;
 
   // Derive a sensible operation ID from connector + direction
@@ -449,15 +444,8 @@ function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProvid
 }
 
 function connectorDefaultTriggerOperation(connector: string): string {
-  const ops: Record<string, string> = {
-    blob:       'whenABlobIsAddedOrModified',
-    serviceBus: 'receiveMessages',
-    sftp:       'whenAFileIsAddedOrModified',
-    ftp:        'whenAFileIsAdded',
-    sql:        'whenAnItemIsCreated',
-    eventHubs:  'receiveEvents',
-  };
-  return ops[connector] ?? 'trigger';
+  const canonical = normalizeConnectorName(connector);
+  return CONNECTOR_CATALOG[canonical]?.defaultTriggerOperation ?? 'trigger';
 }
 
 // ─── Action Generation ────────────────────────────────────────────────────────
