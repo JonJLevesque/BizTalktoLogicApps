@@ -33,7 +33,7 @@
  * The MCP layer then prompts Claude with this description to perform the edit.
  */
 
-import type { IntegrationIntent, IntegrationStep, ExternalSystem, DataFormat } from '../shared/integration-intent.js';
+import type { IntegrationIntent, IntegrationStep, DataFormat } from '../shared/integration-intent.js';
 
 // ─── Public Types ─────────────────────────────────────────────────────────────
 
@@ -359,7 +359,7 @@ function applyErrorHandlingRules(
   original: string,
   intent: IntegrationIntent,
   applied: AppliedOperation[],
-  pending: PendingOperation[]
+  _pending: PendingOperation[]
 ): void {
   // Retry count change
   const retryCountMatch = text.match(/(?:change|update|set)\s+(?:the\s+)?retry\s+(?:count|attempts?)\s+to\s+(\d+)/);

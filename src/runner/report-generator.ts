@@ -271,7 +271,6 @@ export function generateMigrationReport(input: ReportInput): string {
     lines.push('✅ No migration gaps detected — clean migration.');
     lines.push('');
   } else {
-    const totalEffort = gaps.reduce((sum, g) => sum + (g.estimatedEffortDays ?? 0), 0);
     lines.push(`${gaps.length} gap(s) identified.`);
     lines.push('');
 

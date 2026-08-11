@@ -76,7 +76,7 @@ export function deactivate(): void {
 
 // ─── Command Implementations ──────────────────────────────────────────────────
 
-async function analyzeActiveFile(context: vscode.ExtensionContext): Promise<void> {
+async function analyzeActiveFile(_context: vscode.ExtensionContext): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     void vscode.window.showErrorMessage('No file is open. Open a .odx, .btm, .btp, or binding XML file first.');
@@ -111,7 +111,7 @@ async function analyzeActiveFile(context: vscode.ExtensionContext): Promise<void
   );
 }
 
-async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void> {
+async function analyzeDirectory(_context: vscode.ExtensionContext): Promise<void> {
   const folder = await vscode.window.showOpenDialog({
     canSelectFolders: true,
     canSelectFiles:   false,
@@ -139,7 +139,7 @@ async function analyzeDirectory(context: vscode.ExtensionContext): Promise<void>
   );
 }
 
-async function buildPackageCommand(context: vscode.ExtensionContext): Promise<void> {
+async function buildPackageCommand(_context: vscode.ExtensionContext): Promise<void> {
   const specFile = await vscode.window.showOpenDialog({
     canSelectFolders: false,
     canSelectFiles:   true,
@@ -237,13 +237,13 @@ async function createFromNlp(context: vscode.ExtensionContext): Promise<void> {
   openDashboard(context);
 }
 
-function listTemplates(context: vscode.ExtensionContext): void {
+function listTemplates(_context: vscode.ExtensionContext): void {
   void vscode.commands.executeCommand('biztalk-migrate.openDashboard');
 }
 
 // ─── Run Migration (One-Command Pipeline) ─────────────────────────────────────
 
-async function runMigrationCommand(context: vscode.ExtensionContext): Promise<void> {
+async function runMigrationCommand(_context: vscode.ExtensionContext): Promise<void> {
   // Step 1: Select artifact folder
   const artifactFolder = await vscode.window.showOpenDialog({
     canSelectFolders: true,
@@ -355,7 +355,7 @@ async function runMigrationCommand(context: vscode.ExtensionContext): Promise<vo
 
 // ─── Dashboard WebView ────────────────────────────────────────────────────────
 
-function getDashboardHtml(webview: vscode.Webview, context: vscode.ExtensionContext): string {
+function getDashboardHtml(_webview: vscode.Webview, _context: vscode.ExtensionContext): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

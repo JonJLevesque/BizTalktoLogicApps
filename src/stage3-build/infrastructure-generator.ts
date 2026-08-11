@@ -22,7 +22,7 @@
  *   - tags:       Resource tags
  */
 
-import type { ArchitectureRecommendation, RequiredAzureService } from '../types/migration.js';
+import type { ArchitectureRecommendation } from '../types/migration.js';
 
 // ─── ARM resource type constants ──────────────────────────────────────────────
 
@@ -388,7 +388,9 @@ function buildServiceBusNamespace(): ArmResource {
   };
 }
 
-function buildIntegrationAccount(tier: string): ArmResource {
+// The SKU is wired through the ARM parameter 'integrationAccountSku'; the tier
+// argument only documents the caller's intent.
+function buildIntegrationAccount(_tier: string): ArmResource {
   return {
     type:       'Microsoft.Logic/integrationAccounts',
     apiVersion: ver('Microsoft.Logic/integrationAccounts'),

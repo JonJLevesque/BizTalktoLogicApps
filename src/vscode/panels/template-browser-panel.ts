@@ -24,7 +24,7 @@ export class TemplateBrowserPanel {
 
   // ── Factory ──────────────────────────────────────────────────────────────
 
-  static createOrShow(context: vscode.ExtensionContext): void {
+  static createOrShow(_context: vscode.ExtensionContext): void {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;

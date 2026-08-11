@@ -25,7 +25,7 @@ import { detectPatterns }                       from '../../stage1-understand/pa
 import { scoreApplication }                     from '../../stage1-understand/complexity-scorer.js';
 import { analyzeGaps }                          from '../../stage2-document/gap-analyzer.js';
 import { recommendArchitecture }                from '../../stage2-document/architecture-recommender.js';
-import { generateMigrationSpec, generateMigrationResult } from '../../stage2-document/migration-spec-generator.js';
+import { generateMigrationSpec }                from '../../stage2-document/migration-spec-generator.js';
 import { generateWorkflow }                     from '../../stage3-build/workflow-generator.js';
 import { convertMap }                           from '../../stage3-build/map-converter.js';
 import { generateConnectionsFromApp, generateConnectionsFromIntent } from '../../stage3-build/connection-generator.js';

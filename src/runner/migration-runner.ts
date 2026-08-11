@@ -164,7 +164,7 @@ export async function runMigration(options: MigrationRunOptions): Promise<Migrat
   let qualityReport: import('../validation/quality-scorer.js').QualityReport | undefined;
 
   const connectionsJson = buildResult.project.connections;
-  let workflowsToValidate = buildResult.project.workflows.map(wf => ({
+  const workflowsToValidate = buildResult.project.workflows.map(wf => ({
     name: wf.name,
     json: JSON.stringify(wf.workflow),
     workflow: wf.workflow as WorkflowJson,

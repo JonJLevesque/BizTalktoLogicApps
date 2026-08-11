@@ -20,7 +20,7 @@
  * The corresponding appSettings entries are generated with placeholder values.
  */
 
-import type { IntegrationIntent, ExternalSystem } from '../shared/integration-intent.js';
+import type { IntegrationIntent } from '../shared/integration-intent.js';
 import type { BizTalkApplication } from '../types/biztalk.js';
 import type {
   ConnectionsJson,

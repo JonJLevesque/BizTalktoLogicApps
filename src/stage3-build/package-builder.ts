@@ -38,7 +38,7 @@ import type {
 } from '../types/logicapps.js';
 import type { IntegrationIntent, IntegrationStep, IntegrationTrigger, TriggerType } from '../shared/integration-intent.js';
 import { createIntegrationIntent } from '../shared/integration-intent.js';
-import type { BizTalkApplication, ParsedPipeline, BtpComponent, ReceiveLocation } from '../types/biztalk.js';
+import type { ParsedPipeline, BtpComponent, ReceiveLocation } from '../types/biztalk.js';
 import type { MigrationResult } from '../types/migration.js';
 import { generateWorkflow }              from './workflow-generator.js';
 import { convertMap }                    from './map-converter.js';

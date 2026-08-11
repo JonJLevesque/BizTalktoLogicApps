@@ -117,7 +117,6 @@ export class ClaudeClient {
     const sdkPath = '@anthropic-ai/sdk';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sdkModule = await import(sdkPath) as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const Anthropic = (sdkModule.default ?? sdkModule.Anthropic) as new (opts: { apiKey?: string }) => {
       messages: {
         create(params: {
@@ -135,7 +134,6 @@ export class ClaudeClient {
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const block = message.content[0] as { type: string; text: string };
     if (block.type !== 'text') {
       throw new Error('Unexpected response type from Anthropic API');

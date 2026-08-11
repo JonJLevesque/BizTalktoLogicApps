@@ -97,7 +97,7 @@ export function interpretNlp(description: string): NlpInterpretResult {
 
 function extractTrigger(
   text: string,
-  lines: string[]
+  _lines: string[]
 ): IntegrationIntent['trigger'] {
   // SFTP polling — check before schedule so "poll SFTP every 5 minutes" → SFTP, not Recurrence
   if (/sftp/i.test(text)) {
@@ -331,9 +331,9 @@ function extractErrorHandling(text: string): IntegrationIntent['errorHandling'] 
 
   const hasDeadLetter = /dead[\s-]letter|poison\s+message|fallback\s+queue/i.test(text);
   const hasSendEmail  = /(?:on|after|when)\s+(?:failure|error),?\s+(?:send|email|notify)/i.test(text);
-  const hasTerminate  = /terminate|cancel\s+the\s+workflow|stop\s+processing/i.test(text);
 
-  // Determine primary strategy
+  // Determine primary strategy (terminate is the default, so an explicit
+  // "terminate" mention needs no separate detection)
   let strategy: IntegrationIntent['errorHandling']['strategy'] = 'terminate';
   if (hasDeadLetter)              strategy = 'dead-letter';
   else if (hasSendEmail)          strategy = 'notify';

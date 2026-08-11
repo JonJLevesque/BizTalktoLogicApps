@@ -18,7 +18,6 @@ import { analyzeOrchestration } from './orchestration-analyzer.js';
 import { analyzeMap } from './map-analyzer.js';
 import { analyzePipeline } from './pipeline-analyzer.js';
 import { analyzeBindings } from './binding-analyzer.js';
-import { detectPatterns } from './pattern-detector.js';
 import { scoreApplication } from './complexity-scorer.js';
 import type { BizTalkApplication, BizTalkVersion } from '../types/biztalk.js';
 

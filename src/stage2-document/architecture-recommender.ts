@@ -25,13 +25,6 @@ import type { IntegrationPattern } from '../shared/integration-intent.js';
 
 // ─── Adapter classification sets ──────────────────────────────────────────────
 
-/** Adapters that communicate with on-premises systems (may need data gateway) */
-const ON_PREM_ADAPTERS = new Set([
-  'FILE', 'SQL', 'Oracle', 'DB2', 'ODBC', 'OracleEBusiness',
-  'MQSeries', 'WebSphere MQ', 'MSMQ',
-  'WCF-NetNamedPipe', 'WCF-NetTcp',
-  'SAP', 'Siebel', 'PeopleSoft', 'JD Edwards',
-]);
 
 /** Adapters that strongly suggest VNET integration is needed */
 const VNET_ADAPTERS = new Set([
@@ -103,7 +96,7 @@ function collectUsedAdapters(app: BizTalkApplication): string[] {
 
 function needsIntegrationAccount(
   app: BizTalkApplication,
-  patterns: IntegrationPattern[]
+  _patterns: IntegrationPattern[]
 ): boolean {
   // EDI schemas → always need Integration Account
   if (app.schemas.some(s => s.isEDISchema)) return true;
