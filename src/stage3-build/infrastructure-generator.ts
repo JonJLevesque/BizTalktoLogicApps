@@ -89,10 +89,19 @@ function ver(resourceType: string): string {
 
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
 
-export function generateArmTemplate(arch: ArchitectureRecommendation): ArmTemplate {
+/**
+ * @param workflowNames Workflow names deployed with the app. Each gets a
+ *   `Workflows.<name>.FlowState = Disabled` app setting on the Microsoft.Web/sites
+ *   resource so workflows deploy stopped (BizTalk "deployed stopped" parity) and
+ *   scheduled/polling triggers cannot fire before configuration is verified.
+ */
+export function generateArmTemplate(
+  arch: ArchitectureRecommendation,
+  workflowNames: string[] = [],
+): ArmTemplate {
   const parameters = buildParameters(arch);
   const variables  = buildVariables(arch);
-  const resources  = buildResources(arch);
+  const resources  = buildResources(arch, workflowNames);
   const outputs    = buildOutputs();
 
   return {
@@ -109,18 +118,26 @@ export function generateArmTemplate(arch: ArchitectureRecommendation): ArmTempla
  * Generates local.settings.json for local Logic Apps Standard development.
  * Values are placeholders — real values go in Azure App Settings or Key Vault.
  *
- * All workflows default to FlowState=Disabled (same as BizTalk "deployed stopped").
- * Prevents scheduled/polling workflows from firing immediately on deploy in non-dev envs.
+ * Worker runtime (must stay consistent with the ARM/Bicep/Terraform templates):
+ *   FUNCTIONS_WORKER_RUNTIME = 'dotnet' + FUNCTIONS_INPROC_NET8_ENABLED = '1'
+ *   is Microsoft's required configuration for Logic Apps Standard — 'dotnet'
+ *   replaced the legacy 'node' value for all new and existing Standard apps,
+ *   and the INPROC flag enables the .NET 8 host that loads both net472 and
+ *   net8 custom-code (local function) assemblies. Never use 'dotnet-isolated'
+ *   for Standard apps with custom code, even for .NET 8 local functions
+ *   (source: Azure/logicapps-migration-agent dotnet-local-functions skill;
+ *   MS Learn FUNCTIONS_WORKER_RUNTIME guidance).
+ *
+ * Deliberately NOT emitted here: Workflows.<name>.FlowState entries.
+ * local.settings.json is never deployed, so FlowState here would only disable
+ * local F5 debugging while doing nothing in Azure. Deploy-time
+ * FlowState=Disabled lives in the ARM template's siteConfig.appSettings
+ * (see buildLogicApp()).
  */
 export function generateLocalSettings(
   appSettings: Record<string, string>,
   _hasLocalCodeFunctions = false,
-  workflowNames: string[] = [],
 ): Record<string, unknown> {
-  const flowStateEntries = Object.fromEntries(
-    workflowNames.map(name => [`Workflows.${name}.FlowState`, 'Disabled'])
-  );
-
   return {
     IsEncrypted: false,
     Values: {
@@ -133,7 +150,6 @@ export function generateLocalSettings(
       ...Object.fromEntries(
         Object.entries(appSettings).map(([k]) => [k, `<set-in-azure-app-settings-or-keyvault>`])
       ),
-      ...flowStateEntries,
     },
   };
 }
@@ -213,7 +229,7 @@ function buildVariables(arch: ArchitectureRecommendation): Record<string, unknow
 
 // ─── Resources ────────────────────────────────────────────────────────────────
 
-function buildResources(arch: ArchitectureRecommendation): ArmResource[] {
+function buildResources(arch: ArchitectureRecommendation, workflowNames: string[] = []): ArmResource[] {
   const resources: ArmResource[] = [];
 
   // Storage Account (always required by Logic Apps Standard)
@@ -229,7 +245,7 @@ function buildResources(arch: ArchitectureRecommendation): ArmResource[] {
   resources.push(buildAppServicePlan());
 
   // Logic Apps Standard App
-  resources.push(buildLogicApp(arch));
+  resources.push(buildLogicApp(arch, workflowNames));
 
   // Optional services
   for (const svc of arch.azureServicesRequired) {
@@ -331,11 +347,28 @@ function buildAppServicePlan(): ArmResource {
   };
 }
 
-function buildLogicApp(arch: ArchitectureRecommendation): ArmResource {
+function buildLogicApp(arch: ArchitectureRecommendation, workflowNames: string[] = []): ArmResource {
+  // BizTalk "deployed stopped" parity: every workflow deploys with
+  // FlowState=Disabled so scheduled/polling triggers cannot fire before the
+  // consultant verifies configuration. These MUST live in the deployed app
+  // settings (siteConfig.appSettings) — not local.settings.json, which is
+  // never deployed. Enable per workflow in the Portal (or via CLI) after
+  // connection strings and Key Vault references are configured.
+  const flowStateEntries: Record<string, string> = Object.fromEntries(
+    workflowNames.map(name => [`Workflows.${name}.FlowState`, 'Disabled'])
+  );
+
   const appSettings: Record<string, string> = {
     APP_KIND:                        'workflowapp',
-    // FIX-07: dotnet-isolated is required for Logic Apps Standard with Local Code Functions.
-    FUNCTIONS_WORKER_RUNTIME:        'dotnet-isolated',
+    // FUNCTIONS_WORKER_RUNTIME must be 'dotnet' for Logic Apps Standard (it
+    // replaced the legacy 'node' value for all Standard apps). Do NOT use
+    // 'dotnet-isolated' — official guidance says never to use it for custom
+    // code, even .NET 8 local functions. FUNCTIONS_INPROC_NET8_ENABLED=1
+    // enables the .NET 8 host that loads both net472 and net8 custom-code
+    // assemblies. Keep in sync with generateLocalSettings().
+    // (Supersedes FIX-07, which incorrectly used 'dotnet-isolated'.)
+    FUNCTIONS_WORKER_RUNTIME:        'dotnet',
+    FUNCTIONS_INPROC_NET8_ENABLED:   '1',
     AzureWebJobsFeatureFlags:        'EnableMultiLanguageWorker',
     WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), '2023-01-01').keys[0].value)]",
     WEBSITE_CONTENTSHARE:            "[toLower(variables('logicAppName'))]",
@@ -344,6 +377,7 @@ function buildLogicApp(arch: ArchitectureRecommendation): ArmResource {
     'WORKFLOWS_SUBSCRIPTION_ID':     "[subscription().subscriptionId]",
     'WORKFLOWS_LOCATION_NAME':       "[parameters('location')]",
     'WORKFLOWS_RESOURCE_GROUP_NAME': "[resourceGroup().name]",
+    ...flowStateEntries,
   };
 
   const resource: ArmResource = {
@@ -627,7 +661,9 @@ export function generateBicepTemplate(arch: ArchitectureRecommendation): string 
     `    siteConfig: {`,
     `      appSettings: [`,
     `        { name: 'APP_KIND',                              value: 'workflowapp' }`,
-    `        { name: 'FUNCTIONS_WORKER_RUNTIME',              value: 'dotnet-isolated' }`,
+    `        // 'dotnet' (never the isolated worker) + INPROC_NET8 — required for Standard apps with custom code`,
+    `        { name: 'FUNCTIONS_WORKER_RUNTIME',              value: 'dotnet' }`,
+    `        { name: 'FUNCTIONS_INPROC_NET8_ENABLED',         value: '1' }`,
     `        { name: 'AzureWebJobsFeatureFlags',              value: 'EnableMultiLanguageWorker' }`,
     `        { name: 'AzureWebJobsStorage',                   value: 'DefaultEndpointsProtocol=https;AccountName=\${storageName};AccountKey=\${storage.listKeys().keys[0].value}' }`,
     `        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: 'DefaultEndpointsProtocol=https;AccountName=\${storageName};AccountKey=\${storage.listKeys().keys[0].value}' }`,
@@ -865,9 +901,16 @@ export function generateTerraformFiles(arch: ArchitectureRecommendation): Record
     `    type = "SystemAssigned"`,
     `  }`,
     ``,
+    `  site_config {`,
+    `    min_tls_version = "1.2"`,
+    `    ftps_state      = "Disabled"`,
+    `  }`,
+    ``,
     `  app_settings = {`,
     `    "APP_KIND"                              = "workflowapp"`,
-    `    "FUNCTIONS_WORKER_RUNTIME"              = "dotnet-isolated"`,
+    `    # 'dotnet' (never the isolated worker) + INPROC_NET8 — required for Standard apps with custom code`,
+    `    "FUNCTIONS_WORKER_RUNTIME"              = "dotnet"`,
+    `    "FUNCTIONS_INPROC_NET8_ENABLED"         = "1"`,
     `    "AzureWebJobsFeatureFlags"              = "EnableMultiLanguageWorker"`,
     `    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string`,
     `    "WORKFLOWS_SUBSCRIPTION_ID"             = data.azurerm_client_config.current.subscription_id`,

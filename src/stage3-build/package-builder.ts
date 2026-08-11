@@ -367,7 +367,7 @@ export function buildPackage(
   // ── 6. Generate infrastructure templates (ARM + Bicep + Terraform) ───────
   const arch = plan.architectureRecommendation;
   const armTemplate = options.includeInfrastructure !== false
-    ? generateArmTemplate(arch) as unknown as Record<string, unknown>
+    ? generateArmTemplate(arch, workflows.map(w => w.name)) as unknown as Record<string, unknown>
     : {} as Record<string, unknown>;
 
   const armParameters  = buildArmParameters(appName, arch.integrationAccountTier);
@@ -415,7 +415,7 @@ export function buildPackage(
 
   // ── 10a. Generate local.settings.json (now that we know if C# functions exist) ──
   const hasLocalCodeFunctions = Object.keys(localCodeFunctions).some(k => k.endsWith('.cs'));
-  const localSettings = generateLocalSettings(appSettings, hasLocalCodeFunctions, workflows.map(w => w.name));
+  const localSettings = generateLocalSettings(appSettings, hasLocalCodeFunctions);
 
   const summary: BuildSummary = {
     workflowCount:     workflows.length,
@@ -482,7 +482,7 @@ export function buildPackageFromIntent(
   const armParameters  = buildArmParameters(appName);
   const bicepTemplate  = '';
   const terraformFiles = {} as Record<string, string>;
-  const localSettings  = generateLocalSettings(appSettings, false, [appName]);
+  const localSettings  = generateLocalSettings(appSettings);
 
   const summary: BuildSummary = {
     workflowCount:     1,
