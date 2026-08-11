@@ -1,0 +1,8 @@
+# Only ship the bundled output, manifest, README, and LICENSE.
+**
+!dist/**
+!package.json
+!README.md
+!LICENSE
+# Never ship iCloud conflict duplicates (e.g. "extension 2.cjs", "dist 2/")
+dist/**/* [0-9]*

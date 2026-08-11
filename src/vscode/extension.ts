@@ -188,9 +188,16 @@ async function startMcpServer(context: vscode.ExtensionContext): Promise<void> {
     return;
   }
 
-  const serverPath = join(context.extensionPath, 'dist', 'mcp-server', 'server.js');
-  if (!existsSync(serverPath)) {
-    void vscode.window.showErrorMessage('MCP server not found. Run npm run build first.');
+  // server.mjs = esbuild bundle inside the packaged extension (see
+  // scripts/build-vscode-extension.mjs); server.js = plain tsc output when
+  // running from a repository checkout.
+  const serverCandidates = [
+    join(context.extensionPath, 'dist', 'mcp-server', 'server.mjs'),
+    join(context.extensionPath, 'dist', 'mcp-server', 'server.js'),
+  ];
+  const serverPath = serverCandidates.find(p => existsSync(p));
+  if (!serverPath) {
+    void vscode.window.showErrorMessage('MCP server not found. Run npm run build:vscode first.');
     return;
   }
 

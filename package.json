@@ -1,10 +1,8 @@
 {
   "name": "biztalk-migrate",
-  "displayName": "BizTalk to Logic Apps",
   "version": "1.0.69",
   "description": "Migrate BizTalk Server applications to Azure Logic Apps Standard — CLI, MCP server, and VS Code extension",
   "author": "Jon Levesque <me@jonlevesque.com>",
-  "publisher": "biztalk-migrate",
   "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://biztalkmigrate.com",
   "repository": {
@@ -16,10 +14,6 @@
     "email": "me@jonlevesque.com"
   },
   "type": "module",
-  "categories": [
-    "Other",
-    "Azure"
-  ],
   "keywords": [
     "biztalk",
     "logic-apps",
@@ -31,13 +25,15 @@
   ],
   "files": [
     "dist/",
+    "!dist/**/* [0-9]*",
     "schemas/",
+    "tests/fixtures/02-simple-file-receive/training-pair.json",
+    "tests/fixtures/03-content-based-routing/training-pair.json",
     "README.md",
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20.0.0",
-    "vscode": "^1.85.0"
+    "node": ">=20.0.0"
   },
   "main": "./dist/cli/index.js",
   "bin": {
@@ -56,126 +52,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "format": "prettier --write src/**/*.ts",
     "mcp:start": "node dist/mcp-server/server.js",
     "mcp:dev": "node --watch dist/mcp-server/server.js",
     "cli:analyze": "node dist/cli/index.js analyze",
     "cli:build": "node dist/cli/index.js build",
-    "prepublishOnly": "npm run clean && npm test && npm run build"
-  },
-  "activationEvents": [
-    "onLanguage:xml",
-    "workspaceContains:**/*.odx",
-    "workspaceContains:**/*.btm",
-    "workspaceContains:**/*.btp",
-    "workspaceContains:biztalk-migrate.config.json"
-  ],
-  "contributes": {
-    "commands": [
-      {
-        "command": "biztalk-migrate.analyzeFile",
-        "title": "Analyze File",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.analyzeDirectory",
-        "title": "Analyze Directory",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.buildPackage",
-        "title": "Build Logic Apps Package",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.openDashboard",
-        "title": "Open Migration Dashboard",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.startMcpServer",
-        "title": "Start MCP Server",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.createFromNlp",
-        "title": "Create Workflow from Description (Premium)",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.listTemplates",
-        "title": "Browse Template Library (Premium)",
-        "category": "BizTalk Migrate"
-      },
-      {
-        "command": "biztalk-migrate.runMigration",
-        "title": "Run Migration (One-Command Pipeline)",
-        "category": "BizTalk Migrate"
-      }
-    ],
-    "configuration": {
-      "title": "BizTalk Migrate",
-      "properties": {
-        "biztalkMigrate.licenseKey": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "License key for Standard and Premium features. Free tier supports Stage 1 and Stage 2 analysis without a key. [Get a license](https://biztalkmigrate.com)",
-          "scope": "machine"
-        },
-        "biztalkMigrate.outputDir": {
-          "type": "string",
-          "default": "./logic-apps-output",
-          "description": "Directory for generated Logic Apps deployment packages (relative to workspace root).",
-          "scope": "resource"
-        },
-        "biztalkMigrate.workflowKind": {
-          "type": "string",
-          "enum": [
-            "Stateful",
-            "Stateless"
-          ],
-          "enumDescriptions": [
-            "Recommended for BizTalk migrations. Supports long-running transactions, message correlation, and run history.",
-            "For short-lived, high-throughput workflows only. No run history persistence."
-          ],
-          "default": "Stateful",
-          "description": "Default Logic Apps workflow kind.",
-          "scope": "resource"
-        }
-      }
-    },
-    "languages": [
-      {
-        "id": "xml",
-        "extensions": [
-          ".odx",
-          ".btm",
-          ".btp"
-        ]
-      }
-    ],
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "biztalk-migrate.analyzeFile",
-          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
-          "group": "biztalk@1"
-        },
-        {
-          "command": "biztalk-migrate.analyzeDirectory",
-          "when": "explorerResourceIsFolder",
-          "group": "biztalk@2"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "biztalk-migrate.analyzeFile",
-          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
-          "group": "navigation"
-        }
-      ]
-    }
+    "prepublishOnly": "npm run clean && npm test && npm run build",
+    "build:vscode": "npm run build && node scripts/build-vscode-extension.mjs",
+    "package:vscode": "npm run build:vscode && cd vscode-extension && vsce package --no-dependencies",
+    "prepack": "node scripts/check-icloud-dupes.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -191,12 +77,14 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
     "prettier": "^3.2.0",
     "rimraf": "^5.0.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^2.0.0"
   }
 }

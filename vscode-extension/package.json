@@ -1,0 +1,149 @@
+{
+  "name": "biztalk-migrate",
+  "displayName": "BizTalk to Logic Apps",
+  "version": "1.0.69",
+  "description": "Migrate BizTalk Server applications to Azure Logic Apps Standard — analysis, gap reports, and one-command migration inside VS Code",
+  "publisher": "biztalk-migrate",
+  "author": "Jon Levesque <me@jonlevesque.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://biztalkmigrate.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JonJLevesque/BTtoLA.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JonJLevesque/BTtoLA/issues",
+    "email": "me@jonlevesque.com"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Azure"
+  ],
+  "keywords": [
+    "biztalk",
+    "logic-apps",
+    "azure",
+    "migration",
+    "integration"
+  ],
+  "main": "./dist/vscode/extension.cjs",
+  "activationEvents": [
+    "onLanguage:xml",
+    "workspaceContains:**/*.odx",
+    "workspaceContains:**/*.btm",
+    "workspaceContains:**/*.btp",
+    "workspaceContains:biztalk-migrate.config.json"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "biztalk-migrate.analyzeFile",
+        "title": "Analyze File",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.analyzeDirectory",
+        "title": "Analyze Directory",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.buildPackage",
+        "title": "Build Logic Apps Package",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.openDashboard",
+        "title": "Open Migration Dashboard",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.startMcpServer",
+        "title": "Start MCP Server",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.createFromNlp",
+        "title": "Create Workflow from Description (Premium)",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.listTemplates",
+        "title": "Browse Template Library (Premium)",
+        "category": "BizTalk Migrate"
+      },
+      {
+        "command": "biztalk-migrate.runMigration",
+        "title": "Run Migration (One-Command Pipeline)",
+        "category": "BizTalk Migrate"
+      }
+    ],
+    "configuration": {
+      "title": "BizTalk Migrate",
+      "properties": {
+        "biztalkMigrate.licenseKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "License key for Standard and Premium features. Free tier supports Stage 1 and Stage 2 analysis without a key. [Get a license](https://biztalkmigrate.com)",
+          "scope": "machine"
+        },
+        "biztalkMigrate.outputDir": {
+          "type": "string",
+          "default": "./logic-apps-output",
+          "description": "Directory for generated Logic Apps deployment packages (relative to workspace root).",
+          "scope": "resource"
+        },
+        "biztalkMigrate.workflowKind": {
+          "type": "string",
+          "enum": [
+            "Stateful",
+            "Stateless"
+          ],
+          "enumDescriptions": [
+            "Recommended for BizTalk migrations. Supports long-running transactions, message correlation, and run history.",
+            "For short-lived, high-throughput workflows only. No run history persistence."
+          ],
+          "default": "Stateful",
+          "description": "Default Logic Apps workflow kind.",
+          "scope": "resource"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "xml",
+        "extensions": [
+          ".odx",
+          ".btm",
+          ".btp"
+        ]
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "biztalk-migrate.analyzeFile",
+          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
+          "group": "biztalk@1"
+        },
+        {
+          "command": "biztalk-migrate.analyzeDirectory",
+          "when": "explorerResourceIsFolder",
+          "group": "biztalk@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "biztalk-migrate.analyzeFile",
+          "when": "resourceExtname == .odx || resourceExtname == .btm || resourceExtname == .btp",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'Bundles are built by scripts/build-vscode-extension.mjs at the repo root — run npm run build:vscode there first.'"
+  }
+}
