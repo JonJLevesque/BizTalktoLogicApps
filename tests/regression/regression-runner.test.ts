@@ -78,11 +78,9 @@ describe('Regression — quality baseline', () => {
       });
 
       it('quality score does not regress beyond 2 points below baseline', () => {
-        if (!existsSync(workflowPath)) {
-          console.warn(`Skipping ${fixtureName}: workflow file not found`);
-          expect(true).toBe(true);
-          return;
-        }
+        // Missing golden master is a failure, not a skip — a deleted or moved
+        // fixture must never silently disable its regression guard.
+        expect(existsSync(workflowPath)).toBe(true);
 
         const workflowJson = JSON.parse(readFileSync(workflowPath, 'utf-8')) as unknown;
         const report = scoreWorkflowQuality(workflowJson);
@@ -106,10 +104,7 @@ describe('Regression — quality baseline', () => {
       });
 
       it('grade does not regress (must be A or B)', () => {
-        if (!existsSync(workflowPath)) {
-          expect(true).toBe(true);
-          return;
-        }
+        expect(existsSync(workflowPath)).toBe(true);
 
         const workflowJson = JSON.parse(readFileSync(workflowPath, 'utf-8')) as unknown;
         const report = scoreWorkflowQuality(workflowJson);
@@ -117,36 +112,28 @@ describe('Regression — quality baseline', () => {
         expect(['A', 'B']).toContain(report.grade);
       });
 
-      it('golden master workflow has no real validation errors (no regression)', () => {
-        if (!existsSync(workflowPath)) {
-          expect(true).toBe(true);
-          return;
-        }
+      it('golden master workflow has no validation errors (no regression)', () => {
+        expect(existsSync(workflowPath)).toBe(true);
 
         const workflowJson = JSON.parse(readFileSync(workflowPath, 'utf-8')) as unknown;
         const result = validateWorkflow(workflowJson);
 
-        // Filter out the known false-positive: the runafter-refs-exist rule
-        // incorrectly flags nested scope action runAfter references as top-level
-        // violations. This is a known validator limitation, not a real error.
-        const realErrors = result.issues.filter(
-          i => i.severity === 'error' && i.rule !== 'runafter-refs-exist'
-        );
+        // No suppressions: the runafter-refs-exist rule is scope-aware, so every
+        // error it reports against a golden master is a real regression.
+        const errors = result.issues.filter(i => i.severity === 'error');
 
-        if (realErrors.length > 0) {
-          const msgs = realErrors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
-          console.error(`Real validation regression for ${fixtureName}:\n${msgs}`);
+        if (errors.length > 0) {
+          const msgs = errors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
+          console.error(`Validation regression for ${fixtureName}:\n${msgs}`);
         }
 
-        expect(realErrors.length).toBe(entry.workflowValidation.errors);
+        expect(errors.length).toBe(entry.workflowValidation.errors);
       });
 
       it('golden master connections.json has 0 errors (no regression)', () => {
-        if (!existsSync(connectionsPath)) {
-          // Connections file is optional
-          expect(true).toBe(true);
-          return;
-        }
+        // Every baselined fixture carries a connectionsValidation entry, so the
+        // connections.json golden master must exist — a missing file is a failure.
+        expect(existsSync(connectionsPath)).toBe(true);
 
         const connectionsJson = JSON.parse(readFileSync(connectionsPath, 'utf-8')) as unknown;
         const result = validateConnections(connectionsJson);
@@ -156,10 +143,7 @@ describe('Regression — quality baseline', () => {
       });
 
       it('warning count does not increase beyond baseline', () => {
-        if (!existsSync(workflowPath)) {
-          expect(true).toBe(true);
-          return;
-        }
+        expect(existsSync(workflowPath)).toBe(true);
 
         const workflowJson = JSON.parse(readFileSync(workflowPath, 'utf-8')) as unknown;
         const result = validateWorkflow(workflowJson);
