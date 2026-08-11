@@ -292,16 +292,30 @@ function buildStepFromShape(
   // Loop — condition must be INVERTED: BizTalk while(cond) → Logic Apps Until(!cond)
   if (shape.shapeType === 'LoopShape') {
     const rawCondition = shape.conditionExpression;
+    const untilExpression = rawCondition
+      ? `TODO_CLAUDE_INVERT: ${rawCondition}`
+      : TODO_CLAUDE;
+    // XLANG enumerator loops — while (enum.MoveNext()) — are collection
+    // iterations: mark them for Foreach generation via loopConfig.iterateOver.
+    const enumeratorMatch = rawCondition
+      ? /^\s*([A-Za-z_][\w.]*)\.MoveNext\s*\(\s*\)\s*$/.exec(rawCondition)
+      : null;
     return {
       id: `step_${shape.name ?? shape.shapeId}_loop`,
       type: 'loop',
       description: `Loop: ${rawCondition ?? 'condition'}`,
-      actionType: 'Until',
+      actionType: enumeratorMatch ? 'Foreach' : 'Until',
       config: {
-        untilExpression: rawCondition
-          ? `TODO_CLAUDE_INVERT: ${rawCondition}`
-          : TODO_CLAUDE,
+        untilExpression,
         inversionRequired: true,
+      },
+      // loopConfig is the field Stage 3 reads (config is a fallback only) —
+      // without it, Foreach never generates and Until config can be missed.
+      loopConfig: {
+        untilExpression,
+        ...(enumeratorMatch
+          ? { iterateOver: `${TODO_CLAUDE}_collection_for_${enumeratorMatch[1]}` }
+          : {}),
       },
       runAfter: prevStepId ? [prevStepId] : [],
     };
@@ -577,6 +591,28 @@ function processShapes(
 
     result.push(step);
     currentPrevId = step.id;
+
+    // Scope Catch handlers must run when the Scope FAILS, not after it succeeds.
+    // Extract them into a sibling error-handler step with handlesErrorFrom set,
+    // so Stage 3 generates runAfter: { <scope>: ['FAILED', 'TIMEDOUT'] }.
+    if (shape.shapeType === 'ScopeShape' && step.branches?.falseBranch) {
+      const catchSteps = step.branches.falseBranch;
+      step.branches = {
+        ...(step.branches.trueBranch ? { trueBranch: step.branches.trueBranch } : {}),
+      };
+      result.push({
+        id: `${step.id}_catch`,
+        type: 'error-handler',
+        description: `Handle error from scope (${shape.name ?? 'unnamed'})`,
+        actionType: 'Scope',
+        config: {},
+        runAfter: [],
+        branches: { trueBranch: catchSteps },
+        handlesErrorFrom: step.id,
+      });
+      // The next sequential step still follows the Scope itself (success path),
+      // not the catch handler — keep currentPrevId pointing at the scope step.
+    }
   }
 
   return result;
