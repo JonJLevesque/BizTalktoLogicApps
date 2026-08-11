@@ -368,7 +368,7 @@ export function buildPackage(
   // ── 6. Generate infrastructure templates (ARM + Bicep + Terraform) ───────
   const arch = plan.architectureRecommendation;
   const armTemplate = options.includeInfrastructure !== false
-    ? generateArmTemplate(arch) as unknown as Record<string, unknown>
+    ? generateArmTemplate(arch, workflows.map(w => w.name)) as unknown as Record<string, unknown>
     : {} as Record<string, unknown>;
 
   const armParameters  = buildArmParameters(appName, arch.integrationAccountTier);

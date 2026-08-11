@@ -24,6 +24,8 @@ export interface Bindings {
   // Vars (set in wrangler.toml)
   ANTHROPIC_MODEL:    string;
   MONTHLY_CALL_LIMIT: string; // hard kill when total monthly calls hit this number
+  /** Max trial-key requests per IP per UTC day on POST /v1/license/trial (default: 3). */
+  TRIAL_DAILY_IP_LIMIT?: string;
 }
 
 // ── License ──────────────────────────────────────────────────────────────────

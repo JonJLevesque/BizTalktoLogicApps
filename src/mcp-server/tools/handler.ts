@@ -183,7 +183,12 @@ export const TOOL_HANDLERS: Record<string, ToolHandler> = {
     if (!isFeatureAvailable('build')) return featureGated('build');
     const arch        = parseJson<Parameters<typeof generateArmTemplate>[0]>(args['architectureJson'] as string);
     const appSettings = (args['appSettings'] as Record<string, string>) ?? {};
-    const armTemplate = generateArmTemplate(arch);
+    // FlowState=Disabled entries go into the ARM template (deployed app settings),
+    // never into local.settings.json (which is not deployed and would only break local F5).
+    const workflowNames = Array.isArray(args['workflowNames'])
+      ? (args['workflowNames'] as string[]).filter((n): n is string => typeof n === 'string')
+      : [];
+    const armTemplate = generateArmTemplate(arch, workflowNames);
     const localSettings = generateLocalSettings(appSettings);
     return ok({ armTemplate, localSettings });
   },

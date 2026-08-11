@@ -132,6 +132,10 @@ export const GenerateInfrastructureSchema = z.object({
   appSettings: z.record(z.string()).optional().describe(
     'App Settings key-value pairs to include in local.settings.json'
   ),
+  workflowNames: z.array(z.string()).optional().describe(
+    'Workflow names to deploy stopped: each gets a Workflows.<name>.FlowState=Disabled ' +
+    'app setting on the ARM Microsoft.Web/sites resource (BizTalk "deployed stopped" parity)'
+  ),
 });
 
 export const GenerateTestsSchema = z.object({

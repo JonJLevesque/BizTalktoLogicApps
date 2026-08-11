@@ -638,6 +638,17 @@ export function generateMigrationReport(input: ReportInput): string {
   lines.push('- Add all `KVS_*` entries as Key Vault references');
   lines.push('- Add all `Common_*` and `Workflow_*` entries as plain values');
   lines.push('');
+  lines.push('**Workflows deploy stopped:** the ARM template sets `Workflows.<name>.FlowState = Disabled`');
+  lines.push('for every workflow (same as BizTalk "deployed stopped") so polling/scheduled triggers cannot');
+  lines.push('fire before configuration is verified. After configuring connection strings, enable each');
+  lines.push('workflow by removing its `Workflows.<name>.FlowState` app setting (or setting it to `Enabled`).');
+  lines.push('');
+  lines.push('> **Hosting model note:** Azure is rolling Logic Apps Standard from the Functions in-process');
+  lines.push('> hosting model to out-of-process (on the road to .NET 10). Most apps migrate automatically with');
+  lines.push('> no action. If your app uses .NET custom code and you need to defer the platform migration until');
+  lines.push('> you have validated it, add the app setting `LOGICAPP_INPROC_REDIRECT = 1` (and preserve it in');
+  lines.push('> your deployment pipeline); remove it when ready to move. This package does **not** set it by default.');
+  lines.push('');
 
   // ── Footer ────────────────────────────────────────────────────────────────
 

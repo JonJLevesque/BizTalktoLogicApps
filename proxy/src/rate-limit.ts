@@ -135,3 +135,58 @@ export function rateLimitMiddleware(
     await next();
   };
 }
+
+/**
+ * Per-IP daily rate limiter for the UNAUTHENTICATED trial-key endpoint.
+ *
+ * POST /v1/license/trial has no license key to rate-limit on, so we key on the
+ * caller's IP instead. Without this, a single abuser can mass-provision trial
+ * keys and use them to exhaust the global MONTHLY_CALL_LIMIT kill switch —
+ * 503ing paying customers for the rest of the month.
+ *
+ * KV key format: rl:trial:<ip>:<YYYY-MM-DD>   (resets midnight UTC, TTL 48 h)
+ * Limit: TRIAL_DAILY_IP_LIMIT var (default 3 requests/IP/day).
+ *
+ * IP source: CF-Connecting-IP — always set by Cloudflare and not client-spoofable
+ * (unlike X-Forwarded-For). If absent (e.g. local dev), all requests share one
+ * bucket, which fails safe.
+ */
+export function trialRateLimitMiddleware(): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const ip  = c.req.header('CF-Connecting-IP') ?? 'unknown';
+    const now = new Date();
+
+    const dayBucket = now.toISOString().slice(0, 10); // "2026-08-11"
+    const key       = `rl:trial:${ip}:${dayBucket}`;
+
+    const stored = await c.env.RATE_LIMITS.get(key);
+    const count  = stored !== null ? parseInt(stored, 10) : 0;
+
+    const parsedLimit = parseInt(c.env.TRIAL_DAILY_IP_LIMIT ?? '3', 10);
+    const limit       = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 3;
+
+    // Daily reset: midnight UTC
+    const tomorrow   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    const dayResetTs = Math.floor(tomorrow.getTime() / 1000);
+
+    if (count >= limit) {
+      const retryAfter = dayResetTs - Math.floor(now.getTime() / 1000);
+      c.header('X-RateLimit-Limit',     String(limit));
+      c.header('X-RateLimit-Remaining', '0');
+      c.header('X-RateLimit-Reset',     String(dayResetTs));
+      c.header('Retry-After',           String(retryAfter));
+      return c.json({
+        error: 'Too many trial requests from this address today — try again tomorrow',
+        retryAfter,
+      }, 429);
+    }
+
+    await c.env.RATE_LIMITS.put(key, String(count + 1), { expirationTtl: 172800 });
+
+    c.header('X-RateLimit-Limit',     String(limit));
+    c.header('X-RateLimit-Remaining', String(limit - count - 1));
+    c.header('X-RateLimit-Reset',     String(dayResetTs));
+
+    await next();
+  };
+}
