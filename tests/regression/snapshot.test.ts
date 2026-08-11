@@ -6,9 +6,9 @@
  * regressions in parser or analyzer logic that would otherwise only be
  * detected downstream in Stage 3 build failures.
  *
- * Snapshots are auto-created on first run (jest --updateSnapshot or -u).
+ * Snapshots are auto-created on first run (vitest -u / --update).
  * When a parser or analyzer is intentionally changed, update snapshots with:
- *   npx jest tests/regression/snapshot.test.ts --updateSnapshot
+ *   npx vitest run tests/regression/snapshot.test.ts -u
  *
  * Fixtures used:
  *   02-simple-file-receive   — linear Receive→Transform→Send, FILE adapters
@@ -17,7 +17,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { analyzeOrchestrationXml } from '../../src/stage1-understand/orchestration-analyzer.js';
+import { analyzeOrchestrationXml, flattenShapes } from '../../src/stage1-understand/orchestration-analyzer.js';
 import { analyzeBindingsXml }      from '../../src/stage1-understand/binding-analyzer.js';
 import { analyzeGaps }             from '../../src/stage2-document/gap-analyzer.js';
 import type { BizTalkApplication } from '../../src/types/biztalk.js';
@@ -56,11 +56,23 @@ describe('Snapshot — 02-simple-file-receive — Stage 1', () => {
 
   it('analyzeOrchestrationXml output is stable', () => {
     const result = analyzeOrchestrationXml(orchXml);
+    const allShapes = flattenShapes(result.shapes);
+
+    // Hard guarantees — the parser must see the REAL shapes in the ODX body,
+    // not a collapsed CommentShape fallback (regression guard for the
+    // normalizeShapeType 'BodyShape' bug).
+    const allTypes = allShapes.map(s => s.shapeType);
+    expect(allTypes).toContain('ReceiveShape');
+    expect(allTypes).toContain('TransformShape');
+    expect(allTypes).toContain('SendShape');
+    expect(allTypes).not.toContain('CommentShape');
+
     // Snapshot the key structural fields — exclude volatile fields like filePath
     expect({
       name:                       result.name,
       namespace:                  result.namespace,
-      shapeCount:                 result.shapes.length,
+      topLevelShapeCount:         result.shapes.length,
+      totalShapeCount:            allShapes.length,
       portCount:                  result.ports.length,
       messageCount:               result.messages.length,
       correlationSetCount:        result.correlationSets.length,
@@ -71,8 +83,8 @@ describe('Snapshot — 02-simple-file-receive — Stage 1', () => {
       hasBRECalls:                result.hasBRECalls,
       hasSuspend:                 result.hasSuspend,
       activatingReceiveCount:     result.activatingReceiveCount,
-      // Shape types — normalized, order-stable
-      shapeTypes:                 result.shapes.map(s => s.shapeType).sort(),
+      // ALL shape types (recursive, flattened) — normalized, order-stable
+      shapeTypes:                 allTypes.slice().sort(),
       // Port names and polarity
       ports:                      result.ports.map(p => ({ name: p.name, polarity: p.polarity })),
     }).toMatchSnapshot();
@@ -123,10 +135,21 @@ describe('Snapshot — 03-content-based-routing — Stage 1', () => {
 
   it('analyzeOrchestrationXml output is stable', () => {
     const result = analyzeOrchestrationXml(orchXml);
+    const allShapes = flattenShapes(result.shapes);
+
+    // Hard guarantees — the CBR fixture must yield its real shape graph
+    // (Receive → Decide → two branches, each Construct/Assign + Send).
+    const allTypes = allShapes.map(s => s.shapeType);
+    expect(allTypes).toContain('ReceiveShape');
+    expect(allTypes).toContain('DecisionShape');
+    expect(allTypes).toContain('SendShape');
+    expect(allTypes).not.toContain('CommentShape');
+
     expect({
       name:                       result.name,
       namespace:                  result.namespace,
-      shapeCount:                 result.shapes.length,
+      topLevelShapeCount:         result.shapes.length,
+      totalShapeCount:            allShapes.length,
       portCount:                  result.ports.length,
       messageCount:               result.messages.length,
       correlationSetCount:        result.correlationSets.length,
@@ -137,7 +160,7 @@ describe('Snapshot — 03-content-based-routing — Stage 1', () => {
       hasBRECalls:                result.hasBRECalls,
       hasSuspend:                 result.hasSuspend,
       activatingReceiveCount:     result.activatingReceiveCount,
-      shapeTypes:                 result.shapes.map(s => s.shapeType).sort(),
+      shapeTypes:                 allTypes.slice().sort(),
       ports:                      result.ports.map(p => ({ name: p.name, polarity: p.polarity })),
     }).toMatchSnapshot();
   });
@@ -187,9 +210,9 @@ describe('Snapshot — cross-fixture comparison', () => {
     const result02 = analyzeOrchestrationXml(orchXml02);
     const result03 = analyzeOrchestrationXml(orchXml03);
 
-    // Simple file receive (3 shapes: Receive, Construct/Transform, Send) should
-    // have fewer top-level shapes than CBR (Receive + Decide + branches)
-    expect(result02.shapes.length).toBeLessThanOrEqual(result03.shapes.length);
+    // Simple file receive (Receive, Construct/Transform, Send) has fewer total
+    // shapes than CBR (Receive + Decide + two branches of Construct/Assign/Send)
+    expect(flattenShapes(result02.shapes).length).toBeLessThan(flattenShapes(result03.shapes).length);
   });
 
   it('CBR fixture has more ports than simple file receive', () => {

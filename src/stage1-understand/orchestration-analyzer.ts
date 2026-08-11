@@ -416,6 +416,8 @@ function normalizeShapeType(raw: string): ShapeType {
     'suspend': 'SuspendShape',
     'groupshape': 'GroupShape',
     'group': 'GroupShape',
+    'bodyshape': 'GroupShape',                  // Root container of the orchestration body
+    'body': 'GroupShape',
     'parallelbranch': 'GroupShape',             // Real ODX: parallel branch container
     'task': 'GroupShape',                       // Real ODX: task group container
     'variableassignment': 'ExpressionShape',    // Real ODX: variable assignment statement
@@ -424,7 +426,12 @@ function normalizeShapeType(raw: string): ShapeType {
     'commentshape': 'CommentShape',
     'comment': 'CommentShape',
   };
-  return map[raw.toLowerCase()] ?? 'CommentShape';
+  // Unknown shape types fall back to GroupShape (a transparent container) rather
+  // than CommentShape: the intent constructor drops CommentShape subtrees entirely,
+  // which would silently discard every child of an unrecognized container shape.
+  // As a GroupShape, an unknown leaf contributes nothing, while an unknown
+  // container still has its children processed.
+  return map[raw.toLowerCase()] ?? 'GroupShape';
 }
 
 function normalizeTransactionType(raw: string): TransactionType {
