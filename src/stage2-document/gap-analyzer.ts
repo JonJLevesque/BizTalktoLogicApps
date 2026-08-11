@@ -84,15 +84,43 @@ const GAP_DEFS = {
     description:
       'BizTalk BRE policies execute complex business rules maintained separately from ' +
       'orchestrations in .brl files. Azure Logic Apps now has a direct equivalent: the ' +
-      'Azure Logic Apps Rules Engine uses the SAME BRE runtime as BizTalk, meaning .brl ' +
-      'policy files can be migrated with minimal rework.',
+      'Azure Logic Apps Rules Engine ships the SAME BRE RETE inference runtime as BizTalk, ' +
+      'meaning .brl policy files are often directly reusable with minimal rework. ' +
+      'Constraint: the Azure Rules Engine supports XML facts and .NET (Framework) facts ' +
+      'ONLY — policies that use database facts (DataConnection/TypedDataTable) or ' +
+      'long-term fact retrievers against databases must be reworked to XML or .NET facts.',
     mitigation:
       'Recommended path: migrate policies to the Azure Logic Apps Rules Engine (same BRE ' +
-      'runtime — closest structural equivalent, lowest effort). Alternatively: (2) Azure ' +
-      'Functions with business logic ported to C# or JavaScript (for complex stateful policies), ' +
+      'RETE runtime — import the .brl policy and vocabulary files into the Rules Engine ' +
+      'project; closest structural equivalent, lowest effort). Rework any database facts ' +
+      'to XML or .NET Framework facts first. Alternatively: (2) Azure Functions with ' +
+      'business logic ported to C# or JavaScript (for complex stateful policies), ' +
       '(3) Inline Logic Apps WDL expressions for simple, stateless rule sets. ' +
       'Each CallRules shape should still be reviewed for runtime dependencies.',
     baseEffortDays: 2,
+  },
+
+  // Dated platform deadline — surfaced whenever SB-Messaging / MSMQ-family
+  // adapters are detected, because both the interim BizTalk estate and the
+  // migrated Logic Apps estate depend on the Service Bus protocol change.
+  sbmpRetirement: {
+    capability: 'Service Bus SBMP Protocol Retirement (30 September 2026)',
+    severity: 'critical' as RiskSeverity,
+    description:
+      'Azure Service Bus retires the legacy SBMP (NetMessaging) protocol on 30 September 2026. ' +
+      'The BizTalk SB-Messaging adapter (and WCF NetMessagingBinding) uses SBMP by default, so ' +
+      'BizTalk applications sending to or receiving from Azure Service Bus will STOP WORKING ' +
+      'after that date unless switched to AMQP. BizTalk Server 2020 requires update KB5091375 ' +
+      'to add AMQP support to the SB-Messaging adapter; earlier BizTalk versions have no AMQP ' +
+      'option and must migrate before the retirement date. Migrated Logic Apps workflows are ' +
+      'safe: the built-in serviceBus connector already uses AMQP.',
+    mitigation:
+      'Before 30 September 2026: (1) If the BizTalk estate must keep running during the ' +
+      'migration window, install KB5091375 on BizTalk Server 2020 and reconfigure SB-Messaging ' +
+      'handlers to AMQP; (2) prioritize migrating SB-Messaging / MSMQ integrations to Logic Apps ' +
+      'Standard with the built-in serviceBus connector (AMQP by default); (3) validate firewall ' +
+      'rules for AMQP ports 5671/5672, which SBMP did not require.',
+    baseEffortDays: 1,
   },
 
   suspend: {
@@ -393,7 +421,11 @@ const GAP_DEFS = {
       'as-is in Logic Apps Artifacts/Schemas/. Use a stateful workflow with an Until loop and ' +
       'Append to Array Variable to accumulate messages until the completion condition is met. ' +
       'For complex correlation with long-running state: store partial message batches in Azure ' +
-      'Blob Storage or Cosmos DB keyed by CorrelationId between workflow runs.',
+      'Blob Storage or Cosmos DB keyed by CorrelationId between workflow runs. ' +
+      'For hybrid topologies where Azure Service Bus is not reachable from on-premises ' +
+      'publishers, the RabbitMQ built-in connector is the official hybrid answer for ' +
+      'MessageBox-style publish-subscribe (broker runs on-premises or in the cloud; ' +
+      'Logic Apps consumes via the built-in rabbitmq ServiceProvider connector).',
     baseEffortDays: 4,
   },
   swiftMt: {
@@ -594,6 +626,21 @@ export function analyzeGaps(app: BizTalkApplication): MigrationGap[] {
     for (const sp of binding.sendPorts) {
       const def = ADAPTER_GAPS[sp.adapterType];
       if (def) merge(def, 0, sp.name);
+    }
+  }
+
+  // ── SBMP retirement (SB-Messaging / MSMQ-family adapters) ────────────────
+  // Dated rule: Service Bus retires SBMP on 30 September 2026. The BizTalk
+  // SB-Messaging adapter uses SBMP by default (BizTalk 2020 needs KB5091375
+  // for AMQP). MSMQ / WCF-NetMsmq are included because their migration target
+  // is Service Bus and the interim estate commonly bridges via SB-Messaging.
+  const SBMP_ADAPTERS = ['SB-Messaging', 'SBMessaging', 'WCF-NetMsmq', 'MSMQ'];
+  for (const binding of app.bindingFiles) {
+    for (const rl of binding.receiveLocations) {
+      if (SBMP_ADAPTERS.includes(rl.adapterType)) merge(GAP_DEFS.sbmpRetirement, 0, rl.name);
+    }
+    for (const sp of binding.sendPorts) {
+      if (SBMP_ADAPTERS.includes(sp.adapterType)) merge(GAP_DEFS.sbmpRetirement, 0, sp.name);
     }
   }
 

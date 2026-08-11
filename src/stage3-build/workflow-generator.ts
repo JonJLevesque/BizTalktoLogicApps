@@ -66,67 +66,42 @@ const WDL_SCHEMA = 'https://schema.management.azure.com/providers/Microsoft.Logi
 const DEFAULT_HTTP_RETRY: RetryPolicy = { type: 'fixed', count: 3, interval: 'PT30S' };
 
 // ─── Connector → ServiceProvider ID mapping ───────────────────────────────────
-
-const SERVICE_PROVIDER_IDS: Record<string, string> = {
-  blob:            '/serviceProviders/AzureBlob',
-  azureBlob:       '/serviceProviders/AzureBlob',
-  serviceBus:      '/serviceProviders/serviceBus',
-  sftp:            '/serviceProviders/sftpWithSsh',
-  ftp:             '/serviceProviders/ftp',
-  sql:             '/serviceProviders/sql',
-  sqlServer:       '/serviceProviders/sql',
-  eventHubs:       '/serviceProviders/eventHubs',
-  cosmosDb:        '/serviceProviders/documentdb',
-  servicebus:      '/serviceProviders/serviceBus',
-  azureQueues:     '/serviceProviders/azurequeues',
-  azureTables:     '/serviceProviders/azuretables',
-  azureFile:       '/serviceProviders/azureFile',
-};
+// Single source of truth: the canonical connector catalog. getServiceProviderId()
+// normalizes any legacy spelling ('blob', 'azureBlob', 'eventHubs', …) and returns
+// the case-correct id (e.g. 'azureblob' → '/serviceProviders/AzureBlob' — the old
+// local table missed 'azureblob' and fell back to the wrong-case
+// '/serviceProviders/azureblob', which breaks deployment).
+import {
+  getServiceProviderId,
+  normalizeConnectorName,
+  CONNECTOR_CATALOG,
+} from './connector-catalog.js';
 
 /**
  * Normalizes a connector name coming from the IntegrationIntent (Stage 1 uses
  * names like "azureblob", "eventhub", "sqlServer") to the canonical token used
- * by this module's lookup tables (SERVICE_PROVIDER_IDS, operation tables).
- * Unknown connectors pass through unchanged.
+ * by the canonical connector catalog. Unknown connectors pass through unchanged.
  */
-const CONNECTOR_NORMALIZATION: Record<string, string> = {
-  blob:         'blob',
-  azureblob:    'blob',
-  servicebus:   'serviceBus',
-  sftp:         'sftp',
-  ftp:          'ftp',
-  sql:          'sql',
-  sqlserver:    'sql',
-  eventhub:     'eventHubs',
-  eventhubs:    'eventHubs',
-  azurequeue:   'azureQueues',
-  azurequeues:  'azureQueues',
-  cosmosdb:     'cosmosDb',
-  azuretables:  'azureTables',
-  azurefile:    'azureFile',
-  filesystem:   'filesystem',
-  smtp:         'smtp',
-};
-
 function normalizeConnector(connector: string): string {
-  return CONNECTOR_NORMALIZATION[connector.toLowerCase()] ?? connector;
+  return normalizeConnectorName(connector);
 }
 
 /**
- * Default ServiceProvider operation IDs for send steps, per connector.
+ * Default ServiceProvider operation IDs for send steps, per canonical connector.
  * Mirrors the BizTalk adapter → Logic Apps operation mapping
  * (FILE→createBlob, SB-Messaging→sendMessage, SFTP→uploadFile, ...).
+ * Keys are canonical connector-catalog names.
  */
 const SERVICE_PROVIDER_SEND_OPERATIONS: Record<string, string> = {
-  blob:        'createBlob',
-  serviceBus:  'sendMessage',
-  sftp:        'uploadFile',
-  ftp:         'uploadFile',
-  sql:         'executeQuery',
-  smtp:        'sendEmail',
-  eventHubs:   'sendEvent',
-  azureQueues: 'putMessage',
-  filesystem:  'createFile',
+  azureblob:  'createBlob',
+  serviceBus: 'sendMessage',
+  sftp:       'uploadFile',
+  ftp:        'uploadFile',
+  sql:        'executeQuery',
+  smtp:       'sendEmail',
+  eventhub:   'sendEvent',
+  azurequeue: 'putMessage',
+  filesystem: 'createFile',
 };
 
 /**
@@ -135,7 +110,7 @@ const SERVICE_PROVIDER_SEND_OPERATIONS: Record<string, string> = {
  * the intent config does not provide one.
  */
 const SEND_CONTENT_PARAMETER: Record<string, string> = {
-  blob:       'content',
+  azureblob:  'content',
   sftp:       'content',
   ftp:        'content',
   filesystem: 'content',
@@ -503,14 +478,14 @@ function buildRequestTrigger(): HttpRequestTrigger {
 }
 
 function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProviderTrigger {
-  const connector  = trigger.connector ?? 'blob';
-  const normalized = normalizeConnector(connector);
-  const providerId = SERVICE_PROVIDER_IDS[normalized] ?? `/serviceProviders/${normalized}`;
+  // Canonical connector name — MUST match the connections.json key (WDL Rule 7)
+  const connector  = normalizeConnectorName(trigger.connector ?? 'azureblob');
+  const providerId = getServiceProviderId(connector);
   const cfg        = trigger.config as Record<string, unknown>;
 
   // Derive a sensible operation ID from connector + direction
   const operationId = cfg['operationId'] as string
-    ?? connectorDefaultTriggerOperation(normalized);
+    ?? connectorDefaultTriggerOperation(connector);
 
   return {
     type: 'ServiceProvider',
@@ -526,16 +501,9 @@ function buildServiceProviderTrigger(trigger: IntegrationTrigger): ServiceProvid
   };
 }
 
-function connectorDefaultTriggerOperation(normalizedConnector: string): string {
-  const ops: Record<string, string> = {
-    blob:       'whenABlobIsAddedOrModified',
-    serviceBus: 'receiveMessages',
-    sftp:       'whenAFileIsAddedOrModified',
-    ftp:        'whenAFileIsAdded',
-    sql:        'whenAnItemIsCreated',
-    eventHubs:  'receiveEvents',
-  };
-  return ops[normalizedConnector] ?? 'trigger';
+function connectorDefaultTriggerOperation(connector: string): string {
+  const canonical = normalizeConnectorName(connector);
+  return CONNECTOR_CATALOG[canonical]?.defaultTriggerOperation ?? 'trigger';
 }
 
 // ─── Action Generation ────────────────────────────────────────────────────────
@@ -755,7 +723,7 @@ function buildServiceProviderSendAction(
 ): ServiceProviderAction {
   const cfg        = step.config as Record<string, unknown>;
   const normalized = normalizeConnector(connector);
-  const providerId = SERVICE_PROVIDER_IDS[normalized] ?? `/serviceProviders/${normalized}`;
+  const providerId = getServiceProviderId(normalized);
   const operationId = (cfg['operationId'] as string | undefined)
     ?? SERVICE_PROVIDER_SEND_OPERATIONS[normalized]
     ?? 'sendMessage';

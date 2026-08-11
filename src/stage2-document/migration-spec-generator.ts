@@ -75,7 +75,8 @@ const SHAPE_MAP: Record<string, ShapeMapping> = {
   StartOrchestrationShape:{ target: 'HTTP POST to child workflow Request trigger',  targetType: 'action',        status: 'direct',  effort: 'low',
     notes: 'Fire-and-forget: use HTTP action to POST to the child workflow\'s Request trigger URL. Caller does not wait for completion.' },
   CallRulesShape:         { target: 'Azure Logic Apps Rules Engine (BRE-compatible)',targetType: 'action',        status: 'direct',  effort: 'low',
-    notes: 'Azure Logic Apps Rules Engine uses the same BRE runtime as BizTalk. .brl policy files can be migrated with minimal rework. ' +
+    notes: 'Azure Logic Apps Rules Engine ships the same BRE RETE runtime as BizTalk — .brl policy files are often directly reusable. ' +
+           'Supports XML facts and .NET (Framework) facts only; rework database facts first. ' +
            'Alternatively, port to Azure Functions (for complex stateful policies) or inline WDL expressions (for simple rules).' },
   SuspendShape:           { target: 'Approval workflow (HTTP Request callback)',    targetType: 'action',        status: 'partial', effort: 'medium',
     notes: 'No built-in suspend — use an HTTP Request trigger waiting for an external resume signal, or a Service Bus message.' },
@@ -108,7 +109,14 @@ const ADAPTER_MAP: Record<string, AdapterMapping> = {
   IMAP:             { target: 'IMAP managed connector',                                   targetType: 'connector',      status: 'direct',  effort: 'low' },
   SQL:              { target: 'SQL Server built-in connector (on-prem gateway)',           targetType: 'connector',      status: 'direct',  effort: 'low' },
   SAP:              { target: 'SAP built-in connector (on-prem gateway)',                 targetType: 'connector',      status: 'direct',  effort: 'medium' },
-  Oracle:           { target: 'Oracle DB managed connector (on-prem gateway)',            targetType: 'connector',      status: 'direct',  effort: 'medium' },
+  Oracle:           { target: 'Oracle Database built-in ServiceProvider connector',       targetType: 'connector',      status: 'direct',  effort: 'medium',
+    notes: 'Built-in connector (public preview May 2026). Actions only — poll with a Recurrence trigger + query action. No on-premises data gateway needed when the Logic App has network line-of-sight to the database.' },
+  RabbitMQ:         { target: 'RabbitMQ built-in connector',                              targetType: 'connector',      status: 'direct',  effort: 'low',
+    notes: 'Official hybrid answer for MessageBox-style pub/sub when Service Bus is not reachable from on-premises publishers.' },
+  JDBC:             { target: 'JDBC built-in connector',                                  targetType: 'connector',      status: 'direct',  effort: 'low',
+    notes: 'Generic database access for engines without a dedicated connector. Actions only.' },
+  Kafka:            { target: 'Confluent Kafka built-in connector',                       targetType: 'connector',      status: 'direct',  effort: 'medium',
+    notes: 'Actions only (produce). For consuming, use Azure Functions with a Kafka trigger.' },
   'WCF-BasicHttp':  { target: 'HTTP built-in action',                                     targetType: 'connector',      status: 'direct',  effort: 'trivial' },
   'WCF-WSHttp':     { target: 'HTTP built-in action',                                     targetType: 'connector',      status: 'direct',  effort: 'low' },
   'WCF-WebHttp':    { target: 'HTTP built-in trigger / action',                           targetType: 'connector',      status: 'direct',  effort: 'trivial' },
@@ -138,6 +146,12 @@ const ADAPTER_MAP: Record<string, AdapterMapping> = {
   'DB2':            { target: 'IBM Db2 built-in connector',                              targetType: 'connector',      status: 'direct',  effort: 'low' },
   'IBM CICS':       { target: 'IBM CICS built-in connector',                             targetType: 'connector',      status: 'direct',  effort: 'medium' },
   'IBM IMS':        { target: 'IBM IMS built-in connector',                              targetType: 'connector',      status: 'direct',  effort: 'medium' },
+  'IBM 3270':       { target: 'IBM 3270 built-in connector',                             targetType: 'connector',      status: 'direct',  effort: 'medium',
+    notes: 'Screen-driven 3270 integration. Requires an HIDX design artifact generated with the 3270 Design Tool.' },
+  'IBM i':          { target: 'IBM i built-in connector',                                targetType: 'connector',      status: 'direct',  effort: 'medium',
+    notes: 'Calls ILE programs on IBM i (AS/400). Requires an HIDX design artifact.' },
+  HostFile:         { target: 'IBM Host File built-in connector',                        targetType: 'connector',      status: 'direct',  effort: 'medium',
+    notes: 'Parses and generates IBM host file (VSAM) formats. Requires an HIDX design artifact.' },
 };
 
 // ─── Map migration path → description ────────────────────────────────────────
