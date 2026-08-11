@@ -415,7 +415,7 @@ export function buildPackage(
 
   // ── 10a. Generate local.settings.json (now that we know if C# functions exist) ──
   const hasLocalCodeFunctions = Object.keys(localCodeFunctions).some(k => k.endsWith('.cs'));
-  const localSettings = generateLocalSettings(appSettings, hasLocalCodeFunctions);
+  const localSettings = generateLocalSettings(appSettings, hasLocalCodeFunctions, workflows.map(w => w.name));
 
   const summary: BuildSummary = {
     workflowCount:     workflows.length,
@@ -482,7 +482,7 @@ export function buildPackageFromIntent(
   const armParameters  = buildArmParameters(appName);
   const bicepTemplate  = '';
   const terraformFiles = {} as Record<string, string>;
-  const localSettings  = generateLocalSettings(appSettings);
+  const localSettings  = generateLocalSettings(appSettings, false, [appName]);
 
   const summary: BuildSummary = {
     workflowCount:     1,

@@ -108,11 +108,19 @@ export function generateArmTemplate(arch: ArchitectureRecommendation): ArmTempla
 /**
  * Generates local.settings.json for local Logic Apps Standard development.
  * Values are placeholders — real values go in Azure App Settings or Key Vault.
+ *
+ * All workflows default to FlowState=Disabled (same as BizTalk "deployed stopped").
+ * Prevents scheduled/polling workflows from firing immediately on deploy in non-dev envs.
  */
 export function generateLocalSettings(
   appSettings: Record<string, string>,
   _hasLocalCodeFunctions = false,
+  workflowNames: string[] = [],
 ): Record<string, unknown> {
+  const flowStateEntries = Object.fromEntries(
+    workflowNames.map(name => [`Workflows.${name}.FlowState`, 'Disabled'])
+  );
+
   return {
     IsEncrypted: false,
     Values: {
@@ -125,6 +133,7 @@ export function generateLocalSettings(
       ...Object.fromEntries(
         Object.entries(appSettings).map(([k]) => [k, `<set-in-azure-app-settings-or-keyvault>`])
       ),
+      ...flowStateEntries,
     },
   };
 }
