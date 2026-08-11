@@ -4,7 +4,7 @@
 
 Point it at a folder of BizTalk files. Get back a ready-to-deploy Azure project, a gap analysis, and a migration report — in minutes.
 
-> **Why this exists**: Microsoft BizTalk Server reaches end of extended support in **October 2028**. Every organization running BizTalk must migrate before then. This tool makes that fast, systematic, and correct.
+> **Why this exists**: Mainstream support for Microsoft BizTalk Server 2020 ends **April 12, 2028**, and paid extended support ends **April 10, 2030**. Every organization running BizTalk must migrate before then. This tool makes that fast, systematic, and correct.
 
 🌐 **[biztalkmigrate.com](https://biztalkmigrate.com)** — join the waitlist for access
 
@@ -320,6 +320,20 @@ WCF-NetNamedPipe, MSDTC atomic transactions, WCF-NetTcp, MessageBox publish-subs
 
 The migration report categorizes every component in your application. You'll know before deploying.
 
+> **Planning note — SB-Messaging adapter**: Azure Service Bus retires the legacy SBMP protocol on **September 30, 2026** — well before BizTalk's own support deadline. BizTalk's SB-Messaging adapter uses SBMP unless patched: Microsoft hotfix **KB5091375** adds AMQP support. If your BizTalk applications talk to Azure Service Bus, plan around the 2026 date, not the 2028 one.
+
+---
+
+## Data Flow & Privacy
+
+Here is exactly what stays on your machine and what doesn't:
+
+- **Raw BizTalk artifacts stay local.** Your `.odx`, `.btm`, `.btp`, `.xsd`, and `BindingInfo.xml` files are parsed entirely on your machine and are never uploaded.
+- **Structural metadata is sent to the enrichment service.** To translate expressions and enrich the migration, the tool sends the structural metadata it derives from your artifacts — the migration intent, which includes orchestration structure, shape expressions, map names, and endpoint configuration such as connector addresses, file paths, and queue names — along with generated workflow JSON, to the licensed enrichment service at `api.biztalkmigrate.com`, where it is processed via the Anthropic API.
+- **License validation** sends your license key to the same service.
+
+If endpoint addresses, file paths, or queue names in your bindings are themselves sensitive, review them before running an enriched migration.
+
 ---
 
 ## License Tiers
@@ -331,7 +345,7 @@ The migration report categorizes every component in your application. You'll kno
 | Generate Logic Apps workflow.json, connections, infra | — | ✅ | ✅ |
 | Full deployable Logic Apps package | — | ✅ | ✅ |
 | Greenfield NLP (design new workflows from plain English) | — | — | ✅ |
-| 50+ pre-built workflow templates | — | — | ✅ |
+| 6 pre-built workflow templates | — | — | ✅ |
 
 Get your key at [biztalkmigrate.com](https://biztalkmigrate.com).
 
@@ -378,6 +392,21 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) o
 > **Note:** The `mcp` subcommand starts the stdio MCP server. It requires a valid license key.
 
 Restart Claude Desktop. Then say: *"Migrate my BizTalk application"* and Claude will guide you through it.
+
+---
+
+## How This Compares to Microsoft's Migration Agent
+
+Microsoft offers its own BizTalk migration agent for Azure Logic Apps. Both tools target Logic Apps Standard; they take different approaches, and you can use both. What this tool offers:
+
+- **Deterministic, repeatable output** — the same input artifacts produce the same generated package, so results can be diffed, reviewed, and re-run.
+- **Headless CLI and CI support** — runs from a terminal or a GitHub Actions workflow with no IDE session required.
+- **Minimal prerequisites** — only Node.js 20+ and a license key; no GitHub Copilot subscription or Docker runtime needed.
+- **Built-in quality scoring** — every generated workflow is scored 0–100 with a letter grade and an actionable fix list.
+- **MCP server** — plugs into Claude Desktop or any MCP client for interactive, guided migrations.
+- **Estate analysis** — inventory, complexity scoring, and wave planning across a whole BizTalk estate before you commit to a migration.
+
+Microsoft's agent runs as an interactive experience in the IDE. If your team prefers an assistant-driven flow inside VS Code, evaluate both against the same application and compare the generated output.
 
 ---
 

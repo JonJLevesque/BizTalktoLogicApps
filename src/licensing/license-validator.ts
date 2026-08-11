@@ -3,8 +3,12 @@
  * Makes a single lightweight HTTP call to the license server to validate
  * a license key and return the license tier + expiry.
  *
- * This is the ONLY place in the entire codebase that makes a network call
- * to external infrastructure. All artifact processing is 100% local.
+ * Note: this is NOT the only network call in the codebase. The enrichment
+ * client (src/runner/claude-client.ts) also sends structural metadata derived
+ * from BizTalk artifacts (the IntegrationIntent — including connector
+ * addresses, paths, and queue names — and generated workflow JSON) to the
+ * licensed enrichment proxy, where it is processed via the Anthropic API.
+ * Raw BizTalk artifact XML is parsed locally and never uploaded.
  */
 
 import { createHash } from 'node:crypto';
