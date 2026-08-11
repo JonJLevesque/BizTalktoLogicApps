@@ -45,13 +45,21 @@ const ADAPTER_TO_CONNECTOR: Record<string, string> = {
   'MQSeries':          'ibmmq (ServiceProvider)',
   'WebSphere MQ':      'ibmmq (ServiceProvider)',
   'SAP':               'sap (managed + gateway)',
-  'Oracle':            'oracle (managed connector)',
+  'Oracle':            'oracle (ServiceProvider, preview May 2026 — actions only, no gateway with line-of-sight)',
   'SharePoint':        'sharepoint (managed) / +gateway (on-prem)',
   'POP3':              'office365 (managed)',
   'IMAP':              'office365 (managed)',
   'EDI X12':           'x12 (Integration Account)',
   'EDI EDIFACT':       'edifact (Integration Account)',
   'AS2':               'as2 (Integration Account)',
+  'RabbitMQ':          'rabbitmq (ServiceProvider) — official hybrid MessageBox answer',
+  'JDBC':              'jdbc (ServiceProvider — actions only)',
+  'Kafka':             'confluent (ServiceProvider — actions only)',
+  'IBM 3270':          'ibm3270 (ServiceProvider — HIDX artifact required)',
+  'IBM CICS':          'cics (ServiceProvider — HIDX artifact required)',
+  'IBM IMS':           'ims (ServiceProvider — HIDX artifact required)',
+  'IBM i':             'ibmi (ServiceProvider — HIDX artifact required)',
+  'HostFile':          'hostfile (ServiceProvider — HIDX artifact required)',
 };
 
 // ─── Complexity display ───────────────────────────────────────────────────────
