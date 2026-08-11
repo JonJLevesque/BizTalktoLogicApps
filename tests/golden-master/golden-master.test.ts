@@ -12,12 +12,14 @@
  *      actions whose runAfter references a sibling within the same scope)
  *   3. Golden master scores grade B or higher (>= 75 quality score)
  *
- * Known behavioral gap — connections:
- *   The IntegrationIntent uses connector name "azureblob" while the connection
- *   generator's CONNECTOR_REGISTRY uses the key "blob". As a result,
- *   buildPackageFromIntent() generates empty connections for these fixtures.
- *   The connections similarity test validates the generated structure is valid
- *   rather than requiring exact golden master match.
+ * Connections naming (fixed):
+ *   Connector naming is reconciled through the canonical connector catalog
+ *   (src/stage3-build/connector-catalog.ts) — the intent-level name
+ *   ("azureblob") is canonical, and legacy registry spellings ("blob",
+ *   "azureBlob") normalize to it. buildPackageFromIntent() now generates real
+ *   serviceProviderConnections for these fixtures. The connections similarity
+ *   test validates the generated structure is valid rather than requiring
+ *   exact golden master match.
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -405,10 +407,9 @@ describe('Golden Master — workflow validation', () => {
       });
 
       // ── 4. Generated connections structure is valid ─────────────────────
-      // Note: buildPackageFromIntent uses the connector name from intent.trigger.connector
-      // ("azureblob") while the connection registry uses "blob". When the connector name
-      // matches a registry entry, connections are generated; otherwise the generated
-      // connections object is empty (but structurally valid).
+      // Note: connector names are normalized through the canonical connector
+      // catalog, so "azureblob" (and legacy spellings like "blob") resolve to
+      // the same registry entry and real connections are generated.
 
       it('generated connections.json has 0 validation errors', () => {
         const buildResult = buildPackageFromIntent(fixture.integrationIntent, {
