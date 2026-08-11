@@ -66,10 +66,11 @@ await build({
   },
 });
 
-// ── 3. Bundled MCP example resources (training pairs) ────────────────────────
+// ── 3. Bundled MCP resources (training-pair examples + decision trees) ───────
 const examples = [
   ['tests/fixtures/02-simple-file-receive/training-pair.json', 'dist/mcp-server/resources/examples/02-simple-file-receive.training-pair.json'],
   ['tests/fixtures/03-content-based-routing/training-pair.json', 'dist/mcp-server/resources/examples/03-content-based-routing.training-pair.json'],
+  ['schemas/decision-trees.json', 'dist/mcp-server/resources/schemas/decision-trees.json'],
 ];
 for (const [src, dest] of examples) {
   const target = join(extRoot, dest);
