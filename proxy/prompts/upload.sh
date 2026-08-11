@@ -68,7 +68,7 @@ fi
 
 local_size=$(wc -c < "$DOMAIN_FILE" | tr -d ' ')
 echo "  Uploading domain prompt to KV ($local_size bytes, key: 'domain')..."
-npx wrangler kv key put --namespace-id "$PROMPTS_KV_ID" "domain" "$(cat "$DOMAIN_FILE")"
+npx wrangler kv key put --remote --namespace-id "$PROMPTS_KV_ID" "domain" "$(cat "$DOMAIN_FILE")"
 echo "  ✓ SYSTEM_PROMPT_DOMAIN (KV)"
 
 echo ""

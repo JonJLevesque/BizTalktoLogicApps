@@ -50,9 +50,12 @@ proxy/.dev.vars
 # These contain real Azure secrets and/or 100+ MB of proprietary artifacts
 Sample BizTalk Old SDK/
 Sample LogicApps/
+SampleLogicApps/
 Samples Sandro/
+Samples S/
 # Sandro Pereira ebook — learning material, not for distribution
 Sandro Ebook/
+S Ebook/
 
 # ── Internal planning & methodology docs ───────────────────
 # Core IP — business model, migration methodology, detailed reference mappings

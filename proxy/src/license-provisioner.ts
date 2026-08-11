@@ -177,7 +177,11 @@ async function addToResendAudience(
       'Authorization': `Bearer ${resendApiKey}`,
       'Content-Type':  'application/json',
     },
-    body: JSON.stringify({ email, audience_id: RESEND_AUDIENCE_ID }),
+    body: JSON.stringify({
+      email,
+      audience_id: RESEND_AUDIENCE_ID,
+      data: { source: 'biztalk_migrate_waitlist' },
+    }),
   });
   if (!res.ok) {
     const body = await res.text();
