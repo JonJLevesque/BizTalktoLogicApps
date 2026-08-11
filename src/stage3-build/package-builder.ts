@@ -566,11 +566,17 @@ function buildOrchestrationIntent(
   // Build a set of valid step IDs within this orchestration
   const validIds = new Set(orchSteps.map(s => s.id));
 
-  // Remove runAfter references to steps from other orchestrations
-  const fixedSteps = orchSteps.map(s => ({
-    ...s,
-    runAfter: s.runAfter.filter(id => validIds.has(id)),
-  }));
+  // Remove runAfter / handlesErrorFrom references to steps from other orchestrations
+  const fixedSteps = orchSteps.map(s => {
+    const { handlesErrorFrom, ...rest } = s;
+    return {
+      ...rest,
+      runAfter: s.runAfter.filter(id => validIds.has(id)),
+      ...(handlesErrorFrom !== undefined && validIds.has(handlesErrorFrom)
+        ? { handlesErrorFrom }
+        : {}),
+    };
+  });
 
   return {
     ...appIntent,
@@ -995,6 +1001,7 @@ function collectAllSteps(steps: IntegrationIntent['steps']): IntegrationIntent['
       if (step.branches.cases) {
         for (const c of step.branches.cases) result.push(...collectAllSteps(c.steps));
       }
+      if (step.branches.defaultSteps) result.push(...collectAllSteps(step.branches.defaultSteps));
     }
   }
   return result;
