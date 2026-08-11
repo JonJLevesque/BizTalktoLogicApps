@@ -7,9 +7,8 @@
  *
  * Tests at three levels:
  *   1. Generated workflow similarity score >= 0.8 vs golden master
- *   2. Golden master passes validation (with tolerance for known validator
- *      limitation: the runafter-refs-exist rule incorrectly flags nested scope
- *      actions whose runAfter references a sibling within the same scope)
+ *   2. Golden master passes validation with zero errors (no suppressions —
+ *      the runafter-refs-exist rule is scope-aware)
  *   3. Golden master scores grade B or higher (>= 75 quality score)
  *
  * Known behavioral gap — connections:
@@ -334,29 +333,21 @@ describe('Golden Master — workflow validation', () => {
     describe(`fixture: ${fixture.name}`, () => {
 
       // ── 1. Golden master passes validation ────────────────────────────
-      // Known validator limitation: the runafter-refs-exist rule flags nested
-      // scope actions whose runAfter references a sibling in the same scope,
-      // treating them as top-level references. This produces false-positive errors
-      // for correct golden master workflows. We allow these specific false positives.
 
-      it('golden master workflow.json has no real validation errors', () => {
+      it('golden master workflow.json has no validation errors', () => {
         const result = validateWorkflow(fixture.goldenWorkflow);
-        // Filter out the known false-positive rule
-        const realErrors = result.issues.filter(
-          i => i.severity === 'error' && i.rule !== 'runafter-refs-exist'
-        );
-        if (realErrors.length > 0) {
-          const msgs = realErrors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
-          console.error(`Real validation errors for ${fixture.name}:\n${msgs}`);
+        const errors = result.issues.filter(i => i.severity === 'error');
+        if (errors.length > 0) {
+          const msgs = errors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
+          console.error(`Validation errors for ${fixture.name}:\n${msgs}`);
         }
-        expect(realErrors.length).toBe(0);
+        expect(errors.length).toBe(0);
       });
 
       it('golden master connections.json has 0 validation errors', () => {
-        if (fixture.goldenConnections === null) {
-          expect(true).toBe(true);
-          return;
-        }
+        // Every golden master fixture ships a connections.json — a missing file
+        // is a broken fixture, not an optional case.
+        expect(fixture.goldenConnections).not.toBeNull();
         const result = validateConnections(fixture.goldenConnections);
         const errorCount = result.issues.filter(i => i.severity === 'error').length;
         expect(errorCount).toBe(0);
@@ -432,9 +423,8 @@ describe('Golden Master — workflow validation', () => {
       });
 
       // ── 5. Generated workflow itself passes validation ──────────────────
-      // Same tolerance as golden master: allow runafter-refs-exist false positives
 
-      it('generated workflow.json has no real validation errors', () => {
+      it('generated workflow.json has no validation errors', () => {
         const buildResult = buildPackageFromIntent(fixture.integrationIntent, {
           includeTests: false,
           includeInfrastructure: false,
@@ -443,17 +433,14 @@ describe('Golden Master — workflow validation', () => {
         const generatedWorkflow = buildResult.project.workflows[0]!.workflow;
         const result = validateWorkflow(generatedWorkflow);
 
-        // Filter out the known false-positive rule
-        const realErrors = result.issues.filter(
-          i => i.severity === 'error' && i.rule !== 'runafter-refs-exist'
-        );
+        const errors = result.issues.filter(i => i.severity === 'error');
 
-        if (realErrors.length > 0) {
-          const msgs = realErrors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
-          console.error(`Real validation errors in generated workflow for ${fixture.name}:\n${msgs}`);
+        if (errors.length > 0) {
+          const msgs = errors.map(i => `  [${i.rule}] ${i.message}`).join('\n');
+          console.error(`Validation errors in generated workflow for ${fixture.name}:\n${msgs}`);
         }
 
-        expect(realErrors.length).toBe(0);
+        expect(errors.length).toBe(0);
       });
 
       // ── 6. Semantic structure matches ──────────────────────────────────

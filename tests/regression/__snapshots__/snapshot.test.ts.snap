@@ -45,10 +45,15 @@ exports[`Snapshot — 02-simple-file-receive — Stage 1 > analyzeOrchestrationX
       "polarity": "Uses",
     },
   ],
-  "shapeCount": 1,
   "shapeTypes": [
-    "CommentShape",
+    "ConstructShape",
+    "GroupShape",
+    "ReceiveShape",
+    "SendShape",
+    "TransformShape",
   ],
+  "topLevelShapeCount": 1,
+  "totalShapeCount": 5,
   "variableCount": 0,
 }
 `;
@@ -115,10 +120,21 @@ exports[`Snapshot — 03-content-based-routing — Stage 1 > analyzeOrchestratio
       "polarity": "Uses",
     },
   ],
-  "shapeCount": 1,
   "shapeTypes": [
-    "CommentShape",
+    "ConstructShape",
+    "ConstructShape",
+    "DecisionShape",
+    "GroupShape",
+    "GroupShape",
+    "GroupShape",
+    "MessageAssignmentShape",
+    "MessageAssignmentShape",
+    "ReceiveShape",
+    "SendShape",
+    "SendShape",
   ],
+  "topLevelShapeCount": 1,
+  "totalShapeCount": 11,
   "variableCount": 0,
 }
 `;
