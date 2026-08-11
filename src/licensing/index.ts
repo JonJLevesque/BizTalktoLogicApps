@@ -41,7 +41,8 @@ export function setCurrentTier(tier: LicenseTier): void {
 
 /**
  * Validates a license key, updates the module-level tier, and returns the result.
- * This is the ONLY network call in the entire codebase.
+ * Note: this is not the only network call in the codebase — the enrichment
+ * client (src/runner/claude-client.ts) also calls the enrichment proxy.
  */
 export async function validateLicense(key: string) {
   const cache     = new LicenseCache();
